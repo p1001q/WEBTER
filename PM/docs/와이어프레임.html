@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WEBTER — UX 와이어프레임</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" />
+<style>
+  :root { --bg: #F4F3EF; --paper: #fff; --ink: #242424; --g1: #E9E8E3; --g2: #D6D4CD; --g3: #A9A69E; --g4: #6E6C66; --mark: #35445C; --mono: 'JetBrains Mono', monospace; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Pretendard Variable', Pretendard, sans-serif; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 1320px; margin: 0 auto; padding: 56px 40px 120px; }
+  header.top { display: flex; align-items: flex-end; gap: 24px; border-bottom: 2px solid var(--ink); padding-bottom: 20px; flex-wrap: wrap; }
+  header.top h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; }
+  header.top .meta { margin-left: auto; font-size: 13px; color: var(--g4); text-align: right; line-height: 1.7; }
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--g4); letter-spacing: .04em; }
+  h2.sec { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 72px 0 6px; display: flex; gap: 12px; align-items: baseline; }
+  h2.sec .kicker { font-size: 13px; }
+  .lead { color: var(--g4); margin: 0 0 28px; font-size: 15px; max-width: 760px; line-height: 1.65; }
+  a { color: inherit; }
+
+  /* sitemap */
+  .sitemap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .sm-col { background: var(--paper); border: 1px solid var(--g2); border-radius: 6px; padding: 18px; }
+  .sm-col h4 { margin: 0 0 12px; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .sm-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+  .sm-col li { display: flex; gap: 8px; align-items: center; }
+  .sm-col li .n { font-family: var(--mono); font-size: 11px; color: var(--g3); width: 20px; }
+  .sm-col li.sub { padding-left: 28px; color: var(--g4); font-size: 12.5px; }
+  .sc { font-family: var(--mono); font-size: 10px; padding: 1px 5px; border-radius: 3px; border: 1px dashed; margin-left: auto; white-space: nowrap; }
+  .sc.mvp { color: var(--mark); background: #EBEEF3; border-style: solid; }
+  .sc.rv { color: #8A6A12; background: #FBF3D9; }
+  .sc.ex { color: #823F43; background: #F4E7E6; }
+
+  .layout-def { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 16px; }
+  .box { background: var(--paper); border: 1px solid var(--g2); border-radius: 6px; padding: 20px; font-size: 13.5px; line-height: 1.7; }
+  .box h4 { margin: 0 0 10px; font-size: 14px; }
+  .box ul { margin: 0; padding-left: 18px; }
+
+  /* flows */
+  .flows { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .flow { background: var(--paper); border: 1px solid var(--g2); border-radius: 6px; padding: 16px 18px; }
+  .flow-h { display: flex; gap: 8px; align-items: center; font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+  .flow-h b { font-family: var(--mono); background: var(--ink); color: #fff; border-radius: 3px; padding: 1px 7px; font-size: 12px; }
+  .steps { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+  .steps span { background: var(--g1); border-radius: 4px; padding: 4px 9px; }
+  .steps i { font-style: normal; color: var(--g3); }
+  .steps a { text-decoration: none; }
+  .steps a span:hover { background: var(--ink); color: #fff; }
+
+  /* wireframe atoms */
+  .wf-row { display: grid; grid-template-columns: 1fr 248px; gap: 28px; align-items: start; margin-bottom: 64px; }
+  .wf-title { display: flex; gap: 12px; align-items: baseline; margin: 0 0 14px; }
+  .wf-title h3 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .wf-title a.go { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--mark); text-decoration: none; }
+  .wf-title a.go:hover { text-decoration: underline; }
+  .frame { background: var(--paper); border: 1.5px solid var(--ink); border-radius: 6px; overflow: hidden; position: relative; }
+  .frame.m { border-radius: 18px; border-width: 3px; }
+  .cap { font-family: var(--mono); font-size: 11px; color: var(--g4); margin: 8px 2px 0; }
+  .wf { padding: 0 22px 24px 38px; display: flex; flex-direction: column; gap: 12px; }
+  .m .wf { padding: 0 10px 14px; gap: 8px; }
+  .hd { display: flex; align-items: center; gap: 8px; height: 40px; border-bottom: 1px solid var(--g1); margin: 0 -22px 0 -38px; padding: 0 22px 0 38px; }
+  .m .hd { margin: 0 -10px; padding: 0 10px; height: 32px; }
+  .logo { font-weight: 800; font-size: 13px; letter-spacing: -0.02em; }
+  .m .logo { font-size: 11px; }
+  .sp { flex: 1; }
+  .ic { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--g3); flex-shrink: 0; }
+  .ic.c { border-radius: 50%; }
+  .pill { height: 18px; border-radius: 9px; border: 1.5px solid var(--g3); padding: 0 8px; font-size: 9.5px; display: inline-flex; align-items: center; color: var(--g4); white-space: nowrap; flex-shrink: 0; }
+  .pill.f { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pill.lg { height: 26px; border-radius: 13px; font-size: 11px; padding: 0 14px; }
+  .nav { display: flex; gap: 14px; font-size: 11px; color: var(--g3); font-weight: 600; padding: 6px 0; }
+  .nav b { color: var(--ink); border-bottom: 2px solid var(--ink); padding-bottom: 3px; }
+  .m .nav { gap: 9px; font-size: 9.5px; }
+  .ln { height: 6px; border-radius: 3px; background: var(--g2); }
+  .ln.t { height: 10px; background: var(--g3); }
+  .ln.d { background: var(--g1); }
+  .im { background: var(--g1); position: relative; overflow: hidden; border-radius: 3px; }
+  .im::before, .im::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top right, transparent calc(50% - .5px), var(--g2) 50%, transparent calc(50% + .5px)); }
+  .im::after { background: linear-gradient(to top left, transparent calc(50% - .5px), var(--g2) 50%, transparent calc(50% + .5px)); }
+  .im span { position: absolute; left: 6px; top: 5px; font-family: var(--mono); font-size: 9px; color: var(--g4); z-index: 1; background: var(--g1); padding: 0 3px; }
+  .srch { height: 30px; border: 1.5px solid var(--ink); border-radius: 15px; display: flex; align-items: center; padding: 0 4px 0 12px; gap: 8px; font-size: 10.5px; color: var(--g3); }
+  .srch .go { margin-left: auto; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); }
+  .grid { display: grid; gap: 10px; }
+  .card { border: 1px solid var(--g2); border-radius: 3px; overflow: hidden; display: flex; flex-direction: column; }
+  .card .im { aspect-ratio: 16/10; border-radius: 0; }
+  .card .bd { padding: 6px 7px 7px; display: flex; flex-direction: column; gap: 4px; }
+  .card .ft { display: flex; gap: 4px; align-items: center; border-top: 1px solid var(--g1); padding: 5px 7px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--g2); flex-shrink: 0; }
+  .av { border-radius: 50%; background: var(--g2); flex-shrink: 0; }
+  .h { font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .h small { margin-left: auto; font-weight: 500; font-size: 10px; color: var(--g4); }
+  .m .h { font-size: 10px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .col { display: flex; flex-direction: column; gap: 6px; }
+  .bx { border: 1px solid var(--g2); border-radius: 4px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .bx.dash { border-style: dashed; }
+  .lbl { font-size: 9.5px; font-weight: 700; color: var(--g4); }
+  .inp { height: 22px; border: 1px solid var(--g2); border-radius: 3px; }
+  .tabs { display: flex; gap: 14px; font-size: 10.5px; color: var(--g3); font-weight: 600; border-bottom: 1px solid var(--g2); padding-bottom: 5px; }
+  .tabs b { color: var(--ink); position: relative; }
+  .tabs b::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; background: var(--ink); }
+  .chip { height: 16px; border-radius: 8px; background: var(--g1); width: 38px; flex-shrink: 0; }
+  .chip.on { background: var(--g4); }
+  .tag { font-family: var(--mono); font-size: 8.5px; padding: 1px 4px; border-radius: 2px; border: 1px dashed; }
+  .tag.rv { color: #8A6A12; } .tag.ex { color: #823F43; }
+
+  /* annotation markers */
+  .mk { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: var(--mark); color: #fff; font-family: var(--mono); font-size: 10px; font-weight: 700; display: grid; place-items: center; z-index: 3; box-shadow: 0 0 0 2px #fff; }
+  .rel { position: relative; }
+  .notes { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px 24px; font-size: 13px; line-height: 1.55; }
+  .notes li { display: flex; gap: 10px; }
+  .notes li b.n { width: 18px; height: 18px; border-radius: 50%; background: var(--mark); color: #fff; font-family: var(--mono); font-size: 10px; display: grid; place-items: center; flex-shrink: 0; margin-top: 1px; }
+  .notes li em { font-style: normal; font-weight: 700; }
+
+  @media (max-width: 980px) {
+    .sitemap { grid-template-columns: 1fr 1fr; } .flows, .layout-def { grid-template-columns: 1fr; }
+    .wf-row { grid-template-columns: 1fr; } .wf-row > .mob { max-width: 248px; }
+  }
+</style>
+</head>
+<body>
+<div id="__splash" style="position:fixed;inset:0;background:#F7F5EF;display:flex;align-items:center;justify-content:center;z-index:2147483647;transition:opacity .25s ease"><svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg"><text x="600" y="430" text-anchor="middle" font-family="sans-serif" font-size="140" font-weight="800" fill="#242424">WEB<tspan fill="#35445C" font-weight="500">TER</tspan></text><circle cx="1010" cy="420" r="16" fill="#F2DB94"/></svg></div><script>(function(){var s=document.getElementById("__splash");if(!s)return;function hide(){s.style.opacity="0";setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},300);}if(document.readyState==="complete")hide();else window.addEventListener("load",hide);})();</script>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <div class="kicker">WEBTER · UX WIREFRAME · v0.1 (초기 기획)</div>
+      <h1>WEBTER 와이어프레임</h1>
+    </div>
+    <div class="meta">팀 얼렁뚱땅 · 박수연, 박성영<br />Hecto 프로젝트 8 · 2026년 2학기<br /><a href="프로토타입.html">인터랙티브 프로토타입 열기 →</a></div>
+  </header>
+
+  <!-- STEP 1 -->
+  <h2 class="sec"><span class="kicker">STEP 1</span>페이지 구조와 공통 레이아웃</h2>
+  <p class="lead">탐색(앱스토어형) → 상세(디스콰이엇형) → 외부 실행으로 이어지는 단순한 구조입니다. 회원 유형은 하나로 통합하고, 등록·관리 기능은 로그인한 모든 회원에게 열려 있어요.</p>
+  <div class="sitemap">
+    <div class="sm-col"><h4>탐색 <span class="sc mvp">핵심</span></h4><ul>
+      <li><span class="n">01</span>홈</li><li class="sub">AI 통합 검색 · 추천 배너 · 트렌딩 · 최신</li>
+      <li><span class="n">02</span>트렌딩<span class="sc rv">산정 검토</span></li>
+      <li><span class="n">03</span>인기 (하루/일주일/한 달)<span class="sc rv">산정 검토</span></li>
+      <li><span class="n">04</span>최신</li>
+      <li><span class="n">05</span>팔로우 피드<span class="sc rv">검토</span></li>
+      <li><span class="n">—</span>카테고리 (사이드바)</li>
+    </ul></div>
+    <div class="sm-col"><h4>발견·이용 <span class="sc mvp">핵심</span></h4><ul>
+      <li><span class="n">06</span>AI 검색 결과</li>
+      <li><span class="n">07</span>서비스 상세</li><li class="sub">소개 · 리뷰 · 제작 이야기<span class="sc ex">확장</span></li>
+      <li><span class="n">—</span>이용하기 → 외부 URL 새 탭</li>
+      <li><span class="n">—</span>좋아요 · 스크랩<span class="sc rv">검토</span></li>
+    </ul></div>
+    <div class="sm-col"><h4>등록·관리 <span class="sc mvp">핵심</span></h4><ul>
+      <li><span class="n">10</span>웹 서비스 등록</li>
+      <li class="sub">등록 완료 안내</li>
+      <li><span class="n">11</span>내 서비스 관리</li>
+      <li><span class="n">12</span>웹 서비스 수정 (등록 폼 재사용)</li>
+      <li class="sub">삭제 확인 모달</li>
+    </ul></div>
+    <div class="sm-col"><h4>계정</h4><ul>
+      <li><span class="n">08</span>로그인<span class="sc mvp">핵심</span></li>
+      <li><span class="n">09</span>회원가입 (역할 선택 없음)<span class="sc mvp">핵심</span></li>
+      <li><span class="n">13</span>마이페이지 (비공개)</li>
+      <li><span class="n">14</span>공개 프로필<span class="sc rv">검토</span></li>
+      <li class="sub">팔로우 · 레벨 배지<span class="sc ex">확장</span></li>
+    </ul></div>
+  </div>
+  <div class="layout-def">
+    <div class="box"><h4>공통 레이아웃</h4><ul>
+      <li><b>글로벌 헤더</b> — 좌: 사이드바 버튼 + WEBTER 워드마크 / 우: 검색 · 서비스 등록 · 로그인(또는 프로필)</li>
+      <li><b>메인 내비게이션</b> — 홈 | 트렌딩 | 인기 | 최신 | 팔로우 (목록형 페이지에서만 노출)</li>
+      <li><b>사이드바</b> — 기본 접힘. 열면 콘텐츠 위로 오버레이(카테고리 8개 + 내 메뉴 2개). 메인 그리드 폭은 변하지 않음</li>
+      <li><b>콘텐츠</b> — 최대 1376px, 좌우 32px. 카드 그리드 4열(1440) → 3열 → 2열 → 1열(390)</li>
+      <li><b>푸터</b> — 슬로건, 팀 정보, 샘플 데이터 안내</li>
+    </ul></div>
+    <div class="box"><h4>공통 컴포넌트 재사용</h4><ul>
+      <li>트렌딩·인기·최신·팔로우·카테고리 = <b>하나의 목록 레이아웃</b> + 정렬/필터만 다름</li>
+      <li>등록·수정 = <b>하나의 서비스 폼</b></li>
+      <li>모든 목록·검색·마이페이지·프로필 = <b>하나의 서비스 카드</b></li>
+      <li>로그인 필요 동작(좋아요·스크랩·리뷰·팔로우) = <b>하나의 로그인 안내 모달</b></li>
+    </ul></div>
+  </div>
+
+  <h2 class="sec"><span class="kicker">FLOWS</span>주요 사용자 플로우</h2>
+  <p class="lead">각 단계를 누르면 프로토타입의 해당 화면으로 이동합니다.</p>
+  <div class="flows">
+    <div class="flow"><div class="flow-h"><b>A</b>서비스 탐색 및 이용</div><div class="steps">
+      <a href="프로토타입.html#home"><span>홈</span></a><i>→</i><a href="프로토타입.html#trending"><span>트렌딩</span></a><i>→</i><a href="프로토타입.html#detail/s06"><span>서비스 상세</span></a><i>→</i><span>이용하기</span><i>→</i><span>외부 웹사이트(새 탭)</span></div></div>
+    <div class="flow"><div class="flow-h"><b>B</b>AI 자연어 검색</div><div class="steps">
+      <a href="프로토타입.html#home"><span>홈</span></a><i>→</i><span>자연어 입력</span><i>→</i><a href="프로토타입.html#search/친구랑 가볍게 할 수 있는 웹게임"><span>검색 결과</span></a><i>→</i><a href="프로토타입.html#detail/s01"><span>서비스 상세</span></a><i>→</i><span>이용하기</span></div></div>
+    <div class="flow"><div class="flow-h"><b>C</b>개발자 서비스 등록</div><div class="steps">
+      <a href="프로토타입.html#login"><span>로그인</span></a><i>→</i><a href="프로토타입.html#register"><span>서비스 등록</span></a><i>→</i><span>등록 완료</span><i>→</i><a href="프로토타입.html#manage"><span>내 서비스 관리</span></a><i>→</i><a href="프로토타입.html#edit/s10"><span>서비스 수정</span></a></div></div>
+    <div class="flow"><div class="flow-h"><b>D</b>리뷰 작성</div><div class="steps">
+      <a href="프로토타입.html#detail/s01"><span>서비스 상세</span></a><i>→</i><span>리뷰 탭</span><i>→</i><span>로그인 안내</span><i>→</i><a href="프로토타입.html#login"><span>로그인</span></a><i>→</i><span>리뷰 작성 모달</span></div></div>
+    <div class="flow"><div class="flow-h"><b>E</b>스크랩</div><div class="steps">
+      <a href="프로토타입.html#home"><span>홈 / 상세</span></a><i>→</i><span>스크랩</span><i>→</i><a href="프로토타입.html#mypage"><span>마이페이지</span></a><i>→</i><span>스크랩 탭</span><i>→</i><span>서비스 재방문</span></div></div>
+    <div class="flow"><div class="flow-h"><b>F</b>팔로우 <span class="sc rv" style="margin-left:6px">확장 검토</span></div><div class="steps">
+      <a href="프로토타입.html#profile/u_pixel"><span>공개 프로필</span></a><i>→</i><span>팔로우</span><i>→</i><a href="프로토타입.html#follow"><span>팔로우 피드</span></a><i>→</i><span>서비스 발견</span></div></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <h2 class="sec"><span class="kicker">STEP 2</span>핵심 화면 와이어프레임</h2>
+  <p class="lead">시각 장식 없이 영역과 정보 우선순위만 표시했습니다. 왼쪽은 데스크톱(1440 기준 축소), 오른쪽은 모바일(390 기준 축소)입니다. 번호는 아래 설명과 연결돼요.</p>
+
+  <div id="wfs"></div>
+</div>
+
+<script>
+// ---- wireframe builders (단순 반복 마크업 생성용) ----
+const L = (w, cls='') => `<div class="ln ${cls}" style="width:${w}"></div>`;
+const IM = (h, label='', extra='') => `<div class="im" style="height:${h}px;${extra}">${label ? `<span>${label}</span>` : ''}</div>`;
+const MK = (n, x, y) => `<div class="mk" style="left:${x};top:${y}">${n}</div>`;
+const CARD = (m) => `<div class="card"><div class="im"></div><div class="bd"><div class="row"><div class="chip" style="width:${m?22:30}px;height:9px"></div></div>${L('70%','t')}${L('95%','d')}${m?'':L('60%','d')}</div><div class="ft"><div class="dot"></div>${L('30%','d')}<div class="sp"></div>${L('18%','d')}</div></div>`;
+const GRID = (n, cols, m) => `<div class="grid" style="grid-template-columns:repeat(${cols},1fr)">${Array.from({length:n}).map(()=>CARD(m)).join('')}</div>`;
+const HD = (m, logged) => `<div class="hd"><div class="ic"></div><span class="logo">WEBTER</span><div class="sp"></div><div class="ic c"></div>${m ? '' : `<span class="pill">${logged ? '+ 서비스 등록' : '서비스 등록'}</span>`}${logged ? '<div class="av" style="width:18px;height:18px"></div>' : '<span class="pill f">로그인</span>'}</div>`;
+const NAV = () => `<div class="nav"><b>홈</b><span>트렌딩</span><span>인기</span><span>최신</span><span>팔로우</span></div>`;
+const FLD = (w='100%', h=22) => `<div class="col" style="gap:3px"><div class="ln" style="width:30%;height:5px"></div><div class="inp" style="width:${w};height:${h}px"></div></div>`;
+
+const screens = [
+ { id: '01', name: '홈', go: '#home',
+   d: `${HD()}<div class="rel">${NAV()}</div>
+     <div class="col rel" style="align-items:center;padding:18px 0 4px">${MK(1,'4%','14px')}<div class="ln t" style="width:40%;height:14px"></div>${L('30%','d')}<div class="srch" style="width:64%;margin-top:8px">어떤 웹 서비스를 찾고 계신가요?<div class="go"></div></div><div class="row" style="margin-top:2px">${'<div class="chip" style="width:70px"></div>'.repeat(4)}</div></div>
+     <div class="bx rel" style="flex-direction:row;padding:0;overflow:hidden;height:110px">${MK(2,'-6px','-6px')}<div class="col" style="flex:1;padding:14px"><div class="chip" style="width:46px"></div>${L('40%','t')}${L('80%','d')}<div class="sp"></div><div class="row"><span class="pill f">이용하기</span><span class="pill">자세히 보기</span></div></div>${IM(110,'추천 서비스 대표 이미지','flex:1.3;border-radius:0')}</div>
+     <div class="h rel">${MK(3,'-26px','-3px')}지금 뜨는 서비스<small>더보기 →</small></div>${GRID(4,4)}
+     <div class="h rel">${MK(4,'-26px','-3px')}새로 등록된 서비스<small>더보기 →</small></div>${GRID(4,4)}`,
+   m: `${HD(1)}${NAV()}<div class="col" style="padding:6px 0">${L('70%','t')}${L('50%','d')}<div class="srch" style="height:24px;font-size:8.5px">어떤 웹 서비스를…<div class="go" style="width:18px;height:18px"></div></div></div>
+     <div class="bx" style="padding:0;overflow:hidden">${IM(70,'','border-radius:0')}<div class="col" style="padding:7px">${L('50%','t')}${L('85%','d')}<span class="pill f" style="align-self:flex-start">이용하기</span></div></div>
+     <div class="h">지금 뜨는 서비스<small>→</small></div>${GRID(2,1,1)}`,
+   notes: [['AI 통합 검색', '키워드와 문장을 한 검색창에서. 챗봇이 아닌 검색창 형태, 예시 문장 칩으로 자연어 검색을 유도'], ['추천 배너', '높이를 낮게 유지해 광고처럼 보이지 않게. 3개 서비스가 순환되는 캐러셀'], ['트렌딩 영역', '“지금 뜨는 서비스” 4열 카드. 더보기 → 트렌딩 탭'], ['최신 영역', '같은 카드 컴포넌트 재사용. 더보기 → 최신 탭']] },
+ { id: '06', name: 'AI 검색 결과', go: '#search/친구랑 가볍게 할 수 있는 웹게임',
+   d: `${HD()}<div class="srch rel" style="width:62%;margin-top:14px">${MK(1,'-24px','5px')}친구랑 가볍게 할 수 있는 웹게임<div class="go"></div></div>
+     <div class="rel">${MK(2,'-26px','0')}<div class="ln t" style="width:46%;height:12px"></div></div>
+     <div class="bx rel" style="width:62%">${MK(3,'-26px','6px')}<div class="row"><div class="ic c" style="width:10px;height:10px"></div>${L('44%','t')}</div><div class="row">${'<div class="chip" style="width:60px"></div>'.repeat(4)}</div>${L('70%','d')}</div>
+     <div class="row rel">${MK(4,'-26px','0')}<div class="chip on"></div><div class="chip"></div><div class="chip"></div><div class="sp"></div><span class="pill">관련도순 ▾</span></div>
+     <div class="rel">${MK(5,'-26px','30px')}${GRID(4,4).replace(/<div class="ft">/g,'<div style="margin:0 7px 6px;height:14px;background:#EBEEF3;border-radius:2px"></div><div class="ft">')}</div>`,
+   m: `${HD(1)}<div class="srch" style="height:24px;font-size:8.5px;margin-top:6px">친구랑 가볍게…<div class="go" style="width:18px;height:18px"></div></div>${L('80%','t')}<div class="bx">${L('70%','t')}<div class="row">${'<div class="chip" style="width:34px"></div>'.repeat(3)}</div></div><div class="row"><div class="chip on" style="width:26px"></div><div class="chip" style="width:26px"></div><div class="chip" style="width:26px"></div></div>${GRID(2,1,1)}`,
+   notes: [['검색창 유지', '결과 화면 상단에도 동일한 검색창을 두어 바로 재검색'], ['검색어 + 결과 개수', '“‘검색어’ 검색 결과 N개”'], ['AI 검색 안내', 'AI가 해석한 조건을 칩으로 요약(카테고리·인원·시간). 대화형 UI 아님'], ['필터·정렬', '결과에 포함된 카테고리만 칩으로 노출 + 관련도/좋아요/최신 정렬'], ['결과 카드', '공통 카드 + “추천 이유” 한 줄(선택 노출)']] },
+ { id: '07', name: '서비스 상세', go: '#detail/s01',
+   d: `${HD()}<div class="row" style="gap:4px;padding-top:8px">${L('16%','d')}</div>
+     <div class="row rel" style="align-items:flex-start;gap:14px">${MK(1,'-26px','4px')}<div class="im" style="width:58px;height:58px;border-radius:12px"></div><div class="col" style="flex:1"><div class="row"><div class="chip" style="width:40px"></div><div class="chip" style="width:30px"></div></div><div class="ln t" style="width:36%;height:14px"></div>${L('60%','d')}<div class="row"><div class="av" style="width:12px;height:12px"></div>${L('20%','d')}</div></div>
+       <div class="col rel" style="width:150px">${MK(2,'-26px','4px')}<span class="pill f lg" style="justify-content:center">이용하기 ↗</span><div class="row"><span class="pill" style="flex:1;justify-content:center">♡ 좋아요</span><span class="pill" style="flex:1;justify-content:center">스크랩</span></div></div></div>
+     <div class="row" style="border-top:1px solid var(--g1);border-bottom:1px solid var(--g1);padding:8px 0;justify-content:space-around">${'<div class="col" style="align-items:center;gap:3px;width:15%"><div class="ln t" style="width:40%"></div><div class="ln d" style="width:60%"></div></div>'.repeat(4)}</div>
+     <div class="row rel" style="overflow:hidden">${MK(3,'-26px','24px')}${IM(84,'스크린샷 1','flex:0 0 38%')}${IM(84,'스크린샷 2','flex:0 0 38%')}${IM(84,'','flex:0 0 38%')}</div>
+     <div class="tabs rel">${MK(4,'-26px','-4px')}<b>소개</b><span>리뷰 4</span><span>제작 이야기 <span class="tag ex">확장</span></span></div>
+     <div class="row rel" style="align-items:flex-start;gap:16px"><div class="col" style="flex:1">${L('20%','t')}${L('95%','d')}${L('88%','d')}${L('20%','t')}${L('50%','d')}${L('45%','d')}${L('50%','d')}</div><div class="col rel" style="width:150px">${MK(5,'-26px','4px')}<div class="bx"><div class="row"><div class="av" style="width:20px;height:20px"></div>${L('50%','t')}</div>${L('90%','d')}<span class="pill" style="justify-content:center">+ 팔로우</span></div><div class="bx">${L('80%','d')}${L('70%','d')}${L('80%','d')}</div></div></div>
+     <div class="h">비슷한 서비스</div>${GRID(4,4)}`,
+   m: `${HD(1)}<div class="row" style="padding-top:6px"><div class="im" style="width:38px;height:38px;border-radius:9px"></div><div class="col" style="flex:1">${L('60%','t')}${L('90%','d')}</div></div><div class="row" style="overflow:hidden">${IM(60,'','flex:0 0 75%')}${IM(60,'','flex:0 0 75%')}</div><div class="tabs" style="font-size:9px"><b>소개</b><span>리뷰</span><span>제작 이야기</span></div>${L('90%','d')}${L('80%','d')}${L('85%','d')}<div style="height:34px"></div>
+     <div class="row" style="position:absolute;left:0;right:0;bottom:0;border-top:1px solid var(--g2);padding:6px 8px;background:#fff"><div class="ic"></div><div class="ic"></div><span class="pill f" style="flex:1;justify-content:center">이용하기 ↗</span></div>`,
+   notes: [['상단 정보', '서비스 로고·이름·한 줄 소개·카테고리·배포 상태·등록자'], ['핵심 CTA', '“이용하기”가 가장 강한 버튼. 외부 URL을 새 탭으로. 출시 예정/운영 중단 시 대체 상태 표시. 모바일은 하단 고정'], ['미리보기', '가로 스크롤 스크린샷 갤러리, 클릭 시 확대'], ['탭', '소개 | 리뷰 | 제작 이야기(확장 기능, Tweaks로 숨김 가능)'], ['제작자 카드', '공개 프로필로 이동 + 팔로우(검토 기능)']] },
+ { id: '10', name: '웹 서비스 등록 / 12 수정', go: '#register',
+   d: `${HD(0,1)}<div class="col" style="padding-top:10px">${L('22%','t')}${L('48%','d')}</div>
+     <div class="row" style="align-items:flex-start;gap:16px"><div class="col" style="flex:1;gap:10px">
+       <div class="bx rel">${MK(1,'-26px','6px')}<div class="row"><div class="ln t" style="width:18%"></div><span class="tag ex">필수</span></div>${FLD()}${FLD()}<div class="col" style="gap:3px"><div class="ln" style="width:20%;height:5px"></div><div class="row">${'<div class="chip"></div>'.repeat(7)}</div></div>${FLD()}<div class="col" style="gap:3px"><div class="ln" style="width:20%;height:5px"></div><div class="row"><span class="pill f">이용 가능</span><span class="pill">출시 예정</span><span class="pill">운영 중단</span></div></div></div>
+       <div class="bx rel">${MK(2,'-26px','6px')}${L('14%','t')}<div class="row" style="align-items:flex-start"><div class="im" style="width:44%;aspect-ratio:16/10;border:1.5px dashed var(--g3);background:#fff"><span>대표 이미지 업로드</span></div><div class="im" style="width:16%;aspect-ratio:16/10"></div><div class="im" style="width:16%;aspect-ratio:16/10;border:1.5px dashed var(--g3);background:#fff"></div></div></div>
+       <div class="bx dash rel">${MK(3,'-26px','6px')}<div class="row"><div class="ln t" style="width:18%"></div><span class="tag">선택</span></div><div class="inp" style="height:46px"></div><div class="inp"></div></div>
+     </div><div class="col rel" style="width:170px">${MK(4,'-26px','4px')}${CARD()}<div class="bx">${L('100%','d')}</div><span class="pill f lg" style="justify-content:center">서비스 등록하기</span></div></div>`,
+   m: `${HD(1,1)}${L('50%','t')}<div class="bx">${FLD()}${FLD()}<div class="row">${'<div class="chip" style="width:24px"></div>'.repeat(4)}</div>${FLD()}</div><div class="bx">${IM(50,'대표 이미지')}</div><div class="bx dash"><div class="inp" style="height:30px"></div></div>${CARD(1)}<span class="pill f lg" style="justify-content:center">서비스 등록하기</span>`,
+   notes: [['필수 5개만', '서비스명 · 한 줄 소개 · 카테고리 · 실행 URL · 배포 상태 (+대표 이미지). 글자 수 카운터·입력 예시 제공'], ['이미지', '대표 이미지(필수) + 스크린샷(선택, 최대 6장)'], ['선택 항목', '상세 설명·태그는 나중에 작성 가능. AI 소개문 초안(확장 기능) 버튼 위치만 확보'], ['실시간 카드 미리보기', '입력 즉시 목록 카드로 어떻게 보일지 확인 + 필수 항목 진행률. 수정 화면은 같은 폼에 값만 채워서 재사용']] },
+ { id: '11', name: '내 서비스 관리', go: '#manage',
+   d: `${HD(0,1)}<div class="row" style="padding-top:10px"><div class="col" style="flex:1">${L('22%','t')}${L('40%','d')}</div><span class="pill f lg">+ 새 서비스 등록</span></div>
+     <div class="bx rel" style="padding:0;gap:0">${MK(1,'-26px','4px')}<div class="row" style="padding:7px 10px;background:#FAFAF8;font-size:9px;color:var(--g4);font-weight:700"><span style="flex:2.4">서비스</span><span style="flex:1">배포 상태</span><span style="flex:1.4">반응</span><span style="flex:.8">등록일</span><span style="flex:.8">공개</span><span style="flex:1"></span></div>
+     ${[1,1,0].map((on,i)=>`<div class="row rel" style="padding:9px 10px;border-top:1px solid var(--g1)"><div class="row" style="flex:2.4;opacity:${on?1:.45}">${IM(30,'','width:48px;flex-shrink:0')}<div class="col" style="flex:1;gap:3px">${L('50%','t')}${L('80%','d')}</div></div><div style="flex:1" class="rel">${i===0?MK(2,'-22px','2px'):''}<span class="pill">이용 가능 ▾</span></div><div class="row" style="flex:1.4">${L('70%','d')}</div><div style="flex:.8">${L('80%','d')}</div><div style="flex:.8" class="rel">${i===0?MK(3,'-22px','0'):''}<div style="width:24px;height:13px;border-radius:7px;background:${on?'var(--g4)':'var(--g2)'}"></div></div><div class="row rel" style="flex:1;justify-content:flex-end">${i===0?MK(4,'-22px','2px'):''}<span class="pill">수정</span><div class="ic"></div></div></div>`).join('')}</div>
+     <div class="bx dash">${L('16%','t')}${L('50%','d')}</div>`,
+   m: `${HD(1,1)}${L('50%','t')}${[1,1].map(()=>`<div class="bx"><div class="row">${IM(28,'','width:44px;flex-shrink:0')}<div class="col" style="flex:1">${L('60%','t')}${L('90%','d')}</div></div><div class="row"><span class="pill">이용 가능 ▾</span><div class="sp"></div><div style="width:22px;height:12px;border-radius:6px;background:var(--g4)"></div></div><div class="row" style="border-top:1px solid var(--g1);padding-top:5px"><span class="pill">수정</span><div class="ic"></div></div></div>`).join('')}`,
+   notes: [['목록형', '기업용 대시보드 대신 한 줄에 서비스 하나. 썸네일·이름·상태·반응·등록일'], ['배포 상태 즉시 변경', '드롭다운으로 이용 가능 / 출시 예정 / 운영 중단'], ['공개 / 비공개', '토글로 목록·검색 노출 여부 전환'], ['수정 · 삭제', '수정 → 등록 폼 재사용. 삭제 → 확인 모달(비공개 전환 대안 제시)']] },
+ { id: '13', name: '마이페이지', go: '#mypage',
+   d: `${HD(0,1)}<div class="row rel" style="padding-top:14px;gap:14px">${MK(1,'-26px','16px')}<div class="av" style="width:56px;height:56px"></div><div class="col" style="flex:1">${L('12%','d')}${L('20%','t')}${L('46%','d')}</div><span class="pill">공개 프로필 보기</span><span class="pill f">서비스 등록</span></div>
+     <div class="tabs rel">${MK(2,'-26px','-4px')}<b>내 등록 서비스 3</b><span>스크랩 3</span><span>좋아요 1</span><span>내 리뷰 1</span><span>계정 설정</span></div>${GRID(3,3)}`,
+   m: `${HD(1,1)}<div class="row" style="padding-top:8px"><div class="av" style="width:36px;height:36px"></div><div class="col" style="flex:1">${L('50%','t')}${L('80%','d')}</div></div><div class="tabs" style="font-size:8.5px;gap:8px"><b>내 서비스</b><span>스크랩</span><span>좋아요</span><span>리뷰</span></div>${GRID(2,1,1)}`,
+   notes: [['나만 보는 공간', '“마이페이지 · 나만 볼 수 있어요” 명시. 공개 프로필로 가는 버튼 별도 제공'], ['활동 탭', '내 등록 서비스(비공개 포함) · 스크랩 · 좋아요 · 내 리뷰 · 계정 설정(닉네임·자기소개·비밀번호)']] },
+ { id: '14', name: '공개 사용자 프로필', go: '#profile/u_bori', scope: '검토',
+   d: `${HD()}<div class="row rel" style="padding-top:18px;gap:16px">${MK(1,'-26px','20px')}<div class="av" style="width:70px;height:70px"></div><div class="col" style="flex:1"><div class="row">${L('18%','t')}<span class="tag ex">Lv.9</span></div>${L('48%','d')}<div class="row rel" style="gap:12px;margin-top:4px">${MK(2,'-26px','-4px')}${L('8%')}${L('10%')}${L('9%')}${L('8%')}</div></div><span class="pill f lg rel">${MK(3,'-24px','4px')}+ 팔로우</span></div>
+     <div style="border-top:1px solid var(--g2);margin:8px 0"></div><div class="h rel">${MK(4,'-26px','-3px')}보리차님이 만든 서비스</div>${GRID(3,3)}`,
+   m: `${HD(1)}<div class="col" style="align-items:flex-start;padding-top:10px"><div class="av" style="width:44px;height:44px"></div>${L('40%','t')}${L('90%','d')}<div class="row" style="gap:6px">${L('18%')}${L('18%')}${L('18%')}</div><span class="pill f" style="align-self:stretch;justify-content:center">+ 팔로우</span></div>${GRID(2,1,1)}`,
+   notes: [['프로필 정보', '이미지 · 닉네임 · 레벨 배지(확장) · 자기소개. 계정·스크랩 등 비공개 활동은 표시하지 않음'], ['수치', '서비스 수 · 받은 좋아요 · 팔로워 · 팔로잉'], ['팔로우', '팔로우하면 상단 “팔로우” 피드에 이 사람의 새 서비스가 표시(검토 기능)'], ['자동 포트폴리오', '별도 편집 없이 등록한 서비스가 자동으로 나열']] },
+];
+
+document.getElementById('wfs').innerHTML = screens.map(s => `
+  <section class="wf-row" data-screen-label="${s.id} ${s.name}">
+    <div>
+      <div class="wf-title"><span class="kicker">${s.id}</span><h3>${s.name}</h3>${s.scope ? `<span class="sc rv">${s.scope} 기능</span>` : ''}<a class="go" href="프로토타입.html${s.go}">UI로 보기 →</a></div>
+      <div class="frame"><div class="wf">${s.d}</div></div>
+      <div class="cap">DESKTOP · 1440</div>
+      <ol class="notes">${s.notes.map((n,i)=>`<li><b class="n">${i+1}</b><span><em>${n[0]}</em> — ${n[1]}</span></li>`).join('')}</ol>
+    </div>
+    <div class="mob" style="padding-top:34px">
+      <div class="frame m" style="min-height:440px"><div class="wf">${s.m}</div></div>
+      <div class="cap">MOBILE · 390</div>
+    </div>
+  </section>`).join('');
+</script>
+</body>
+</html>
