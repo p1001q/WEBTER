@@ -1,9 +1,9 @@
-# 테스트는 외부 DB 없이 메모리 DB(H2)로 실행한다.
+# DB 접속 정보는 Testcontainers(@ServiceConnection)가 채운다.
 spring:
-  datasource:
-    url: jdbc:h2:mem:webter;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
-    username: sa
-    password: ""
   jpa:
     hibernate:
       ddl-auto: create-drop
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000

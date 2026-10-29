@@ -11,7 +11,7 @@ Spring Boot(Java) 기반 API 서버입니다. 현재는 실행·헬스체크·DB
 | Gradle | 9.8.2 (래퍼 `./gradlew` 사용, 별도 설치 불필요) |
 | DB | PostgreSQL 17 |
 
-Java는 최신 LTS인 25가 아니라 21을 선택했습니다. 로컬·CI·Docker 이미지에서 모두 안정적으로 쓰이고 Spring Boot 4가 지원합니다. 올릴 때는 `build.gradle`의 toolchain, `Dockerfile`, `.github/workflows/backend-check.yml`의 21을 함께 바꿉니다.
+Java는 최신 LTS인 25가 아니라 21을 선택했습니다. 둘 다 LTS이고 Spring Boot 4가 모두 지원해서 이 프로젝트에서 기능 차이는 없습니다. 개발 환경에 기본 설치된 JDK가 21이라 별도 설치 없이 바로 쓸 수 있다는 점이 이유입니다. 올릴 때는 `build.gradle`의 toolchain, `Dockerfile`, `.github/workflows/backend-check.yml`의 21을 함께 바꿉니다.
 
 ## 로컬 실행
 
@@ -30,9 +30,11 @@ docker compose up -d db
 | 명령어 | 용도 |
 |---|---|
 | `./gradlew bootRun` | 로컬 실행(`local` 프로파일) |
-| `./gradlew test` | 테스트 (메모리 DB H2 사용, 외부 DB 불필요) |
+| `./gradlew test` | 테스트. Testcontainers가 운영과 같은 PostgreSQL 17을 컨테이너로 띄우므로 Docker가 필요하다 |
 | `./gradlew build` | 테스트 + 실행 jar 빌드 (`build/libs/app.jar`) |
 | `docker build -t webter-backend .` | Docker 이미지 빌드 |
+
+Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(`Dockerfile`). 운영 compose의 앱 메모리 제한(768MiB)에서 힙 밖 메모리가 쓸 공간을 남기기 위한 값이며, 제한이 바뀌면 함께 조정합니다.
 
 ## 헬스체크
 
@@ -40,9 +42,9 @@ docker compose up -d db
 |---|---|
 | `/health` | 전체 상태 |
 | `/health/liveness` | 프로세스 생존 |
-| `/health/readiness` | 요청을 받을 준비 상태(DB 연결 포함). DB가 내려가면 약 3초 안에 503 |
+| `/health/readiness` | 요청을 받을 준비 상태(DB 연결 포함). DB가 내려가면 5초 안에 503 |
 
-`IN/`의 배포 설정이 기본으로 기대하는 경로(`/health`)와 같습니다.
+`IN/`의 배포 설정이 기본으로 기대하는 경로(`/health`)와 같습니다. DB 연결 대기 시간은 기본 30초 대신 5초(`spring.datasource.hikari.connection-timeout`)로 줄여, DB 장애 때 일반 요청도 5초 안에 실패합니다.
 
 ## 환경변수
 
@@ -54,6 +56,11 @@ docker compose up -d db
 | `PORT` | `8080` | 수신 포트 |
 | `DB_HOST` / `DB_PORT` / `DB_NAME` | `localhost` / `5432` / `webter` | DB 주소 |
 | `DB_USER` / `DB_PASSWORD` | 없음 (`local`은 `webter`) | DB 계정 |
+| `CORS_ALLOWED_ORIGINS` | 없음 (`local`은 `http://localhost:3000`) | API 호출을 허용할 프론트엔드 도메인. 쉼표로 여러 개 지정 |
+
+## CORS
+
+프론트엔드(Vercel 등 다른 도메인)가 브라우저에서 API를 호출하려면 허용 도메인 등록이 필요합니다. `CORS_ALLOWED_ORIGINS`가 비어 있으면 다른 도메인의 호출을 모두 막으므로, 배포할 때 프론트 도메인을 넣어야 합니다(`com.webter.config.CorsConfig`). 쿠키 인증을 쓸 가능성에 대비해 인증 정보 포함 요청(`allowCredentials`)을 허용해 두었으며, 인증 방식을 정할 때 다시 확인합니다. Spring Security를 도입하면 보안 설정 쪽에도 CORS를 함께 설정해야 합니다.
 
 ## 스키마 관리
 
@@ -70,11 +77,11 @@ BE/
 │  ├─ application.yaml              공통 설정(환경변수 기반)
 │  ├─ application-local.yaml        로컬 개발 설정
 │  └─ db/migration/                 Flyway 마이그레이션(아직 비어 있음)
-├─ src/test/                        테스트(test 프로파일, H2)
+├─ src/test/                        테스트(test 프로파일, Testcontainers PostgreSQL)
 ├─ Dockerfile                       멀티스테이지 이미지(비루트 실행)
 └─ compose.yml                      로컬 개발용 PostgreSQL
 ```
 
 ## 후속 작업
 
-구글 로그인(인증), 업무 API와 엔티티, CORS 허용 도메인 설정, 마이그레이션 실행 방식, 배포 연결은 아직 포함하지 않습니다.
+구글 로그인(인증), 업무 API와 엔티티, 마이그레이션 실행 방식, 배포 연결은 아직 포함하지 않습니다.

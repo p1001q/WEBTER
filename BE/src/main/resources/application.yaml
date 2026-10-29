@@ -6,8 +6,8 @@ spring:
     username: ${DB_USER:}
     password: ${DB_PASSWORD:}
     hikari:
-      # DB가 내려갔을 때 준비 상태 점검(readiness)이 오래 매달리지 않고 빨리 실패하게 한다
-      connection-timeout: 3000
+      # 연결을 못 얻으면 기본 30초 대신 5초 만에 실패시킨다(DB 장애 시 요청과 헬스체크가 오래 매달리지 않게)
+      connection-timeout: 5000
   jpa:
     open-in-view: false
     hibernate:
@@ -18,6 +18,11 @@ spring:
 
 server:
   port: ${PORT:8080}
+
+app:
+  cors:
+    # 프론트엔드 도메인 목록(쉼표로 구분). 비어 있으면 다른 도메인의 호출을 모두 막는다.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 
 management:
   endpoints:
