@@ -13,7 +13,7 @@ SW인재양성 프로젝트로 진행합니다.
 | 백엔드 | Spring Boot (Java), PostgreSQL |
 | 인프라 | AWS EC2, Docker Compose, Terraform, GitHub Actions |
 
-백엔드와 인프라는 구성 중입니다.
+인프라는 구성 중입니다.
 
 ## 폴더 구조
 
@@ -41,4 +41,5 @@ WEBTER/
 ## 시작하기
 
 - 프론트엔드: [FE/README.md](FE/README.md)
+- 백엔드: [BE/README.md](BE/README.md)
 - 인프라: [IN/README.md](IN/README.md)

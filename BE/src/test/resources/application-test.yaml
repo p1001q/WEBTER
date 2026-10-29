@@ -1,0 +1,9 @@
+# DB 접속 정보는 Testcontainers(@ServiceConnection)가 채운다.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000

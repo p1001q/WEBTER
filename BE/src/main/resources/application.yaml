@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: webter-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:webter}
+    username: ${DB_USER:}
+    password: ${DB_PASSWORD:}
+    hikari:
+      # 연결을 못 얻으면 기본 30초 대신 5초 만에 실패시킨다(DB 장애 시 요청과 헬스체크가 오래 매달리지 않게)
+      connection-timeout: 5000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    # 운영 스키마 변경은 DDL 권한이 있는 관리자 계정으로 따로 실행한다(BE/README.md 참고)
+    enabled: false
+
+server:
+  port: ${PORT:8080}
+
+app:
+  cors:
+    # 프론트엔드 도메인 목록(쉼표로 구분). 비어 있으면 다른 도메인의 호출을 모두 막는다.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
