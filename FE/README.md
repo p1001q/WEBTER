@@ -5,9 +5,9 @@ Next.js App Router, React, TypeScript, Tailwind CSS 기반 프로젝트입니다
 
 ## 실행 환경
 
-- Node.js: `.nvmrc`에 지정한 24.22.1 LTS
-- pnpm: `package.json`에 지정한 10.12.1
-- 패키지 버전은 `pnpm-lock.yaml`로 고정합니다. npm·Yarn의 잠금 파일은 함께 사용하지 않습니다.
+- Node.js: `.nvmrc`에 지정한 24.22.2 LTS
+- pnpm: `package.json`에 지정한 10.34.9
+- 패키지 버전은 `package.json`에 정확한 버전으로 적고 `pnpm-lock.yaml`로 함께 고정합니다. npm·Yarn의 잠금 파일은 함께 사용하지 않습니다.
 
 ## 로컬 실행
 
@@ -17,14 +17,14 @@ Next.js App Router, React, TypeScript, Tailwind CSS 기반 프로젝트입니다
 cd FE
 nvm install
 nvm use
-npm install --global pnpm@10.12.1
+npm install --global pnpm@10.34.9
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
 다른 Node 버전 관리 도구를 사용해도 동일한 Node 버전을 선택하면 됩니다.
 Node 25에서는 `engines`의 Node 24 범위와 `engine-strict=true` 설정 때문에 설치가 차단됩니다.
-`nvm install 24 && nvm use 24`로 전환하세요. 팀·CI와 정확히 맞추려면 `FE/`에서 위의 `nvm install`·`nvm use`로 `.nvmrc`의 24.22.1을 선택하세요.
+`nvm install 24 && nvm use 24`로 전환하세요. 팀·CI와 정확히 맞추려면 `FE/`에서 위의 `nvm install`·`nvm use`로 `.nvmrc`의 24.22.2를 선택하세요.
 브라우저에서 `http://localhost:3000`으로 접속합니다.
 현재 필수 환경변수는 없으며 `.env.example`에 원칙만 적어 두었습니다.
 추후 로컬 값은 `.env.local`에 보관합니다. 이 파일은 Git에서 제외합니다.
