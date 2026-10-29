@@ -128,6 +128,7 @@
   --animate-pop-sm: wtPop 0.16s ease;
   --animate-slide: wtSlide 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-enter: wtEnter 0.25s ease;
+  --animate-skeleton: wtSk 1.1s linear infinite;
 
   @keyframes wtPop {
     from {
@@ -163,6 +164,14 @@
     to {
       opacity: 1;
       transform: none;
+    }
+  }
+  @keyframes wtSk {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
     }
   }
   @keyframes wtToast {

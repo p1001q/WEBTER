@@ -4,6 +4,7 @@ import { DISPLAY } from "@/domain/policy";
 import { ServiceCard } from "./ServiceCard";
 import styles from "./ServiceList.module.css";
 import { ServiceRow } from "./ServiceRow";
+import { rowsClass } from "./rowStyles";
 
 interface ServiceListProps {
   items: Service[];
@@ -28,7 +29,7 @@ export function ServiceList({
   const rank = (i: number) => (rankStart != null ? rankStart + i : undefined);
   if (view === "list")
     return (
-      <div className="flex flex-col overflow-hidden rounded-md border border-border bg-card">
+      <div className={rowsClass}>
         {items.map((s, i) => (
           <ServiceRow
             key={s.id}
