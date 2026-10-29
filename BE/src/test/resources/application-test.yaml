@@ -1,8 +1,11 @@
 # DB 접속 정보는 Testcontainers(@ServiceConnection)가 채운다.
+# 스키마는 로컬과 같이 Flyway가 만들고, JPA는 엔티티와 DB가 맞는지 검증만 한다.
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
+  flyway:
+    enabled: true
 
 app:
   cors:

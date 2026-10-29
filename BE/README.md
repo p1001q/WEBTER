@@ -64,9 +64,10 @@ Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(
 
 ## 스키마 관리
 
-- **로컬(`local`)**: JPA 스키마 자동 생성(`ddl-auto: update`)을 허용합니다. 엔티티를 먼저 만들고 ERD를 역으로 뽑는 단계에서 쓰는 설정입니다.
+- **로컬(`local`)·테스트(`test`)**: 스키마는 Flyway가 `src/main/resources/db/migration/`의 SQL로 만들고(`spring.flyway.enabled: true`), JPA는 엔티티와 DB가 맞는지 검증만 합니다(`ddl-auto: validate`). 엔티티가 DB와 다르면 앱이 시작할 때 오류가 납니다. CHECK·부분 인덱스·복합 FK 같은 제약은 JPA가 만들 수 없어서 SQL로 관리합니다.
 - **운영**: 자동 생성을 쓰지 않습니다(`ddl-auto: none`). 앱 DB 계정에는 테이블 변경 권한이 없다는 `IN/` 설계에 맞춘 것입니다.
-- **Flyway**: 의존성과 `src/main/resources/db/migration/` 폴더만 준비했고 앱 실행 시에는 꺼져 있습니다(`spring.flyway.enabled: false`). ERD가 확정되면 `V1__...sql`부터 추가하고, 운영 DB에는 DDL 권한이 있는 관리자 계정으로 따로 실행합니다. 실행 방법은 서버 환경이 정해질 때 정리합니다.
+- **마이그레이션 규칙**: 첫 배포 전까지는 `V1__init.sql`을 직접 고치고 로컬 DB를 다시 만듭니다(아래 명령). 첫 배포 이후에는 V1을 수정하지 않고 `V2__설명.sql`처럼 새 파일로 변경을 추가합니다. 운영 DB에는 DDL 권한이 있는 관리자 계정으로 따로 실행하며, 실행 방법은 서버 환경이 정해질 때 정리합니다(`application.yaml`의 기본값은 `enabled: false`).
+- **로컬 DB 다시 만들기**: `docker compose down -v && docker compose up -d`(데이터가 모두 지워집니다).
 
 ## 구조
 
@@ -76,7 +77,7 @@ BE/
 ├─ src/main/resources/
 │  ├─ application.yaml              공통 설정(환경변수 기반)
 │  ├─ application-local.yaml        로컬 개발 설정
-│  └─ db/migration/                 Flyway 마이그레이션(아직 비어 있음)
+│  └─ db/migration/                 Flyway 마이그레이션(V1__init.sql: 초기 23개 테이블)
 ├─ src/test/                        테스트(test 프로파일, Testcontainers PostgreSQL)
 ├─ Dockerfile                       멀티스테이지 이미지(비루트 실행)
 └─ compose.yml                      로컬 개발용 PostgreSQL
