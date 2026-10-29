@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 프로젝트 작업 지침은 상위 AGENTS.md에서만 관리합니다.
+  // next dev가 AI 에이전트를 감지하면 프로젝트 루트에 AGENTS.md를 자동 생성하는 기능을 끈다.
   agentRules: false,
   turbopack: {
     rules: {
