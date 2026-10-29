@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ko-KR
+tone_instructions: "간결하게 쓴다. 근거와 수정 방법 중심으로 말하고, 사소한 스타일 지적은 하지 않는다."
+
+reviews:
+  profile: chill
+
+  # PR 본문은 건드리지 않고 요약은 CodeRabbit 댓글(walkthrough)에만 둔다
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+
+  # 1인 개발·이슈 미사용에 맞춰 불필요한 섹션을 끈다
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  related_issues: false
+  related_prs: false
+  assess_linked_issues: false
+  suggested_labels: false
+  suggested_reviewers: false
+
+  # 리뷰 횟수 제한을 아끼기 위해 첫 푸시만 자동 리뷰한다. 이후에는 PR 댓글에 @coderabbitai review
+  auto_review:
+    auto_incremental_review: false
+    base_branches:
+      - main
+    ignore_title_keywords:
+      - WIP
+      - Docs
+
+  path_filters:
+    - "!PM/**"
+    - "!**/pnpm-lock.yaml"
+    - "!**/.terraform.lock.hcl"
+
+  path_instructions:
+    - path: "**"
+      instructions: "공개 레포이므로 비밀값·키·개인정보가 포함됐는지 먼저 확인한다."
+    - path: "FE/**"
+      instructions: "Next.js App Router, TypeScript strict, Tailwind CSS 기준이다. 서버 컴포넌트를 기본으로 쓰고 브라우저 상호작용이 필요한 곳에만 클라이언트 컴포넌트를 쓰는지, NEXT_PUBLIC_ 변수에 비밀값이 없는지, 접근성(라벨, 대체 텍스트)을 확인한다."
+    - path: "BE/**"
+      instructions: "Spring Boot(Java) 기준이다. 설정은 환경변수로 받고 비밀값이 코드에 없는지, 컨트롤러에 업무 로직이 섞이지 않았는지, 운영에서 스키마 자동 생성을 쓰지 않는지, 입력 검증과 트랜잭션 경계를 확인한다."
+    - path: "IN/**"
+      instructions: "인프라·배포 설정이다. 비밀값 노출, 과한 권한, 외부에 열린 포트, 상태 파일·tfvars 커밋 여부를 중점으로 확인한다."
+    - path: ".github/**"
+      instructions: "GitHub Actions는 액션을 커밋 SHA로 고정하고 permissions를 최소로 두었는지, 비밀값이 로그에 노출되지 않는지 확인한다."
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    issue_assessment:
+      mode: "off"
+    title:
+      mode: warning
+      requirements: "제목은 '이모지 Type: 요약' 형식이다. Type은 Feat, Fix, Refactor, Style, Perf, Test, Docs, Chore, Deploy 중 하나이고 이모지는 각각 ✨ 🐛 ♻️ 🎨 ⚡ ✅ 📝 🔧 🚀 이다. 요약은 한국어 한 줄이다."
+
+  tools:
+    biome:
+      enabled: false
+    oxc:
+      enabled: false
+    languagetool:
+      enabled: false
+    markdownlint:
+      enabled: false
