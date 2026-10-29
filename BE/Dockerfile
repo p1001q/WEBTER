@@ -14,4 +14,4 @@ COPY --from=build /workspace/build/libs/app.jar app.jar
 USER app
 ENV PORT=8080
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60", "-jar", "app.jar"]
