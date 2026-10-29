@@ -40,7 +40,7 @@ flowchart LR
 Terraform 1.10 이상 2.0 미만을 사용한다. 검증에 사용한 CLI는 1.14.9이며 AWS provider의 실제 선택은 `.terraform.lock.hcl`에 고정한다.
 
 ```sh
-cd INFRA/terraform
+cd IN/terraform
 cp terraform.tfvars.example terraform.tfvars
 # terraform.tfvars에서 앱 포트·도메인·인스턴스 크기 등을 맞춘다.
 terraform init
@@ -60,7 +60,7 @@ terraform plan -out=review.tfplan
 
 비밀번호·OAuth 비밀값은 Terraform 변수나 user-data에 넣지 않는다. Terraform은 Parameter Store 경로와 읽기 권한만 만들며, 값은 별도로 등록한다.
 
-1. `INFRA/runtime/runtime.env.example`을 저장소 밖의 비공개 파일로 복사한다.
+1. `IN/runtime/runtime.env.example`을 저장소 밖의 비공개 파일로 복사한다.
 2. `PG_ADMIN_PASSWORD`, `PG_APP_PASSWORD`, `REDIS_PASSWORD`에 서로 다른 `openssl rand -hex 32` 결과를 넣는다.
 3. 앱에서 사용할 구글 OAuth 등의 설정을 맞춘다. 값은 따옴표 없이 한 줄로 작성한다.
 4. 생성한 파일 권한을 600으로 설정하고 AWS CLI로 등록한다.

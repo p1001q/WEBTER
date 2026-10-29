@@ -3,7 +3,7 @@ name: Check infrastructure configuration
 on:
   pull_request:
     paths:
-      - INFRA/**
+      - IN/**
       - .github/workflows/infra-check.yml
       - .github/workflows/deploy.yml
   workflow_dispatch:
@@ -23,11 +23,11 @@ jobs:
           terraform_version: 1.14.9
           terraform_wrapper: false
       - name: Check Terraform formatting and schema
-        working-directory: INFRA/terraform
+        working-directory: IN/terraform
         run: |
           terraform fmt -check -recursive
           terraform init -backend=false -input=false -lockfile=readonly
           terraform validate
           terraform test
       - name: Check shell syntax
-        run: bash -n INFRA/runtime/deploy.sh INFRA/runtime/backup.sh INFRA/runtime/init-db.sh
+        run: bash -n IN/runtime/deploy.sh IN/runtime/backup.sh IN/runtime/init-db.sh
