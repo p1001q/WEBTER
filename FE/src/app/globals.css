@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* 초기 실행용 기본값입니다. 실제 디자인 토큰은 퍼블리싱 때 적용합니다. */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
