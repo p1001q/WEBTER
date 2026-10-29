@@ -1,19 +1,197 @@
 @import "tailwindcss";
 
-/* 초기 실행용 기본값입니다. 실제 디자인 토큰은 퍼블리싱 때 적용합니다. */
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * WEBTER 디자인 토큰. 보관본 퍼블리싱 초안의 --wt-* 값을 그대로 옮겼다.
+ * 기본 팔레트·반경·그림자는 비우고 아래 토큰만 쓴다. 간격은 Tailwind 기본 스케일(1 = 4px)이
+ * 보관본의 4/8/12/16/24/32/48 과 같아서 따로 정의하지 않는다.
+ */
+@theme static {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+
+  /* color — base */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-navy: #35445c;
+  --color-navy-700: #2a3749;
+  --color-navy-100: #d6dce6;
+  --color-navy-50: #ebeef3;
+  --color-navy-25: #f4f6f9;
+  --color-ink: #242424;
+  --color-ivory: #f7f5ef;
+  --color-butter: #f2db94;
+  --color-butter-50: #fbf3d9;
+  --color-butter-ink: #8a6a12;
+  --color-wine: #823f43;
+  --color-wine-700: #6e3437;
+  --color-wine-100: #ebd3d2;
+  --color-wine-50: #f4e7e6;
+  --color-wine-25: #faf3f2;
+  --color-card: #ffffff;
+  --color-border: #e7e5df;
+  --color-border-strong: #cfccc4;
+  --color-muted: #858585;
+  --color-light: #f1f1ee;
+  --color-text-2: #555555;
+  --color-text-3: #6b6b6b;
+  --color-placeholder: #a9a69e;
+  --color-scrim: rgb(36 36 36 / 0.36);
+  --color-launch-bg: #242424;
+  --color-focus: rgb(53 68 92 / 0.28);
+
+  /* color — 평가 등급 배지 8종 */
+  --color-grade-vpos-bg: var(--color-navy-100);
+  --color-grade-vpos-fg: var(--color-navy-700);
+  --color-grade-pos-bg: var(--color-navy-50);
+  --color-grade-pos-fg: var(--color-navy);
+  --color-grade-mpos-bg: var(--color-navy-25);
+  --color-grade-mpos-fg: var(--color-navy);
+  --color-grade-mixed-bg: var(--color-butter-50);
+  --color-grade-mixed-fg: var(--color-butter-ink);
+  --color-grade-mneg-bg: var(--color-wine-25);
+  --color-grade-mneg-fg: var(--color-wine);
+  --color-grade-neg-bg: var(--color-wine-50);
+  --color-grade-neg-fg: var(--color-wine);
+  --color-grade-vneg-bg: var(--color-wine-100);
+  --color-grade-vneg-fg: var(--color-wine-700);
+  --color-grade-few-bg: var(--color-light);
+  --color-grade-few-fg: var(--color-muted);
+
+  /* color — 서비스 상태 배지 */
+  --color-status-live-bg: var(--color-navy-50);
+  --color-status-live-fg: var(--color-navy);
+  --color-status-stop-bg: var(--color-light);
+  --color-status-stop-fg: var(--color-muted);
+  --color-status-private-bg: var(--color-wine-50);
+  --color-status-private-fg: var(--color-wine);
+  --color-status-temp-bg: var(--color-butter-50);
+  --color-status-temp-fg: var(--color-butter-ink);
+
+  /* color — 반응 */
+  --color-like: var(--color-wine);
+  --color-save: var(--color-navy);
+
+  /* type (폰트 패밀리 이름은 layout.tsx 에서 불러오는 Pretendard / JetBrains Mono) */
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo",
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --text-11: 11px;
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-16: 16px;
+  --text-18: 18px;
+  --text-20: 20px;
+  --text-22: 22px;
+  --text-28: 28px;
+  --text-34: 34px;
+  --text-40: 40px;
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-base: 1.55;
+  --leading-prose: 1.75;
+
+  /* radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* shadow */
+  --shadow-card: 0 1px 3px rgb(36 36 36 / 0.06);
+  --shadow-hover: 0 6px 18px rgb(36 36 36 / 0.1);
+  --shadow-pop: 0 12px 32px rgb(36 36 36 / 0.16);
+
+  /* control size · layout (h-ctl-md, w-side, max-w-page …) */
+  --spacing-ctl-sm: 30px;
+  --spacing-ctl-md: 36px;
+  --spacing-ctl-lg: 48px;
+  --spacing-ctl-input: 46px;
+  --spacing-ctl-icon: 40px;
+  --spacing-header: 64px;
+  --spacing-nav: 52px;
+  --spacing-gutter: 32px;
+  --spacing-side: 272px;
+  --spacing-detail-cta: 300px;
+  --spacing-form-aside: 340px;
+  --container-page: 1376px;
+  --aspect-thumb: 16 / 10;
+
+  /* 모션 — 보관본에서는 개발용 CSS(dev.css)에만 있던 인터랙션. 컴포넌트를 옮길 때 필요한 것부터 추가한다 */
+  --default-transition-timing-function: ease;
+  --animate-pop: wtPop 0.2s ease;
+  --animate-fade: wtFade 0.2s ease;
+  --animate-toast: wtToast 0.25s ease;
+
+  @keyframes wtPop {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes wtFade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes wtToast {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-}
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  body {
+    background: var(--color-ivory);
+    color: var(--color-ink);
+    font-size: var(--text-15);
+    line-height: var(--leading-base);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  /* 보관본은 브라우저 기본값(normal)을 썼다. preflight 의 font: inherit 이 본문 행간을 물려주지 않게 되돌린다. */
+  button,
+  input,
+  select,
+  textarea {
+    line-height: normal;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-navy);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
 }
