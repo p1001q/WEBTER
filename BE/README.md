@@ -60,7 +60,7 @@ Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(
 
 ## CORS
 
-프론트엔드(Vercel 등 다른 도메인)가 브라우저에서 API를 호출하려면 허용 도메인 등록이 필요합니다. `CORS_ALLOWED_ORIGINS`가 비어 있으면 다른 도메인의 호출을 모두 막으므로, 배포할 때 프론트 도메인을 넣어야 합니다(`com.webter.config.CorsConfig`). 쿠키 인증을 쓸 가능성에 대비해 인증 정보 포함 요청(`allowCredentials`)을 허용해 두었으며, 인증 방식을 정할 때 다시 확인합니다. Spring Security를 도입하면 보안 설정 쪽에도 CORS를 함께 설정해야 합니다.
+프론트엔드(Vercel 등 다른 도메인)가 브라우저에서 API를 호출하려면 허용 도메인 등록이 필요합니다. `CORS_ALLOWED_ORIGINS`가 비어 있으면 다른 도메인의 호출을 모두 막으므로, 배포할 때 프론트 도메인을 넣어야 합니다(`com.webter.global.config.CorsConfig`). 쿠키 인증을 쓸 가능성에 대비해 인증 정보 포함 요청(`allowCredentials`)을 허용해 두었으며, 인증 방식을 정할 때 다시 확인합니다. Spring Security를 도입하면 보안 설정 쪽에도 CORS를 함께 설정해야 합니다.
 
 ## 스키마 관리
 
@@ -73,7 +73,9 @@ Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(
 
 ```
 BE/
-├─ src/main/java/com/webter/        패키지 루트. 기능이 정해지면 하위 패키지를 추가한다
+├─ src/main/java/com/webter/
+│  ├─ global/                       공통 기반(config, response, exception, entity). 로그인 단계에서 security 등을 추가한다
+│  └─ domain/<기능>/                기능별 패키지(user, webservice, review 등). 안에 controller·service·repository·entity·dto·exception을 둔다
 ├─ src/main/resources/
 │  ├─ application.yaml              공통 설정(환경변수 기반)
 │  ├─ application-local.yaml        로컬 개발 설정
@@ -82,6 +84,14 @@ BE/
 ├─ Dockerfile                       멀티스테이지 이미지(비루트 실행)
 └─ compose.yml                      로컬 개발용 PostgreSQL
 ```
+
+## API 공통 규칙
+
+- 모든 응답은 `ApiResponse`(`success`, `code`, `message`, `data`) 형식입니다. 실패하면 `data`는 비고 `code`로 원인을 구분합니다. 입력 검증 실패는 `data`에 필드별 메시지가 담깁니다.
+- 업무 규칙 위반은 `BusinessException(ErrorCode)`를 던지면 `GlobalExceptionHandler`가 오류 응답으로 바꿉니다. 공통 코드는 `CommonErrorCode`, 기능별 코드는 각 기능 패키지의 `exception`에 둡니다. 코드 형식은 `{기능}_{HTTP 상태}_{번호}`입니다(예: `COMMON_404_01`).
+- 예상하지 못한 예외는 내용을 응답에 담지 않고 로그에만 남깁니다.
+- 엔티티의 시각 컬럼은 `BaseCreatedEntity`(created_at) 또는 `BaseTimeEntity`(created_at + updated_at)를 상속해 자동으로 채웁니다.
+- API 문서(Swagger UI)는 로컬에서만 열립니다(`http://localhost:8080/swagger-ui.html`).
 
 ## 후속 작업
 

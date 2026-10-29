@@ -16,6 +16,13 @@ spring:
     # 운영 스키마 변경은 DDL 권한이 있는 관리자 계정으로 따로 실행한다(BE/README.md 참고)
     enabled: false
 
+springdoc:
+  # API 문서 화면은 운영에 노출하지 않는다. 로컬에서만 켠다(application-local.yaml)
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 server:
   port: ${PORT:8080}
 
