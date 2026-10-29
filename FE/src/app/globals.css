@@ -125,6 +125,9 @@
   --animate-pop: wtPop 0.2s ease;
   --animate-fade: wtFade 0.2s ease;
   --animate-toast: wtToast 0.25s ease;
+  --animate-pop-sm: wtPop 0.16s ease;
+  --animate-slide: wtSlide 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-enter: wtEnter 0.25s ease;
 
   @keyframes wtPop {
     from {
@@ -142,6 +145,24 @@
     }
     to {
       opacity: 1;
+    }
+  }
+  @keyframes wtSlide {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes wtEnter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
   @keyframes wtToast {
@@ -173,6 +194,12 @@
     cursor: pointer;
   }
 
+  /* preflight 는 svg 를 block 으로 바꾸지만 보관본은 글자처럼 줄 안에 놓는 inline 이다 */
+  svg {
+    display: inline;
+    vertical-align: baseline;
+  }
+
   /* 보관본은 브라우저 기본값(normal)을 썼다. preflight 의 font: inherit 이 본문 행간을 물려주지 않게 되돌린다. */
   button,
   input,
@@ -193,5 +220,19 @@
       animation: none !important;
       transition: none !important;
     }
+  }
+}
+
+/* 본문 폭: 가운데 정렬, 컨테이너(`app`) 너비에 따라 좌우 여백이 줄어든다 */
+@utility page-wrap {
+  max-width: var(--container-page);
+  margin-inline: auto;
+  padding-inline: var(--spacing-gutter);
+
+  @container app (max-width: 860px) {
+    padding-inline: 20px;
+  }
+  @container app (max-width: 560px) {
+    padding-inline: 16px;
   }
 }

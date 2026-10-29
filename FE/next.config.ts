@@ -14,6 +14,8 @@ export default function config(phase: string): NextConfig {
     turbopack: {
       rules: {
         "*.css": {
+          // CSS Modules(`*.module.css`)는 Tailwind 로더를 거치면 전역 CSS 로 바뀌어 클래스 이름 변환이 사라진다.
+          condition: { not: { path: "*.module.css" } },
           loaders: ["@tailwindcss/turbopack"],
           as: "*.css",
         },

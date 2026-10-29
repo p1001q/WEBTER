@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "./Button";
 import { Icon, type IconName } from "./Icon";
 
 interface EmptyStateProps {
@@ -25,14 +26,9 @@ export function EmptyState({
       <b className="text-[17px] text-ink">{title}</b>
       <span>{desc}</span>
       {action && (
-        // 공통 Button 컴포넌트를 만들기 전까지 보관본의 ghost 버튼 스타일을 그대로 쓴다.
-        <button
-          type="button"
-          className="mt-3 inline-flex h-ctl-md items-center justify-center gap-1.5 rounded-pill border border-border bg-card px-4 text-14 font-semibold whitespace-nowrap text-ink transition-colors hover:bg-light active:scale-[.98]"
-          onClick={onAction}
-        >
+        <Button variant="ghost" className="mt-3" onClick={onAction}>
           {action}
-        </button>
+        </Button>
       )}
     </div>
   );
