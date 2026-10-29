@@ -1,0 +1,81 @@
+/* 가상 스크린샷 틀. 크기 단위(cqw)는 .thumb 의 너비를 기준으로 한다 */
+.thumb {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: var(--aspect-thumb);
+  overflow: hidden;
+  background: var(--color-light);
+}
+
+.img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.win {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 10%;
+  bottom: -4%;
+  background: #fff;
+  border-radius: 2.4cqw 2.4cqw 0 0;
+  box-shadow: 0 1.2cqw 4cqw rgb(36 36 36 / 0.12);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  height: 6.4cqw;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.1cqw;
+  padding: 0 2.6cqw;
+  border-bottom: 1px solid #eeece6;
+}
+
+.bar i {
+  width: 1.5cqw;
+  height: 1.5cqw;
+  border-radius: 50%;
+  background: #e2dfd7;
+  display: block;
+}
+
+.bar span {
+  margin-left: 2cqw;
+  height: 2.6cqw;
+  width: 30%;
+  border-radius: 2cqw;
+  background: #f1f0ec;
+  display: block;
+}
+
+.body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3cqw;
+}
+
+.fallback b {
+  font-size: 5cqw;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
