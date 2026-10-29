@@ -9,6 +9,15 @@ import { useWt } from "@/providers/context";
 import type { ServiceItemProps } from "./ServiceCard";
 import { ServiceIcon } from "./ServiceIcon";
 import { ServiceStats } from "./ServiceStats";
+import {
+  rowClass,
+  rowDescClass,
+  rowLinkClass,
+  rowMainClass,
+  rowRankClass,
+  rowSideClass,
+  rowTitleClass,
+} from "./rowStyles";
 import { StatusBadge } from "./StatusBadge";
 
 // 행에 마우스를 올리거나 포커스가 들어오면(또는 hover 지정) 나타나는 영역
@@ -22,32 +31,21 @@ export function ServiceRow({ s, rank, reason, hover }: ServiceItemProps) {
   const down = s.use === "stop";
   return (
     <div
-      className="group/row relative flex min-w-0 items-center gap-4 border-t border-light px-6 py-3.5 transition-colors duration-150 first:border-t-0 hover:bg-[#fbfaf7] data-[hover]:bg-[#fbfaf7] @max-[560px]/app:gap-3 @max-[560px]/app:px-3.5 @max-[560px]/app:py-3"
+      className={`group/row data-[hover]:bg-[#fbfaf7] ${rowClass}`}
       data-hover={hover ? "" : undefined}
       data-sid={s.id}
     >
-      <RouteLink
-        to="detail"
-        params={{ id: s.id }}
-        className="flex min-w-0 flex-1 items-center gap-4 text-inherit"
-      >
+      <RouteLink to="detail" params={{ id: s.id }} className={rowLinkClass}>
         {rank != null && (
-          <span
-            className={cx(
-              "w-7 shrink-0 text-center font-mono text-14 font-bold",
-              rank <= 3 ? "text-ink" : "text-muted",
-            )}
-          >
-            {rank}
-          </span>
+          <span className={rowRankClass(rank <= 3)}>{rank}</span>
         )}
         <ServiceIcon s={s} size={48} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex min-w-0 items-center gap-2 text-15 font-bold">
+        <div className={rowMainClass}>
+          <div className={rowTitleClass}>
             <span className="truncate">{s.name}</span>
             {down && <StatusBadge kind="stop" />}
           </div>
-          <div className="truncate text-13 text-text-2">
+          <div className={rowDescClass}>
             {reason ? (
               <>
                 <b className="text-navy">추천 이유</b> · {reason}
@@ -58,7 +56,7 @@ export function ServiceRow({ s, rank, reason, hover }: ServiceItemProps) {
           </div>
         </div>
       </RouteLink>
-      <div className="flex shrink-0 items-center gap-3">
+      <div className={rowSideClass}>
         <div
           className={cx(
             "flex items-center gap-3 opacity-0 transition-opacity duration-150 @max-[560px]/app:opacity-100 [@media(hover:none)]:opacity-100",
