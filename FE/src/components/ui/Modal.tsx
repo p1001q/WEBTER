@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { Icon } from "./Icon";
+import { IconButton } from "./IconButton";
 
 interface ModalProps {
   onClose: () => void;
@@ -16,12 +17,17 @@ export function Modal({ onClose, children, width, labelledBy }: ModalProps) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", h);
+    const prev = document.activeElement as HTMLElement | null;
     ref.current
       ?.querySelector<HTMLElement>(
         "input, textarea, button:not([data-modal-close])",
       )
       ?.focus();
-    return () => window.removeEventListener("keydown", h);
+    return () => {
+      window.removeEventListener("keydown", h);
+      // 닫히면 열기 전에 포커스가 있던 곳으로 돌려 놓는다
+      prev?.focus?.();
+    };
     // 열릴 때 한 번만 포커스를 옮기고 키 핸들러를 건다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -40,19 +46,18 @@ export function Modal({ onClose, children, width, labelledBy }: ModalProps) {
         onClick={onClose}
       />
       <div
-        className="relative max-h-[calc(100%-20px)] w-full max-w-[440px] animate-pop overflow-y-auto rounded-lg bg-card p-7 shadow-pop @max-[560px]/app:px-5 @max-[560px]/app:py-6"
+        className="relative max-h-[calc(100%-20px)] w-full max-w-[440px] animate-pop overflow-y-auto rounded-lg bg-card p-7 shadow-pop @max-[560px]/app:px-5 @max-[560px]/app:py-6 [&_h3]:mb-2 [&_h3]:pr-8 [&_h3]:text-20 [&_h3]:font-extrabold [&_h3]:tracking-[-0.02em] [&_p]:text-[14.5px] [&_p]:text-text-2"
         ref={ref}
         style={width ? { maxWidth: width } : undefined}
       >
-        <button
-          type="button"
+        <IconButton
           data-modal-close
-          className="absolute top-3.5 right-3.5 inline-grid size-ctl-icon shrink-0 place-items-center rounded-full bg-transparent text-ink hover:bg-ink/6"
+          className="absolute top-3.5 right-3.5"
           onClick={onClose}
           aria-label="닫기"
         >
           <Icon name="close" size={18} />
-        </button>
+        </IconButton>
         {children}
       </div>
     </div>
