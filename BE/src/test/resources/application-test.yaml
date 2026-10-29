@@ -1,0 +1,9 @@
+# 테스트는 외부 DB 없이 메모리 DB(H2)로 실행한다.
+spring:
+  datasource:
+    url: jdbc:h2:mem:webter;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop

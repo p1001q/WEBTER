@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: webter-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:webter}
+    username: ${DB_USER:}
+    password: ${DB_PASSWORD:}
+    hikari:
+      # DB가 내려갔을 때 준비 상태 점검(readiness)이 오래 매달리지 않고 빨리 실패하게 한다
+      connection-timeout: 3000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    # 운영 스키마 변경은 DDL 권한이 있는 관리자 계정으로 따로 실행한다(BE/README.md 참고)
+    enabled: false
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db

@@ -1,0 +1,8 @@
+# 로컬 개발용(BE/compose.yml 의 PostgreSQL 기준). 엔티티를 빠르게 만들고 ERD를 역산하는 단계라 스키마 자동 생성을 허용한다.
+spring:
+  datasource:
+    username: ${DB_USER:webter}
+    password: ${DB_PASSWORD:webter}
+  jpa:
+    hibernate:
+      ddl-auto: update
