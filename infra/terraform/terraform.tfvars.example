@@ -1,0 +1,15 @@
+aws_region        = "ap-northeast-2"
+github_repository = "p1001q/WEBTER"
+deploy_branch     = "main"
+instance_type     = "t3.small"
+
+# 앱 프레임워크 확정 후 실제 수신 포트·준비 상태 경로에 맞춘다.
+app_port        = 3000
+app_health_path = "/health"
+
+# 운영 전에 도메인을 입력하고 A 레코드를 Terraform의 public_ip로 연결한다.
+# 빈 값은 HTTP 점검용이며 구글 로그인·운영 세션을 공개할 준비가 된 상태가 아니다.
+domain_name = ""
+
+# 계정에 GitHub OIDC 공급자가 이미 있으면 생성 대신 기존 ARN을 사용한다.
+# github_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
