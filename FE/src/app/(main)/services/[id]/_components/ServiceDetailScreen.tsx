@@ -49,7 +49,7 @@ export function ServiceDetailScreen({
   const [tab, setTab] = useState<Tab>(tabParam ?? "about");
   const counted = useRef<string>(undefined);
   useEffect(() => {
-    if (s && counted.current !== s.id) {
+    if (s && s.pub === "public" && counted.current !== s.id) {
       counted.current = s.id;
       wt.countView(s);
     }

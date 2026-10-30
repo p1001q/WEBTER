@@ -131,6 +131,7 @@ export function ServiceOverview({
               ctaButton,
               liked && "border-like! bg-wine-50! text-like!",
             )}
+            aria-label={`좋아요 ${s.likes.toLocaleString("ko-KR")}개`}
             aria-pressed={liked}
             disabled={isOwner}
             title={
