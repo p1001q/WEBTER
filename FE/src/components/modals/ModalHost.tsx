@@ -2,14 +2,16 @@
 
 import { useWt } from "@/providers/context";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { Lightbox } from "@/components/service/Lightbox";
 import { LoginPromptModal } from "./LoginPromptModal";
 import { ReportModal } from "./ReportModal";
+import { ReviewEditModal } from "./ReviewEditModal";
 import { StopReasonModal } from "./StopReasonModal";
+import { VersionModal } from "./VersionModal";
 import { WithdrawModal } from "./WithdrawModal";
 
 /**
  * 모달 상태(`wt.modal`)에 맞는 모달을 그린다.
- * review·versions·lightbox 는 해당 화면(P4)과 함께 옮긴다.
  */
 export function ModalHost() {
   const wt = useWt();
@@ -56,6 +58,14 @@ export function ModalHost() {
           onClose={close}
         />
       ) : null;
+    case "review":
+      return s ? (
+        <ReviewEditModal s={s} review={m.review} onClose={close} />
+      ) : null;
+    case "versions":
+      return s ? <VersionModal s={s} onClose={close} /> : null;
+    case "lightbox":
+      return s ? <Lightbox s={s} index={m.index} onClose={close} /> : null;
     case "withdraw":
       return <WithdrawModal onClose={close} />;
     default:

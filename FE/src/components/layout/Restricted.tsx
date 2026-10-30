@@ -6,7 +6,7 @@ import { useWt } from "@/providers/context";
 import { Footer } from "./Footer";
 
 const box =
-  "mx-auto my-24 flex max-w-[520px] flex-col items-center gap-3 text-center [&_h1]:m-0 [&_h1]:text-2xl [&_h1]:font-extrabold [&_p]:m-0 [&_p]:text-text-2";
+  "mx-auto my-24 flex max-w-[520px] flex-col items-center gap-3 text-center [&_h1]:m-0 [&_h1]:text-[24px] [&_h1]:font-extrabold [&_p]:m-0 [&_p]:text-text-2";
 
 /** 볼 수 없는 페이지(삭제·비공개·없는 주소) 안내 */
 export function Restricted({

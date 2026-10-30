@@ -3,6 +3,10 @@
 import type { ReactNode } from "react";
 import { Icon } from "./Icon";
 
+/** 태그 모양의 클래스(링크 태그에도 쓴다) */
+export const tagClass =
+  "inline-flex h-6 items-center gap-1 rounded-pill bg-light px-2.5 text-12 font-medium whitespace-nowrap text-text-2";
+
 /** 작은 알약 태그. `onRemove` 가 있으면 해제 버튼이 붙는다 */
 export function Tag({
   children,
@@ -14,7 +18,7 @@ export function Tag({
   removeLabel?: string;
 }) {
   return (
-    <span className="inline-flex h-6 items-center gap-1 rounded-pill bg-light px-2.5 text-12 font-medium whitespace-nowrap text-text-2">
+    <span className={tagClass}>
       {children}
       {onRemove && (
         <button
