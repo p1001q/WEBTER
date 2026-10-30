@@ -180,9 +180,13 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
               <Button
                 size="sm"
                 disabled={reply.trim().length < 2 || replyLink}
-                onClick={() => {
-                  wt.setReply(r.id, reply.trim());
-                  setReplying(false);
+                onClick={async () => {
+                  try {
+                    await wt.setReply(r.id, reply.trim());
+                    setReplying(false);
+                  } catch {
+                    wt.toast("답글을 등록하지 못했어요.", { err: true });
+                  }
                 }}
               >
                 답글 등록

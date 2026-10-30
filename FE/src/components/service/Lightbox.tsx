@@ -48,7 +48,11 @@ export function Lightbox({
       <div className="flex max-h-full w-[min(100%,1100px)] justify-center">
         <div
           className={shotClass(port)}
-          style={port ? { width: "min(360px, 40vh)" } : { width: "100%" }}
+          style={
+            port
+              ? { width: "min(360px, 40vh)" }
+              : { width: "min(100%, calc((100dvh - 200px) * 16 / 9))" }
+          }
         >
           <PreviewInner s={s} i={i} />
         </div>

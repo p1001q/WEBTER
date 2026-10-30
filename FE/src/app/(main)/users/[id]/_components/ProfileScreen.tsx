@@ -17,7 +17,7 @@ import { useWt } from "@/providers/context";
 /** 제작자 프로필: 소개·외부 링크·등록한 서비스 */
 export function ProfileScreen({ id }: { id: string }) {
   const wt = useWt();
-  const u = wt.users[id];
+  const u = Object.hasOwn(wt.users, id) ? wt.users[id] : undefined;
   if (!u)
     return (
       <Restricted

@@ -32,7 +32,7 @@ function VersionManager({ s }: { s: Service }) {
   const fid = useId();
   const [edit, setEdit] = useState<Draft | null>(null);
   const list = s.versions;
-  const save = () => {
+  const save = async () => {
     if (!edit) return;
     const v = {
       ...edit,
@@ -40,21 +40,25 @@ function VersionManager({ s }: { s: Service }) {
       title: edit.title.trim(),
       body: edit.body.trim(),
     };
-    if (v.id)
-      wt.updateService(s.id, {
-        versions: list.map((x) =>
-          x.id === v.id ? ({ ...x, ...v } as Version) : x,
-        ),
-      });
-    else
-      wt.updateService(s.id, {
-        versions: [
-          { ...v, id: "v" + Date.now(), date: DISPLAY.demoToday },
-          ...list,
-        ],
-      });
-    setEdit(null);
-    wt.toast(v.id ? "버전 기록을 수정했어요." : "버전 기록을 추가했어요.");
+    try {
+      if (v.id)
+        await wt.updateService(s.id, {
+          versions: list.map((x) =>
+            x.id === v.id ? ({ ...x, ...v } as Version) : x,
+          ),
+        });
+      else
+        await wt.updateService(s.id, {
+          versions: [
+            { ...v, id: "v" + Date.now(), date: DISPLAY.demoToday },
+            ...list,
+          ],
+        });
+      setEdit(null);
+      wt.toast(v.id ? "버전 기록을 수정했어요." : "버전 기록을 추가했어요.");
+    } catch {
+      wt.toast("버전 기록을 저장하지 못했어요.", { err: true });
+    }
   };
   return (
     <div className="flex flex-col gap-3">
@@ -154,11 +158,15 @@ function VersionManager({ s }: { s: Service }) {
               </MiniButton>
               <MiniButton
                 aria-label={`${v.ver} 삭제`}
-                onClick={() => {
-                  wt.updateService(s.id, {
-                    versions: list.filter((x) => x.id !== v.id),
-                  });
-                  wt.toast("버전 기록을 삭제했어요.");
+                onClick={async () => {
+                  try {
+                    await wt.updateService(s.id, {
+                      versions: list.filter((x) => x.id !== v.id),
+                    });
+                    wt.toast("버전 기록을 삭제했어요.");
+                  } catch {
+                    wt.toast("버전 기록을 삭제하지 못했어요.", { err: true });
+                  }
                 }}
               >
                 <Icon name="trash" size={14} />

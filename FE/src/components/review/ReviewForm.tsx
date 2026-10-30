@@ -60,6 +60,28 @@ export function ReviewForm({
   const ok = text.trim().length >= 2 && !link && !needRate;
   const rateDisabled = (r: Rate) =>
     role === "guest" ? r !== "none" : stopLock && r !== "none";
+  // 방향키로 평가를 옮긴다(비활성 항목은 건너뜀). 탭 순서에는 선택된(없으면 첫 활성) 버튼만 둔다
+  const firstEnabled = RATES.find(([r]) => !rateDisabled(r))?.[0];
+  const moveRate = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    from: number,
+  ) => {
+    const step =
+      e.key === "ArrowRight" || e.key === "ArrowDown"
+        ? 1
+        : e.key === "ArrowLeft" || e.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (!step) return;
+    e.preventDefault();
+    for (let n = 1; n <= RATES.length; n++) {
+      const to = (from + step * n + RATES.length * n) % RATES.length;
+      if (rateDisabled(RATES[to][0])) continue;
+      setRate(RATES[to][0]);
+      (e.currentTarget.parentElement?.children[to] as HTMLElement).focus();
+      return;
+    }
+  };
   return (
     <div className="flex flex-col gap-3">
       {role !== "maker" ? (
@@ -72,12 +94,14 @@ export function ReviewForm({
             role="radiogroup"
             aria-labelledby={id + "r"}
           >
-            {RATES.map(([r, label, icon, on]) => (
+            {RATES.map(([r, label, icon, on], idx) => (
               <button
                 key={r}
                 type="button"
                 role="radio"
                 aria-checked={rate === r}
+                tabIndex={(rate ?? firstEnabled) === r ? 0 : -1}
+                onKeyDown={(e) => moveRate(e, idx)}
                 className={cx(
                   "inline-flex h-9 items-center gap-1.5 rounded-pill border px-3.5 text-13 font-semibold disabled:cursor-not-allowed disabled:opacity-40",
                   rate === r ? on : "border-border bg-card",
