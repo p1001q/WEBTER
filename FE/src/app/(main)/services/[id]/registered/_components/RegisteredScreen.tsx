@@ -33,7 +33,7 @@ export function RegisteredScreen({ id }: { id: string }) {
             등록할 수 있어요.
           </p>
           <div className="w-[300px] text-left">
-            <ServiceCard s={s} />
+            <ServiceCard s={s} heading="h2" />
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <Button size="lg" onClick={() => wt.go("detail", { id: s.id })}>

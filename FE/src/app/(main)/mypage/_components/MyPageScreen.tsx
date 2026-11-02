@@ -38,9 +38,9 @@ function HiddenServiceCard({ s }: { s: Service }) {
         <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
           <StatusBadge kind={s.pub as "private" | "temp"} />
         </div>
-        <h3 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em]">
+        <h2 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em]">
           {s.name}
-        </h3>
+        </h2>
         <p
           className={cx(
             "m-0 flex items-start gap-1.5 text-[12.5px] leading-[1.45]",
@@ -71,9 +71,9 @@ function SavedHiddenCard({ s }: { s: Service }) {
         <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
           <StatusBadge kind={s.pub as "private" | "temp"} />
         </div>
-        <h3 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em] text-muted">
+        <h2 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em] text-muted">
           {s.name}
-        </h3>
+        </h2>
         <p className="m-0 flex items-start gap-1.5 text-[12.5px] leading-[1.45] text-muted">
           <Icon name="info" size={14} className="mt-px" />
           지금은 볼 수 없는 서비스예요
@@ -164,7 +164,7 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
                   items={mine}
                   renderItem={(s) =>
                     s.pub === "public" ? (
-                      <ServiceCard s={s} />
+                      <ServiceCard s={s} heading="h2" />
                     ) : (
                       <HiddenServiceCard s={s} />
                     )
@@ -186,7 +186,7 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
                 items={saved}
                 renderItem={(s) =>
                   s.pub === "public" ? (
-                    <ServiceCard s={s} />
+                    <ServiceCard s={s} heading="h2" />
                   ) : (
                     <SavedHiddenCard s={s} />
                   )
