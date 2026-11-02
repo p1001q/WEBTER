@@ -1,10 +1,10 @@
 "use client";
 
-import type { Service } from "@/api/types";
+import type { Price, Service } from "@/api/types";
 import { GradeBadge } from "@/components/review/GradeBadge";
 import { Icon } from "@/components/ui/Icon";
 import { RouteLink } from "@/components/ui/RouteLink";
-import { CAT } from "@/domain/options";
+import { CAT, OPTL } from "@/domain/options";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import { ServiceStats } from "./ServiceStats";
@@ -18,6 +18,12 @@ export interface ServiceItemProps {
   /** 마우스를 올린 것처럼 보여준다(화면 비교용) */
   hover?: boolean;
 }
+
+const PRICE_COLOR: Record<Price, string> = {
+  free: "text-price-free",
+  partial: "text-price-partial",
+  paid: "text-price-paid",
+};
 
 // 카드에 마우스를 올리거나 포커스가 들어오면(또는 hover 지정) 나타나는 요소
 const reveal =
@@ -58,6 +64,14 @@ export function ServiceCard({
               {s.cats.length > 1 && ` 외 ${s.cats.length - 1}`}
             </span>
             {down && <StatusBadge kind="stop" />}
+            <span
+              className={cx(
+                PRICE_COLOR[s.price],
+                "ml-auto font-semibold opacity-0 transition-opacity duration-[180ms] group-hover/card:opacity-100 group-focus-within/card:opacity-100 group-data-[hover]/card:opacity-100 @max-[560px]/app:hidden [@media(hover:none)]:hidden",
+              )}
+            >
+              {OPTL.price[s.price]}
+            </span>
           </div>
           <Heading
             className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em]"
