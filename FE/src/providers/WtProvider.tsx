@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createApi } from "@/api";
 import type {
+  Comment,
   Review,
   Service,
   SessionState,
@@ -52,6 +53,7 @@ export function WtProvider({
 
   const [services, setServices] = useState<Service[]>(snap.services);
   const [reviews, setReviews] = useState<Review[]>(snap.reviews);
+  const [comments, setComments] = useState<Comment[]>(snap.comments);
   const [users, setUsers] = useState<Record<string, User>>(snap.users);
   const [meId, setMeId] = useState<string | null>(snap.session.meId);
   const [likes, setLikes] = useState(() => new Set(snap.session.likes));
@@ -203,6 +205,7 @@ export function WtProvider({
     users,
     services,
     reviews,
+    comments,
     likes,
     saves,
     reported,
@@ -246,11 +249,19 @@ export function WtProvider({
         toast("이미 로그인되어 있어요.");
         return;
       }
-      const r = await api.signup({
-        handle: data.handle,
-        nick: data.nick,
-        interests: data.interests ?? [],
-      });
+      let r;
+      try {
+        r = await api.signup({
+          handle: data.handle,
+          nick: data.nick,
+          interests: data.interests ?? [],
+        });
+      } catch {
+        toast("가입하지 못했어요. 아이디가 이미 사용 중인지 확인해 주세요.", {
+          err: true,
+        });
+        return;
+      }
       setUsers(r.users);
       applySession(r.session);
       const to = safeBackPath(backPath);
@@ -267,6 +278,7 @@ export function WtProvider({
       const r = await api.withdraw();
       setServices(r.services);
       setReviews(r.reviews);
+      setComments(r.comments);
       applySession(r.session);
       go("home");
       toast("탈퇴 처리했어요. (데모: 실제 계정은 삭제되지 않아요)");
@@ -381,6 +393,21 @@ export function WtProvider({
       toast(text ? "답글을 등록했어요." : "답글을 삭제했어요.");
     },
 
+    addComment: async (s, v, parentId) => {
+      const c = await api.addComment(s.id, v, parentId);
+      setComments((l) => [...l, c]);
+      toast(parentId ? "답글을 남겼어요." : "댓글을 남겼어요.");
+    },
+    updateComment: async (id, v) => {
+      const c = await api.updateComment(id, v);
+      setComments((l) => l.map((x) => (x.id === c.id ? c : x)));
+      toast("댓글을 수정했어요.");
+    },
+    deleteComment: async (id) => {
+      setComments(await api.deleteComment(id));
+      toast("댓글을 삭제했어요.");
+    },
+
     createService: async (data) => {
       const s = await api.createService(data);
       setServices((l) => [s, ...l]);
@@ -394,7 +421,10 @@ export function WtProvider({
       await api.deleteService(id);
       setServices((l) => l.filter((s) => s.id !== id));
       setReviews((l) => l.filter((r) => r.sid !== id));
-      toast("서비스와 리뷰를 삭제했어요.");
+      setComments((l) => l.filter((c) => c.sid !== id));
+      setLikes((l) => new Set([...l].filter((x) => x !== id)));
+      setSaves((l) => new Set([...l].filter((x) => x !== id)));
+      toast("서비스와 리뷰·댓글을 삭제했어요.");
     },
     checkServiceUrl: (url, selfId) => api.checkServiceUrl(url, selfId),
 

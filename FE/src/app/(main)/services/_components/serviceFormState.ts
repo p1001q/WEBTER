@@ -29,6 +29,7 @@ export interface FormState {
   pvFit: "cover" | "contain";
   allowGuest: boolean;
   allowAnon: boolean;
+  allowAnonComment: boolean;
   agree: boolean;
 }
 
@@ -53,6 +54,7 @@ export const EMPTY_FORM: FormState = {
   pvFit: "cover",
   allowGuest: false,
   allowAnon: false,
+  allowAnonComment: false,
   agree: false,
 };
 
@@ -102,6 +104,7 @@ export const BLANK_PREVIEW: Service = {
   previews: null,
   allowGuest: false,
   allowAnon: false,
+  allowAnonComment: false,
   views: 0,
   clicks: 0,
   likes: 0,
@@ -136,6 +139,7 @@ export function fromService(src: Service): FormState {
     pvFit: src.previews ? src.previews.fit : "cover",
     allowGuest: src.allowGuest,
     allowAnon: src.allowAnon,
+    allowAnonComment: src.allowAnonComment,
     agree: true,
   };
 }

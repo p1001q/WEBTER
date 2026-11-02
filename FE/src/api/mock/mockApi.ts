@@ -2,6 +2,8 @@ import { DISPLAY } from "@/domain/policy";
 import { CAT } from "@/domain/options";
 import { normUrl } from "@/domain/validation";
 import type {
+  Comment,
+  CommentInput,
   Review,
   ReviewInput,
   ReviewRole,
@@ -15,6 +17,7 @@ import type { WebterApi } from "../webterApi";
 import { mockAiSearch } from "./intents";
 import {
   ME_ID,
+  SEED_COMMENTS,
   SEED_OPENSOURCE,
   SEED_REVIEWS,
   SEED_SERVICES,
@@ -45,6 +48,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
   const snap = opts.snapshot;
   let services = clone(snap?.services ?? SEED_SERVICES);
   let reviews = clone(snap?.reviews ?? SEED_REVIEWS);
+  let comments = clone(snap?.comments ?? SEED_COMMENTS);
   const users = clone(snap?.users ?? SEED_USERS);
   const opensource = clone(snap?.opensource ?? SEED_OPENSOURCE);
   const takenHandles = clone(snap?.takenHandles ?? SEED_TAKEN_HANDLES);
@@ -52,6 +56,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     const ids = services.filter((s) => s.owner === ME_ID).map((s) => s.id);
     services = services.filter((s) => s.owner !== ME_ID);
     reviews = reviews.filter((r) => !ids.includes(r.sid));
+    comments = comments.filter((c) => !ids.includes(c.sid));
   }
   if (!snap && opts.mutate) services = opts.mutate(services);
 
@@ -83,6 +88,11 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     if (!r) throw new Error("리뷰를 찾을 수 없어요.");
     return r;
   };
+  const findComment = (id: string) => {
+    const c = comments.find((x) => x.id === id);
+    if (!c) throw new Error("댓글을 찾을 수 없어요.");
+    return c;
+  };
   const sessionCopy = (): SessionState => clone(session);
   const bump = (
     s: Service,
@@ -110,6 +120,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
         users,
         services,
         reviews,
+        comments,
         opensource,
         takenHandles,
         session,
@@ -122,11 +133,17 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       return clone({ users, session });
     },
     signup: async ({ handle, nick, interests }) => {
+      const key = handle.toLowerCase();
+      if (
+        takenHandles.includes(key) ||
+        Object.values(users).some((x) => x.handle.toLowerCase() === key)
+      )
+        throw new Error("이미 사용 중인 아이디예요.");
       const id = "u_new";
       users[id] = {
         id,
         nick,
-        handle,
+        handle: handle.toLowerCase(),
         color: "#E3E8F0",
         bio: "",
         links: [],
@@ -155,14 +172,20 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
         .map((r) =>
           r.a.uid === id ? { ...r, a: { kind: "left" as const } } : r,
         );
+      comments = comments
+        .filter((c) => !gone.has(c.sid))
+        .map((c) =>
+          c.a.uid === id ? { ...c, a: { kind: "left" as const } } : c,
+        );
       session.meId = null;
       session.likes = [];
       session.saves = [];
-      return clone({ services, reviews, session });
+      return clone({ services, reviews, comments, session });
     },
     updateProfile: async (patch: Partial<User>) => {
       const u = need();
       Object.assign(u, patch);
+      if (patch.handle) u.handle = patch.handle.toLowerCase();
       return clone(u);
     },
 
@@ -225,6 +248,60 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       return clone(r);
     },
 
+    addComment: async (sid: string, v: CommentInput, parentId?: string) => {
+      const s = findService(sid);
+      const u = need();
+      if (parentId) {
+        const p = findComment(parentId);
+        if (p.sid !== sid || p.parent || p.deleted)
+          throw new Error("이 댓글에는 답글을 달 수 없어요.");
+      }
+      const anon = !!v.anon && s.allowAnonComment && s.owner !== u.id;
+      const c: Comment = {
+        id: "cn" + Date.now() + comments.length,
+        fresh: true,
+        sid: s.id,
+        parent: parentId ?? null,
+        a: { kind: anon ? "anon" : "member", uid: u.id },
+        date: DISPLAY.demoToday,
+        text: v.text,
+      };
+      comments.push(c);
+      return clone(c);
+    },
+    updateComment: async (id, v) => {
+      const u = need();
+      const c = findComment(id);
+      if (c.a.uid !== u.id || c.deleted)
+        throw new Error("내 댓글만 수정할 수 있어요.");
+      const s = findService(c.sid);
+      c.text = v.text;
+      c.edited = true;
+      // 익명 설정이 꺼진 뒤에도 기존 익명 댓글은 익명으로 둔다(작성자를 드러내지 않는다)
+      if (s.allowAnonComment)
+        c.a = {
+          kind: v.anon && s.owner !== u.id ? "anon" : "member",
+          uid: u.id,
+        };
+      return clone(c);
+    },
+    deleteComment: async (id) => {
+      const u = need();
+      const c = findComment(id);
+      if (c.a.uid !== u.id) throw new Error("내 댓글만 삭제할 수 있어요.");
+      if (comments.some((x) => x.parent === id)) {
+        c.deleted = true;
+        c.text = "";
+        c.a = { kind: "left" };
+      } else {
+        comments = comments.filter((x) => x.id !== id);
+        const p = c.parent ? comments.find((x) => x.id === c.parent) : null;
+        if (p?.deleted && !comments.some((x) => x.parent === p.id))
+          comments = comments.filter((x) => x.id !== p.id);
+      }
+      return clone(comments);
+    },
+
     createService: async (input: ServiceInput) => {
       const u = need();
       const c = CAT[input.cats[0]];
@@ -258,6 +335,9 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     deleteService: async (id) => {
       services = services.filter((s) => s.id !== id);
       reviews = reviews.filter((r) => r.sid !== id);
+      comments = comments.filter((c) => c.sid !== id);
+      session.likes = session.likes.filter((x) => x !== id);
+      session.saves = session.saves.filter((x) => x !== id);
     },
     /** 접속·중복 검사 목업: 같은 주소는 중복, offline·down·unreachable 이 들어가면 접속 불가 */
     checkServiceUrl: async (url, selfId) => {

@@ -181,13 +181,13 @@ export function OnboardingScreen({
               id={P + "onb-id"}
               className={cx(inputClass, "font-mono", inputState(hc.state))}
               value={handle}
-              onChange={(e) => setHandle(e.target.value)}
+              onChange={(e) => setHandle(e.target.value.toLowerCase())}
               placeholder="예: dawn.code"
               autoComplete="off"
               data-validate={hc.state}
             />
             <FieldMessage state={msgState(hc.state)}>
-              {hc.msg || "영문·숫자·마침표·밑줄, 공백 없이 30자까지"}
+              {hc.msg || "영문 소문자·숫자·마침표·밑줄, 공백 없이 30자까지"}
             </FieldMessage>
           </div>
           <div className={fieldClass}>

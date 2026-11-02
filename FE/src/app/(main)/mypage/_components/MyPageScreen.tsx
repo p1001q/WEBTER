@@ -58,16 +58,48 @@ function HiddenServiceCard({ s }: { s: Service }) {
   );
 }
 
+/** 저장했지만 비공개로 바뀐 서비스: 이름과 저장 해제만 보여 준다(이미지·사유는 가린다) */
+function SavedHiddenCard({ s }: { s: Service }) {
+  const wt = useWt();
+  return (
+    <article
+      className="relative flex min-w-0 flex-col overflow-hidden rounded-sm bg-card shadow-card"
+      data-saved-hidden={s.id}
+    >
+      <div className="aspect-[16/10] bg-light" />
+      <div className="flex flex-1 flex-col gap-1.5 px-4 pt-4 pb-3.5">
+        <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
+          <StatusBadge kind={s.pub as "private" | "temp"} />
+        </div>
+        <h3 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em] text-muted">
+          {s.name}
+        </h3>
+        <p className="m-0 flex items-start gap-1.5 text-[12.5px] leading-[1.45] text-muted">
+          <Icon name="info" size={14} className="mt-px" />
+          지금은 볼 수 없는 서비스예요
+        </p>
+      </div>
+      <div className="flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
+        <MiniButton onClick={() => wt.toggleSave(s.id)}>
+          <Icon name="bookmark" size={13} />
+          저장 해제
+        </MiniButton>
+      </div>
+    </article>
+  );
+}
+
 /** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·계정 설정 */
 export function MyPageScreen({ tab }: { tab: Tab }) {
   const wt = useWt();
   const me = wt.me!;
   const mine = wt.services.filter((s) => s.owner === me.id);
-  const saved = wt.services.filter(
-    (s) => wt.saves.has(s.id) && s.pub === "public",
-  );
+  const saved = wt.services.filter((s) => wt.saves.has(s.id));
   const myReviews = wt.reviews.filter(
     (r) => r.a.uid === me.id && r.a.kind !== "guest",
+  );
+  const myComments = wt.comments.filter(
+    (c) => !c.deleted && c.a.uid === me.id && c.a.kind !== "left",
   );
   return (
     <>
@@ -92,6 +124,9 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
               <span>
                 <b>{myReviews.length}</b>리뷰
               </span>
+              <span>
+                <b>{myComments.length}</b>댓글
+              </span>
             </div>
           </div>
           <RouteLink
@@ -109,6 +144,7 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
             ["services", "내 서비스", mine.length],
             ["saved", "저장한 서비스", saved.length],
             ["reviews", "내가 쓴 리뷰", myReviews.length],
+            ["comments", "내가 쓴 댓글", myComments.length],
             ["settings", "계정 설정"],
           ]}
         />
@@ -146,7 +182,16 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
             ))}
           {tab === "saved" &&
             (saved.length ? (
-              <ServiceList items={saved} />
+              <ServiceList
+                items={saved}
+                renderItem={(s) =>
+                  s.pub === "public" ? (
+                    <ServiceCard s={s} />
+                  ) : (
+                    <SavedHiddenCard s={s} />
+                  )
+                }
+              />
             ) : (
               <EmptyState
                 title="저장한 서비스가 없어요"
@@ -220,6 +265,68 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
                 title="아직 쓴 리뷰가 없어요"
                 desc="이용해 본 서비스에 리뷰를 남겨 제작자에게 힘이 되어 주세요."
                 icon="edit"
+              />
+            ))}
+          {tab === "comments" &&
+            (myComments.length ? (
+              <div>
+                {myComments.map((c) => {
+                  const s = wt.svc(c.sid);
+                  if (!s) return null;
+                  return (
+                    <div
+                      key={c.id}
+                      className="flex items-start gap-4 border-b border-border py-[18px]"
+                      data-my-comment={c.id}
+                    >
+                      <ServiceIcon s={s} size={44} />
+                      <div className="min-w-0 flex-1">
+                        <RouteLink
+                          to="detail"
+                          params={{ id: s.id, tab: "comments" }}
+                          className="font-bold"
+                        >
+                          {s.name}
+                        </RouteLink>
+                        <div className={helpClass}>
+                          {c.parent ? "답글 · " : ""}
+                          {c.a.kind === "anon" ? "익명으로 작성 · " : ""}
+                          {fmtDate(c.date)}
+                          {c.edited && " · 수정됨"}
+                        </div>
+                        <p className={reviewText}>{c.text}</p>
+                      </div>
+                      <div className="flex">
+                        <MiniButton
+                          onClick={() =>
+                            wt.setModal({
+                              type: "comment",
+                              sid: s.id,
+                              comment: c,
+                            })
+                          }
+                        >
+                          <Icon name="edit" size={13} />
+                          수정
+                        </MiniButton>
+                        <MiniButton
+                          onClick={() =>
+                            wt.setModal({ type: "delete-comment", cid: c.id })
+                          }
+                        >
+                          <Icon name="trash" size={13} />
+                          삭제
+                        </MiniButton>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState
+                title="아직 쓴 댓글이 없어요"
+                desc="서비스 상세의 댓글 탭에서 제작자와 다른 사용자에게 이야기를 남겨 보세요."
+                icon="reply"
               />
             ))}
           {tab === "settings" && <SettingsPanel />}

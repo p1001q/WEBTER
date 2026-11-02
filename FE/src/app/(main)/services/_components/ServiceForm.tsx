@@ -187,6 +187,7 @@ export function ServiceForm({
         : null,
       allowGuest: f.allowGuest,
       allowAnon: f.allowAnon,
+      allowAnonComment: f.allowAnonComment,
     };
     submitting.current = true;
     try {
@@ -644,6 +645,29 @@ export function ServiceForm({
                   <Icon name="alert" size={16} />
                   익명·비회원 리뷰를 허용하면 스팸, 비방, 욕설이 달릴 수 있어요.
                   문제가 되는 리뷰는 신고할 수 있어요.
+                </Note>
+              )}
+            </section>
+
+            <section
+              className={sectionClass}
+              aria-labelledby={P + "fs-cm"}
+              data-component="comment-settings"
+            >
+              <h2 className={sectionTitleClass} id={P + "fs-cm"}>
+                댓글 설정
+              </h2>
+              <Switch
+                on={f.allowAnonComment}
+                onChange={(v) => set("allowAnonComment", v)}
+                label="회원 익명 댓글 허용"
+                desc="회원이 댓글마다 익명으로 남길지 고를 수 있어요."
+              />
+              {f.allowAnonComment && (
+                <Note tone="butter">
+                  <Icon name="alert" size={16} />
+                  익명 댓글을 허용하면 스팸, 비방, 욕설이 달릴 수 있어요. 문제가
+                  되는 댓글은 신고할 수 있어요.
                 </Note>
               )}
             </section>

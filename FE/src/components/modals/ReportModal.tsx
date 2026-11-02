@@ -24,12 +24,14 @@ const REPORT_REASONS: Record<ReportTarget["type"], string[]> = {
   ],
   review: ["스팸·광고", "욕설·비방", "개인정보 노출", "기타"],
   reply: ["스팸·광고", "욕설·비방", "개인정보 노출", "기타"],
+  comment: ["스팸·광고", "욕설·비방", "개인정보 노출", "기타"],
   profile: ["부적절한 표현", "스팸·사칭", "개인정보 노출", "기타"],
 };
 const REPORT_TARGET: Record<ReportTarget["type"], string> = {
   service: "서비스",
   review: "리뷰",
   reply: "제작자 답글",
+  comment: "댓글",
   profile: "프로필",
 };
 

@@ -9,6 +9,10 @@ export default async function ServiceDetailPage({
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const { id } = await params;
-  const tab = oneOf((await searchParams).tab, ["about", "reviews"] as const);
+  const tab = oneOf((await searchParams).tab, [
+    "about",
+    "reviews",
+    "comments",
+  ] as const);
   return <ServiceDetailScreen key={`${id}|${tab}`} id={id} tab={tab} />;
 }

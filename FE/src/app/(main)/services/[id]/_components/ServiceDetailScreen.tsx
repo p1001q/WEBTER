@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Restricted } from "@/components/layout/Restricted";
 import { SectionHead } from "@/components/layout/SectionHead";
 import { GradeBadge } from "@/components/review/GradeBadge";
+import { CommentSection } from "@/components/comment/CommentSection";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { Gallery } from "@/components/service/Gallery";
 import { ServiceList } from "@/components/service/ServiceList";
@@ -27,7 +28,7 @@ import { useWt } from "@/providers/context";
 import { ServiceOverview } from "./ServiceOverview";
 import { ServiceVersions } from "./ServiceVersions";
 
-type Tab = "about" | "reviews";
+type Tab = "about" | "reviews" | "comments";
 
 const banner = "mb-6 flex items-center gap-2.5 rounded-md px-4 py-3 text-14";
 const statCell =
@@ -74,6 +75,9 @@ export function ServiceDetailScreen({
     );
   const owner = wt.users[s.owner];
   const agg = wt.agg(s);
+  const commentCount = wt.comments.filter(
+    (c) => c.sid === s.id && !c.deleted,
+  ).length;
   const down = s.use === "stop";
   const reported = wt.reported.has("service:" + s.id);
   const similar = wt.publicServices
@@ -176,6 +180,7 @@ export function ServiceDetailScreen({
               items={[
                 ["about", "소개"],
                 ["reviews", "리뷰", agg.total],
+                ["comments", "댓글", commentCount],
               ]}
             />
             {tab === "about" ? (
@@ -203,8 +208,10 @@ export function ServiceDetailScreen({
                   </div>
                 )}
               </div>
-            ) : (
+            ) : tab === "reviews" ? (
               <ReviewSection s={s} />
+            ) : (
+              <CommentSection s={s} />
             )}
             <ServiceVersions s={s} />
           </div>
