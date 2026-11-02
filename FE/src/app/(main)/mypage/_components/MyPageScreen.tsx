@@ -58,14 +58,43 @@ function HiddenServiceCard({ s }: { s: Service }) {
   );
 }
 
+/** 저장했지만 비공개로 바뀐 서비스: 이름과 저장 해제만 보여 준다(이미지·사유는 가린다) */
+function SavedHiddenCard({ s }: { s: Service }) {
+  const wt = useWt();
+  return (
+    <article
+      className="relative flex min-w-0 flex-col overflow-hidden rounded-sm bg-card shadow-card"
+      data-saved-hidden={s.id}
+    >
+      <div className="aspect-[16/10] bg-light" />
+      <div className="flex flex-1 flex-col gap-1.5 px-4 pt-4 pb-3.5">
+        <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
+          <StatusBadge kind="private" />
+        </div>
+        <h3 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em] text-muted">
+          {s.name}
+        </h3>
+        <p className="m-0 flex items-start gap-1.5 text-[12.5px] leading-[1.45] text-muted">
+          <Icon name="info" size={14} className="mt-px" />
+          지금은 볼 수 없는 서비스예요
+        </p>
+      </div>
+      <div className="flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
+        <MiniButton onClick={() => wt.toggleSave(s.id)}>
+          <Icon name="bookmark" size={13} />
+          저장 해제
+        </MiniButton>
+      </div>
+    </article>
+  );
+}
+
 /** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·계정 설정 */
 export function MyPageScreen({ tab }: { tab: Tab }) {
   const wt = useWt();
   const me = wt.me!;
   const mine = wt.services.filter((s) => s.owner === me.id);
-  const saved = wt.services.filter(
-    (s) => wt.saves.has(s.id) && s.pub === "public",
-  );
+  const saved = wt.services.filter((s) => wt.saves.has(s.id));
   const myReviews = wt.reviews.filter(
     (r) => r.a.uid === me.id && r.a.kind !== "guest",
   );
@@ -146,7 +175,16 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
             ))}
           {tab === "saved" &&
             (saved.length ? (
-              <ServiceList items={saved} />
+              <ServiceList
+                items={saved}
+                renderItem={(s) =>
+                  s.pub === "public" ? (
+                    <ServiceCard s={s} />
+                  ) : (
+                    <SavedHiddenCard s={s} />
+                  )
+                }
+              />
             ) : (
               <EmptyState
                 title="저장한 서비스가 없어요"

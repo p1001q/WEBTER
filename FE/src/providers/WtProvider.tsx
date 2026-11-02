@@ -411,3 +411,5 @@ export function WtProvider({
     </WtCtx.Provider>
   );
 }
+      setLikes((l) => new Set([...l].filter((x) => x !== id)));
+      setSaves((l) => new Set([...l].filter((x) => x !== id)));

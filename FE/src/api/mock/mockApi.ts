@@ -280,3 +280,5 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     aiSearch: async (q) => clone(mockAiSearch(q)),
   };
 }
+      session.likes = session.likes.filter((x) => x !== id);
+      session.saves = session.saves.filter((x) => x !== id);
