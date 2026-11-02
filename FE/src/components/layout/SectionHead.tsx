@@ -10,7 +10,7 @@ export function SectionHead({
   onMore?: () => void;
 }) {
   return (
-    <div className="mb-5 flex items-baseline gap-3">
+    <div className="mb-5 flex items-baseline gap-3 px-1.5">
       <h2 className="m-0 text-22 font-extrabold tracking-[-0.02em] @max-[560px]/app:text-[19px]">
         {title}
       </h2>

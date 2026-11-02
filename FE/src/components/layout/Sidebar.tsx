@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { CategoryGlyph } from "@/components/service/CategoryGlyph";
@@ -27,10 +27,29 @@ export function Sidebar() {
     asideRef.current?.querySelector<HTMLElement>("button")?.focus();
     return () => prev?.focus?.();
   }, [wt.side]);
-  if (!wt.side) return null;
+  // 닫을 때는 슬라이드·페이드가 끝난 뒤에 화면에서 뺀다. 모션 줄이기 설정에서는 바로 뺀다
+  const [leaving, setLeaving] = useState(false);
+  const [wasOpen, setWasOpen] = useState(wt.side);
+  if (wasOpen !== wt.side) {
+    setWasOpen(wt.side);
+    setLeaving(
+      !wt.side &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+  }
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => setLeaving(false), 200);
+    return () => clearTimeout(t);
+  }, [leaving]);
+  if (!wt.side && !leaving) return null;
   const close = () => wt.setSide(false);
   const cat = route.query.cat;
-  const curCat = cat || (route.name === "latest" ? "all" : null);
+  const onList =
+    route.name === "trending" ||
+    route.name === "popular" ||
+    route.name === "latest";
+  const curCat = cat || (onList ? "all" : null);
   const live = wt.publicServices.filter((s) => s.use === "live");
   const counts = Object.fromEntries(
     CATEGORIES.map((c) => [
@@ -40,7 +59,7 @@ export function Sidebar() {
   );
   const goCat = (id: string) => {
     close();
-    wt.go("latest", id === "all" ? {} : { cat: id });
+    wt.go("trending", id === "all" ? {} : { cat: id });
   };
   const itemClass = (on: boolean) =>
     cx(
@@ -50,14 +69,20 @@ export function Sidebar() {
   return (
     <>
       <button
-        className="fixed inset-0 z-50 w-full animate-fade cursor-default border-0 bg-scrim p-0"
+        className={cx(
+          "fixed inset-0 z-50 w-full cursor-default border-0 bg-scrim p-0",
+          leaving ? "pointer-events-none animate-fade-out" : "animate-fade",
+        )}
         aria-label="메뉴 닫기"
         tabIndex={-1}
         onClick={close}
       />
       <aside
         ref={asideRef}
-        className="fixed top-0 bottom-0 left-0 z-[51] flex w-side max-w-[84%] animate-slide flex-col border-r border-border bg-ivory"
+        className={cx(
+          "fixed top-0 bottom-0 left-0 z-[51] flex w-side max-w-[84%] flex-col border-r border-border bg-ivory",
+          leaving ? "pointer-events-none animate-slide-out" : "animate-slide",
+        )}
         role="dialog"
         aria-label="사이드 메뉴"
       >

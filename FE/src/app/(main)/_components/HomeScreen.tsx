@@ -70,7 +70,7 @@ export function HomeScreen() {
     <>
       <MainNav />
       <div className="page-wrap">
-        <section className="pt-14 pb-2 text-center @max-[560px]/app:pt-8 @max-[560px]/app:pb-0 @max-[560px]/app:text-left">
+        <section className="pt-6 pb-2 text-center @max-[560px]/app:pt-8 @max-[560px]/app:pb-0 @max-[560px]/app:text-left">
           <h1 className="m-0 text-40 leading-[1.2] font-extrabold tracking-[-0.035em] text-balance @max-[860px]/app:text-[32px] @max-[560px]/app:text-[25px]">
             오늘은 어떤 웹에서 놀아 볼까요?
           </h1>
@@ -82,7 +82,7 @@ export function HomeScreen() {
             <SearchExamples />
           </div>
           {interests.length > 0 && (
-            <div className="mt-6 flex items-center justify-center gap-2 text-13 text-text-3 @max-[560px]/app:flex-wrap @max-[560px]/app:justify-start">
+            <div className="mt-4 flex items-center justify-center gap-2 text-13 text-text-3 @max-[560px]/app:flex-wrap @max-[560px]/app:justify-start">
               <Icon name="spark" size={14} />
               관심 카테고리:{" "}
               <b className="font-bold text-ink">
@@ -100,14 +100,14 @@ export function HomeScreen() {
           )}
         </section>
         {live.length === 0 ? (
-          <section className="mt-14 @max-[560px]/app:mt-10">
+          <section className="mt-10">
             <NoServices />
           </section>
         ) : (
           DISPLAY.homeSections.map((k) => {
             const sec = sections[k];
             return (
-              <section className="mt-14 @max-[560px]/app:mt-10" key={k}>
+              <section className="mt-10" key={k}>
                 <SectionHead
                   title={sec.title}
                   sub={sec.sub}

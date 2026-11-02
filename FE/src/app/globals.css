@@ -69,8 +69,13 @@
   --color-status-temp-fg: var(--color-butter-ink);
 
   /* color — 반응 */
-  --color-like: var(--color-wine);
-  --color-save: var(--color-navy);
+  --color-like: #8b363b;
+  --color-save: #2e4363;
+
+  /* color — 카드 가격 글자 */
+  --color-price-free: #3e6b4f;
+  --color-price-partial: #b8706b;
+  --color-price-paid: #a8372f;
 
   /* type (폰트 패밀리 이름은 layout.tsx 에서 불러오는 Pretendard / JetBrains Mono) */
   --font-sans:
@@ -126,7 +131,10 @@
   --animate-fade: wtFade 0.2s ease;
   --animate-toast: wtToast 0.25s ease;
   --animate-pop-sm: wtPop 0.16s ease;
+  --animate-pop-out: wtPopOut 0.14s ease forwards;
   --animate-slide: wtSlide 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade-out: wtFadeOut 0.2s ease forwards;
+  --animate-slide-out: wtSlideOut 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
   --animate-enter: wtEnter 0.25s ease;
   --animate-skeleton: wtSk 1.1s linear infinite;
   --animate-fresh: wtFresh 1.6s ease;
@@ -141,12 +149,28 @@
       transform: none;
     }
   }
+  @keyframes wtPopOut {
+    to {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
   @keyframes wtFade {
     from {
       opacity: 0;
     }
     to {
       opacity: 1;
+    }
+  }
+  @keyframes wtFadeOut {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes wtSlideOut {
+    to {
+      transform: translateX(-100%);
     }
   }
   @keyframes wtSlide {
@@ -253,4 +277,49 @@
   @container app (max-width: 560px) {
     padding-inline: 16px;
   }
+}
+
+/* 화면 전환(View Transitions). 본문은 겹치며 바뀌고, 메인 메뉴 밑줄은 새 탭 위치로 미끄러진다 */
+::view-transition-old(.page-fade) {
+  animation: wtVtOut 0.22s ease both;
+}
+::view-transition-new(.page-fade) {
+  animation: wtVtIn 0.22s ease both;
+}
+::view-transition-group(.nav-underline) {
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* 전환 중에도 화면을 누를 수 있게 한다 */
+::view-transition {
+  pointer-events: none;
+}
+@keyframes wtVtOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes wtVtIn {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* 필터·정렬로 목록이 바뀔 때: 새 항목은 나타나고, 빠지는 항목은 사라지고, 남는 항목은 자리를 옮긴다 */
+::view-transition-old(.list-out) {
+  animation: wtVtOut 0.16s ease both;
+}
+::view-transition-new(.list-in) {
+  animation: wtVtIn 0.26s ease 0.08s both;
+}
+::view-transition-group(*) {
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }

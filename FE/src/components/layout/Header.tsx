@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScopeBadge } from "@/components/ui/ScopeBadge";
+import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import { Wordmark } from "./Wordmark";
 
@@ -32,6 +33,20 @@ export function Header() {
       document.removeEventListener("keydown", k);
     };
   }, []);
+  // 닫을 때는 위로 살짝 사라지는 모션이 끝난 뒤에 화면에서 뺀다. 모션 줄이기 설정에서는 바로 뺀다
+  const [leaving, setLeaving] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    setLeaving(
+      !open && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+  }
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => setLeaving(false), 140);
+    return () => clearTimeout(t);
+  }, [leaving]);
   const me = wt.me;
   const register = () =>
     wt.requireLogin(
@@ -81,7 +96,7 @@ export function Header() {
           </IconButton>
           <Button
             variant="outline"
-            className="@max-[560px]/app:hidden"
+            className="transition-[color,background-color,scale]! duration-150 active:scale-[.93]! @max-[560px]/app:hidden"
             onClick={register}
           >
             <Icon name="plus" size={16} stroke={2.2} />
@@ -106,9 +121,14 @@ export function Header() {
                 <Avatar user={me} size={34} />
                 <Icon name="chevDown" size={16} />
               </button>
-              {open && (
+              {(open || leaving) && (
                 <div
-                  className="absolute top-[calc(100%+8px)] right-0 z-40 min-w-[248px] animate-pop-sm rounded-md border border-border bg-card p-1.5 shadow-pop"
+                  className={cx(
+                    "absolute top-[calc(100%+8px)] right-0 z-40 min-w-[248px] rounded-md border border-border bg-card p-1.5 shadow-pop",
+                    leaving
+                      ? "pointer-events-none animate-pop-out"
+                      : "animate-pop-sm",
+                  )}
                   role="menu"
                 >
                   <div className="flex items-center gap-3 px-3 pt-3 pb-3.5">
