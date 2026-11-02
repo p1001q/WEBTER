@@ -22,11 +22,29 @@ export const DEFAULT_TWEAKS: TweakValues = {
 
 const KEY = "webter-dev-tweaks";
 
+/** 허용된 값만 받고 나머지는 기본값으로 둔다(저장된 값이 예전 형식이거나 손으로 고쳐졌을 수 있다) */
+function sanitize(raw: Partial<Record<keyof TweakValues, unknown>>) {
+  const pick = <K extends keyof TweakValues>(
+    k: K,
+    allowed: readonly TweakValues[K][],
+  ): TweakValues[K] =>
+    allowed.includes(raw[k] as TweakValues[K])
+      ? (raw[k] as TweakValues[K])
+      : DEFAULT_TWEAKS[k];
+  return {
+    session: pick("session", ["guest", "member", "signup"]),
+    scope: pick("scope", [true, false]),
+    cols: pick("cols", [3, 4]),
+    sample: pick("sample", ["default", "none", "stopped"]),
+    viewport: pick("viewport", ["desktop", "mobile"]),
+  } satisfies TweakValues;
+}
+
 /** 새로고침과 모바일 미리보기(iframe)가 같은 설정으로 시작하도록 localStorage 에 둔다 */
 export function loadTweaks(): TweakValues {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...DEFAULT_TWEAKS, ...JSON.parse(raw) } : DEFAULT_TWEAKS;
+    return raw ? sanitize(JSON.parse(raw) ?? {}) : DEFAULT_TWEAKS;
   } catch {
     return DEFAULT_TWEAKS;
   }
@@ -49,7 +67,7 @@ export function mockOptions(t: TweakValues): MockOptions {
       t.sample === "stopped"
         ? (list) =>
             list.map((s): Service =>
-              s.owner === ME_ID && s.pub === "public"
+              s.owner === ME_ID
                 ? { ...s, use: "stop", stopReason: "데모: 점검 중이에요." }
                 : s,
             )

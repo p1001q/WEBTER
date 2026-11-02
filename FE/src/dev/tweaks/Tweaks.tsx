@@ -41,7 +41,7 @@ interface Props {
 }
 
 const row = (label: string, el: ReactNode) => (
-  <div className="flex flex-col gap-1">
+  <div role="group" aria-label={label} className="flex flex-col gap-1">
     <span className="font-semibold text-text-3">{label}</span>
     {el}
   </div>
@@ -108,6 +108,7 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
       {row(
         "화면 바로가기",
         <select
+          aria-label="화면 바로가기"
           className="h-ctl-sm rounded-md border border-border bg-card px-2 text-12"
           value=""
           onChange={(e) => {

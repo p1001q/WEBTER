@@ -38,6 +38,7 @@ export function DevFrame({
   // 모바일 미리보기는 같은 앱을 390px iframe 으로 띄운다. iframe 안의 앱은 컨트롤 없이 같은 설정으로 시작한다
   const [embedded, setEmbedded] = useState(false);
   const [frame, setFrame] = useState({ path: "/", n: 0 });
+  const frameRef = useRef<HTMLIFrameElement>(null);
 
   const rebuild = async (next: TweakValues) => {
     const s = await createApi(mockOptions(next)).bootstrap();
@@ -79,11 +80,18 @@ export function DevFrame({
     saveTweaks(next);
     if ("session" in patch || "sample" in patch) await rebuild(next);
     setT(next);
+    const mobile = next.viewport === "mobile";
     if (patch.viewport === "mobile")
       setFrame((f) => ({ path: path ?? here(), n: f.n + 1 }));
-    else if (path) go(path, next.viewport === "mobile");
-    else if ("session" in patch || "sample" in patch)
-      setFrame((f) => ({ ...f, n: f.n + 1 }));
+    else if (patch.viewport === "desktop") {
+      // 모바일에서 보던 화면을 이어서 연다
+      const loc = frameRef.current?.contentWindow?.location;
+      const target = path ?? (loc ? loc.pathname + loc.search : here());
+      if (target !== here()) router.push(target);
+    } else if (path) go(path, mobile);
+    else if (mobile && ("session" in patch || "sample" in patch))
+      // 같은 출처라 iframe 이 보던 주소 그대로 다시 불러온다(새 설정은 저장돼 있다)
+      frameRef.current?.contentWindow?.location.reload();
   };
 
   if (embedded)
@@ -100,6 +108,7 @@ export function DevFrame({
       {mobile ? (
         <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#E9E6DE] py-6">
           <iframe
+            ref={frameRef}
             key={frame.n}
             title="모바일 미리보기"
             src={frame.path}
