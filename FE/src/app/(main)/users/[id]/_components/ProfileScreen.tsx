@@ -121,7 +121,11 @@ export function ProfileScreen({ id }: { id: string }) {
           {list.length ? (
             <ServiceList items={list} />
           ) : (
-            <EmptyState title="공개된 서비스가 없어요" desc="" icon="grid" />
+            <EmptyState
+              title="공개된 서비스가 없어요"
+              desc="공개된 서비스가 생기면 이곳에 보여요."
+              icon="grid"
+            />
           )}
         </section>
       </div>

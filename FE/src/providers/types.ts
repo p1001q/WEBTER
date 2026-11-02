@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from "react";
 import type {
   AiSearchResult,
   Comment,
@@ -36,7 +37,8 @@ export type ModalState =
   | { type: "review"; sid: string; review: Review }
   | { type: "versions"; sid: string }
   | { type: "lightbox"; sid: string; index: number }
-  | { type: "withdraw" };
+  | { type: "withdraw" }
+  | { type: "session" };
 
 export type ToastOptions = Omit<ToastContent, "msg">;
 
@@ -64,9 +66,13 @@ export interface WtStore {
   side: boolean;
   setSide: (v: boolean) => void;
   modal: ModalState | null;
-  setModal: (m: ModalState | null) => void;
+  /** 함수로 넘기면 지금 열린 모달을 보고 정한다(요청이 끝난 뒤 다른 모달을 닫지 않게) */
+  setModal: Dispatch<SetStateAction<ModalState | null>>;
   toastState: ToastContent | null;
   toast: (msg: ToastContent["msg"], opts?: ToastOptions) => void;
+  /** 서버와 연결되지 않은 상태(요청이 응답 없이 실패했거나 브라우저가 오프라인) */
+  offline: boolean;
+  dismissOffline: () => void;
 
   /** 현재 경로 + 쿼리. 클릭 같은 이벤트 시점에 읽는다(로그인 뒤 돌아올 주소) */
   currentPath: () => string;
@@ -82,35 +88,43 @@ export interface WtStore {
   svc: (id: string | undefined) => Service | undefined;
   agg: (s: Service) => ReviewAgg;
 
-  login: (back?: string) => Promise<void>;
+  // 쓰기 동작은 실패하면 안내(토스트·연결 배너·로그인 만료 모달)를 직접 띄우고 false 를 돌려준다.
+  // 호출한 쪽은 true 일 때만 모달을 닫거나 입력값을 비운다.
+  login: (back?: string) => Promise<boolean>;
   signup: (
     data: { handle: string; nick: string; interests: User["interests"] },
     back?: string,
-  ) => Promise<void>;
-  logout: () => Promise<void>;
-  withdraw: () => Promise<void>;
-  updateMe: (patch: Partial<User>) => Promise<void>;
+  ) => Promise<boolean>;
+  logout: () => Promise<boolean>;
+  withdraw: () => Promise<boolean>;
+  updateMe: (patch: Partial<User>) => Promise<boolean>;
 
   launch: (s: Service) => Promise<void>;
   openSource: (s: Service) => void;
   copyLink: (s: Service) => Promise<void>;
-  toggleLike: (id: string) => Promise<void>;
-  toggleSave: (id: string) => Promise<void>;
-  report: (key: string) => Promise<void>;
+  toggleLike: (id: string) => Promise<boolean>;
+  toggleSave: (id: string) => Promise<boolean>;
+  report: (key: string) => Promise<boolean>;
   countView: (s: Service) => void;
 
-  addReview: (s: Service, role: ReviewRole, v: ReviewInput) => Promise<void>;
-  updateReview: (id: string, v: ReviewInput) => Promise<void>;
-  deleteReview: (id: string) => Promise<void>;
-  setReply: (rid: string, text: string | null) => Promise<void>;
+  addReview: (s: Service, role: ReviewRole, v: ReviewInput) => Promise<boolean>;
+  updateReview: (id: string, v: ReviewInput) => Promise<boolean>;
+  deleteReview: (id: string) => Promise<boolean>;
+  setReply: (rid: string, text: string | null) => Promise<boolean>;
 
-  addComment: (s: Service, v: CommentInput, parentId?: string) => Promise<void>;
-  updateComment: (id: string, v: CommentInput) => Promise<void>;
-  deleteComment: (id: string) => Promise<void>;
+  addComment: (
+    s: Service,
+    v: CommentInput,
+    parentId?: string,
+  ) => Promise<boolean>;
+  updateComment: (id: string, v: CommentInput) => Promise<boolean>;
+  deleteComment: (id: string) => Promise<boolean>;
 
-  createService: (data: ServiceInput) => Promise<Service>;
-  updateService: (id: string, patch: Partial<Service>) => Promise<void>;
-  deleteService: (id: string) => Promise<void>;
+  /** 실패하면 null */
+  createService: (data: ServiceInput) => Promise<Service | null>;
+  updateService: (id: string, patch: Partial<Service>) => Promise<boolean>;
+  deleteService: (id: string) => Promise<boolean>;
+  // 읽기 동작은 실패하면 ApiError 를 던진다. 화면이 그 자리에서 다시 시도할 수 있는 안내를 그린다.
   checkServiceUrl: (url: string, selfId?: string) => Promise<UrlServerCheck>;
 
   aiSearch: (q: string) => Promise<AiSearchResult>;

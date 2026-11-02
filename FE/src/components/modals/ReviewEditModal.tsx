@@ -29,18 +29,11 @@ export function ReviewEditModal({
         submitLabel={review.id ? "수정 완료" : "리뷰 남기기"}
         onCancel={onClose}
         onSubmit={async (v) => {
-          try {
-            if (review.id) await wt.updateReview(review.id, v);
-            else await wt.addReview(s, role, v);
-            onClose();
-          } catch {
-            wt.toast(
-              "리뷰를 저장하지 못했어요. 잠시 뒤에 다시 시도해 주세요.",
-              {
-                err: true,
-              },
-            );
-          }
+          const ok = review.id
+            ? await wt.updateReview(review.id, v)
+            : await wt.addReview(s, role, v);
+          if (ok) onClose();
+          return ok;
         }}
       />
     </Modal>

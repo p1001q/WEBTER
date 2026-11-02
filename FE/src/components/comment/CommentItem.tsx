@@ -158,8 +158,9 @@ export function CommentItem({
                 minHeight={64}
                 onCancel={() => setReplying(false)}
                 onSubmit={async (v) => {
-                  await wt.addComment(s, v, c.id);
-                  setReplying(false);
+                  const ok = await wt.addComment(s, v, c.id);
+                  if (ok) setReplying(false);
+                  return ok;
                 }}
               />
             </div>

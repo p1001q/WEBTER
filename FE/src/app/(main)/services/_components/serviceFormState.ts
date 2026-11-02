@@ -59,7 +59,14 @@ export const EMPTY_FORM: FormState = {
 };
 
 export type UrlStateName =
-  "idle" | "checking" | "ok" | "dup" | "unreachable" | "format" | "pass";
+  | "idle"
+  | "checking"
+  | "ok"
+  | "dup"
+  | "unreachable"
+  | "format"
+  | "error"
+  | "pass";
 export interface UrlSt {
   state: UrlStateName;
   msg?: string;

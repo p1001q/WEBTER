@@ -26,7 +26,8 @@ interface Props {
   s: Service;
   role: ReviewRole;
   initial?: Review | null;
-  onSubmit: (v: ReviewInput & { anon: boolean }) => void;
+  /** 저장에 성공하면 true. false 면 입력한 내용을 그대로 둔다 */
+  onSubmit: (v: ReviewInput & { anon: boolean }) => Promise<boolean>;
   onCancel?: () => void;
   submitLabel?: string;
 }
@@ -57,7 +58,8 @@ export function ReviewForm({
   const link = hasLink(text);
   const stopLock = s.use === "stop";
   const needRate = role === "member" && !rate;
-  const ok = text.trim().length >= 2 && !link && !needRate;
+  const [busy, setBusy] = useState(false);
+  const ok = text.trim().length >= 2 && !link && !needRate && !busy;
   const rateDisabled = (r: Rate) =>
     role === "guest" ? r !== "none" : stopLock && r !== "none";
   // 방향키로 평가를 옮긴다(비활성 항목은 건너뜀). 탭 순서에는 선택된(없으면 첫 활성) 버튼만 둔다
@@ -177,15 +179,17 @@ export function ReviewForm({
           )}
           <Button
             disabled={!ok}
-            onClick={() =>
-              onSubmit({
+            onClick={async () => {
+              setBusy(true);
+              await onSubmit({
                 rate: role === "maker" ? null : rate,
                 text: text.trim(),
                 anon,
-              })
-            }
+              });
+              setBusy(false);
+            }}
           >
-            {submitLabel}
+            {busy ? "저장 중…" : submitLabel}
           </Button>
         </div>
       </div>

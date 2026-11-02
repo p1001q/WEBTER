@@ -1,5 +1,6 @@
 import { ME_ID, type MockOptions } from "@/api";
-import type { Service } from "@/api/types";
+import type { Service, Snapshot } from "@/api/types";
+import type { Fault } from "./faults";
 
 // 개발 전용: 데모 컨트롤(Tweaks)이 바꾸는 값과 목업 DB 옵션. 프로덕션 빌드에는 들어가지 않는다.
 
@@ -10,6 +11,12 @@ export interface TweakValues {
   cols: 3 | 4;
   sample: "default" | "none" | "stopped";
   viewport: "desktop" | "mobile";
+  /** 'quiet': 리뷰·댓글 없음, 'empty': 서비스가 하나도 없음 */
+  data: "default" | "quiet" | "empty";
+  /** 'broken': 모든 이미지 주소가 깨짐 */
+  images: "ok" | "broken";
+  /** 요청이 실패하거나 느린 상황 */
+  fault: Fault;
 }
 
 export const DEFAULT_TWEAKS: TweakValues = {
@@ -18,6 +25,9 @@ export const DEFAULT_TWEAKS: TweakValues = {
   cols: 4,
   sample: "default",
   viewport: "desktop",
+  data: "default",
+  images: "ok",
+  fault: "none",
 };
 
 const KEY = "webter-dev-tweaks";
@@ -37,6 +47,9 @@ function sanitize(raw: Partial<Record<keyof TweakValues, unknown>>) {
     cols: pick("cols", [3, 4]),
     sample: pick("sample", ["default", "none", "stopped"]),
     viewport: pick("viewport", ["desktop", "mobile"]),
+    data: pick("data", ["default", "quiet", "empty"]),
+    images: pick("images", ["ok", "broken"]),
+    fault: pick("fault", ["none", "server", "network", "session", "slow"]),
   } satisfies TweakValues;
 }
 
@@ -73,4 +86,53 @@ export function mockOptions(t: TweakValues): MockOptions {
             )
         : undefined,
   };
+}
+
+const BROKEN_IMG = "/dev-broken-image.png";
+
+/** 데이터 상태·이미지 상태에 맞게 스냅샷을 바꾼다(목업 DB 를 만든 뒤 마지막에 적용한다) */
+export function shapeSnapshot(s: Snapshot, t: TweakValues): Snapshot {
+  let out = s;
+  if (t.data !== "default")
+    out = {
+      ...out,
+      reviews: [],
+      comments: [],
+      // 서비스에 미리 계산해 둔 리뷰 집계도 비운다
+      services: out.services.map((v): Service => ({
+        ...v,
+        rv: { up: 0, down: 0, none: 0 },
+        sc: [0, 0, 0],
+      })),
+      ...(t.data === "empty"
+        ? {
+            services: [],
+            session: { ...out.session, likes: [], saves: [] },
+          }
+        : {}),
+    };
+  if (t.images === "broken")
+    out = {
+      ...out,
+      services: out.services.map((v): Service => ({
+        ...v,
+        hasIcon: true,
+        hasThumb: true,
+        iconImg: BROKEN_IMG,
+        thumbImg: BROKEN_IMG,
+        previews: v.previews
+          ? {
+              ...v.previews,
+              imgs: Array.from({ length: v.previews.count }, () => BROKEN_IMG),
+            }
+          : null,
+      })),
+      users: Object.fromEntries(
+        Object.entries(out.users).map(([id, u]) => [
+          id,
+          { ...u, avatarImg: BROKEN_IMG },
+        ]),
+      ),
+    };
+  return out;
 }

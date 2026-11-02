@@ -181,12 +181,7 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
                 size="sm"
                 disabled={reply.trim().length < 2 || replyLink}
                 onClick={async () => {
-                  try {
-                    await wt.setReply(r.id, reply.trim());
-                    setReplying(false);
-                  } catch {
-                    wt.toast("답글을 등록하지 못했어요.", { err: true });
-                  }
+                  if (await wt.setReply(r.id, reply.trim())) setReplying(false);
                 }}
               >
                 답글 등록

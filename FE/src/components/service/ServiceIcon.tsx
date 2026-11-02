@@ -1,5 +1,6 @@
 import type { Service } from "@/api/types";
 import { CAT } from "@/domain/options";
+import { ImgFrame } from "@/components/ui/SafeImg";
 import { CategoryGlyph } from "./CategoryGlyph";
 
 type IconSource = Pick<Service, "cats" | "hasIcon" | "thumb" | "name"> & {
@@ -23,23 +24,26 @@ export function ServiceIcon({
     height: size,
     borderRadius: Math.round(size * 0.24),
   };
+  const defaultIcon = (
+    <div
+      className={box}
+      style={{ ...frame, background: c.bg, color: c.fg }}
+      data-default-icon=""
+    >
+      <CategoryGlyph cat={c.id} size={Math.round(size * 0.5)} />
+    </div>
+  );
   if (s.iconImg)
     return (
-      <div className={box} style={frame}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={s.iconImg} alt="" className="size-full object-cover" />
-      </div>
+      <ImgFrame
+        src={s.iconImg}
+        frameClassName={box}
+        frameStyle={frame}
+        imgClassName="size-full object-cover"
+        fallback={defaultIcon}
+      />
     );
-  if (!s.hasIcon)
-    return (
-      <div
-        className={box}
-        style={{ ...frame, background: c.bg, color: c.fg }}
-        data-default-icon=""
-      >
-        <CategoryGlyph cat={c.id} size={Math.round(size * 0.5)} />
-      </div>
-    );
+  if (!s.hasIcon) return defaultIcon;
   const fg = s.thumb.a === "#F2DB94" ? "#242424" : s.thumb.a;
   return (
     <div className={box} style={{ ...frame, background: s.thumb.bg }}>

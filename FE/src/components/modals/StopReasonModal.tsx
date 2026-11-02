@@ -21,14 +21,15 @@ export function StopReasonModal({
   onClose,
 }: {
   s: Service;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string) => boolean | Promise<boolean>;
   onClose: () => void;
 }) {
   const hid = useId();
   const fid = useId();
   const [v, setV] = useState(s.stopReason || "");
+  const [busy, setBusy] = useState(false);
   return (
-    <Modal onClose={onClose} labelledBy={hid} width={460}>
+    <Modal onClose={onClose} labelledBy={hid} width={460} locked={busy}>
       <h3 id={hid}>사용 불가능으로 바꿀까요?</h3>
       <p>
         <b className="text-ink">{s.name}</b>의 이용하기 버튼이 비활성화되고,
@@ -51,18 +52,24 @@ export function StopReasonModal({
         />
       </div>
       <div className={modalActionsClass}>
-        <Button variant="ghost" className={modalActionButton} onClick={onClose}>
+        <Button
+          variant="ghost"
+          className={modalActionButton}
+          disabled={busy}
+          onClick={onClose}
+        >
           취소
         </Button>
         <Button
           className={modalActionButton}
-          disabled={!v.trim()}
-          onClick={() => {
-            onConfirm(v.trim());
-            onClose();
+          disabled={!v.trim() || busy}
+          onClick={async () => {
+            setBusy(true);
+            if (await onConfirm(v.trim())) onClose();
+            else setBusy(false);
           }}
         >
-          사용 불가능으로 변경
+          {busy ? "처리 중…" : "사용 불가능으로 변경"}
         </Button>
       </div>
     </Modal>

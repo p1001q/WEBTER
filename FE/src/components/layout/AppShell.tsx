@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from "react";
 import { ModalHost } from "@/components/modals/ModalHost";
 import { Header } from "./Header";
 import { InertWhenOverlay } from "./InertWhenOverlay";
+import { NetworkBanner } from "./NetworkBanner";
 import { Sidebar } from "./Sidebar";
 import { ToastHost } from "./ToastHost";
 
@@ -14,6 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="relative min-h-screen @container/app">
       <InertWhenOverlay>
         <Header />
+        <NetworkBanner />
         {children}
       </InertWhenOverlay>
       <Suspense fallback={null}>

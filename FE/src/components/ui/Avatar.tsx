@@ -1,5 +1,6 @@
 import type { User } from "@/api/types";
 import { Icon } from "./Icon";
+import { SafeImg } from "./SafeImg";
 
 const base =
   "inline-grid shrink-0 place-items-center overflow-hidden rounded-full border border-ink/6 font-bold text-ink";
@@ -31,9 +32,11 @@ export function Avatar({
       }}
     >
       {user.avatarImg ? (
-        // 사용자가 올린 이미지의 크기·출처를 알 수 없어 next/image 최적화를 쓰지 않는다.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={user.avatarImg} alt="" className="size-full object-cover" />
+        <SafeImg
+          src={user.avatarImg}
+          className="size-full object-cover"
+          fallback={user.nick[0]}
+        />
       ) : (
         user.nick[0]
       )}

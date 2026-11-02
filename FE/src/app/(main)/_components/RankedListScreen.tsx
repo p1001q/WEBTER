@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Footer } from "@/components/layout/Footer";
 import { MainNav } from "@/components/layout/MainNav";
+import { NoServices } from "@/components/service/NoServices";
 import { ServiceList } from "@/components/service/ServiceList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -84,6 +85,8 @@ export function RankedListScreen({
             rankStart={ranked ? 1 : undefined}
             heading="h2"
           />
+        ) : wt.publicServices.length === 0 ? (
+          <NoServices />
         ) : (
           <EmptyState
             title="조건에 맞는 서비스가 없어요"

@@ -140,14 +140,22 @@ export function ReviewSection({ s }: { s: Service }) {
         </div>
       </div>
       {form}
-      <div className={`${helpClass} py-2`}>
-        전체 리뷰 {agg.total}개 중 최근 {list.length}개를 표시하고 있어요.
-      </div>
-      <div>
-        {list.map((r) => (
-          <ReviewItem key={r.id} r={r} s={s} />
-        ))}
-      </div>
+      {list.length || agg.total ? (
+        <>
+          <div className={`${helpClass} py-2`}>
+            전체 리뷰 {agg.total}개 중 최근 {list.length}개를 표시하고 있어요.
+          </div>
+          <div>
+            {list.map((r) => (
+              <ReviewItem key={r.id} r={r} s={s} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="m-0 py-10 text-center text-14 text-muted">
+          아직 리뷰가 없어요. 첫 리뷰를 남겨 보세요.
+        </p>
+      )}
     </div>
   );
 }

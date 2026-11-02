@@ -33,14 +33,8 @@ export function ManageScreen() {
   const onUse = async (id: string, cur: UseState, v: UseState) => {
     if (v === cur) return;
     if (v === "stop") wt.setModal({ type: "stop", sid: id });
-    else {
-      try {
-        await wt.updateService(id, { use: "live", stopReason: "" });
-        wt.toast("사용 가능으로 바꿨어요.");
-      } catch {
-        wt.toast("사용 가능으로 바꾸지 못했어요.", { err: true });
-      }
-    }
+    else if (await wt.updateService(id, { use: "live", stopReason: "" }))
+      wt.toast("사용 가능으로 바꿨어요.");
   };
   return (
     <>
