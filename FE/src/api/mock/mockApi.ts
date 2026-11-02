@@ -126,7 +126,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       users[id] = {
         id,
         nick,
-        handle,
+        handle: handle.toLowerCase(),
         color: "#E3E8F0",
         bio: "",
         links: [],
@@ -179,6 +179,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       return clone(s);
     },
     report: async (key) => {
+      if (patch.handle) u.handle = patch.handle.toLowerCase();
       if (!session.reported.includes(key)) session.reported.push(key);
     },
 

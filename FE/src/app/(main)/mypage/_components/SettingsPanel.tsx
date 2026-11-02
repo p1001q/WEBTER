@@ -186,7 +186,7 @@ export function SettingsPanel() {
                 id={P + "set-id"}
                 className={cx(inputClass, "font-mono", errBorder(hc.state))}
                 value={handle}
-                onChange={(e) => setHandle(e.target.value)}
+                onChange={(e) => setHandle(e.target.value.toLowerCase())}
               />
               <FieldMessage state={msgState(hc.state)}>
                 {handle === me.handle
