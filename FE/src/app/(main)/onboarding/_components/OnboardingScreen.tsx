@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import {
   checkClass,
   counterClass,
+  demoButtonClass,
   fieldClass,
   inputClass,
   labelClass,
@@ -16,18 +17,18 @@ import { FieldMessage } from "@/components/ui/FieldMessage";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { CATEGORIES } from "@/domain/options";
 import { POLICY } from "@/domain/policy";
-import { handleCheck, nickCheck, type FieldState } from "@/domain/validation";
+import {
+  handleCheck,
+  msgState,
+  nickCheck,
+  type FieldState,
+} from "@/domain/validation";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import { AuthCard, authSubClass } from "../../_components/AuthCard";
 
-/** 입력 검증 상태 → 메시지 색상 */
-const msgState = (s: FieldState): "ok" | "idle" | "err" =>
-  s === "ok" ? "ok" : s === "idle" ? "idle" : "err";
 const linkClass =
   "text-[12.5px] font-bold text-navy underline underline-offset-[3px]";
-const demoButton =
-  "h-6 rounded-sm border border-dashed border-border-strong px-2 font-mono text-11 text-text-3 hover:border-navy hover:text-navy";
 
 /** 온보딩 3단계: 약관 동의, 아이디·닉네임, 관심 카테고리. 단계는 `step` 쿼리로 시작한다 */
 export function OnboardingScreen({
@@ -213,21 +214,21 @@ export function OnboardingScreen({
             샘플:{" "}
             <button
               type="button"
-              className={demoButton}
+              className={demoButtonClass}
               onClick={() => setHandle("bori_tea")}
             >
               사용 중
             </button>
             <button
               type="button"
-              className={demoButton}
+              className={demoButtonClass}
               onClick={() => setHandle("dawn code!")}
             >
               형식 오류
             </button>
             <button
               type="button"
-              className={demoButton}
+              className={demoButtonClass}
               onClick={() => {
                 setHandle("new.maker");
                 setNick("새내기");

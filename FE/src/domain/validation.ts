@@ -1,6 +1,9 @@
 import { POLICY } from "./policy";
 
 export type FieldState = "idle" | "format" | "ok" | "taken";
+/** 입력 검증 상태 → 메시지 색상 */
+export const msgState = (s: FieldState): "ok" | "idle" | "err" =>
+  s === "ok" ? "ok" : s === "idle" ? "idle" : "err";
 export interface FieldCheck {
   state: FieldState;
   msg?: string;
