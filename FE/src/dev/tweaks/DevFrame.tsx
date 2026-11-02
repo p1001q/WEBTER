@@ -9,7 +9,9 @@ import { createApi } from "@/api";
 import type { Snapshot } from "@/api/types";
 import { pathFor } from "@/lib/routes";
 import { WtProvider } from "@/providers/WtProvider";
+import type { WebterApi } from "@/api/webterApi";
 import { DEV_ONLY_MARKER } from "../marker";
+import { withFaults } from "./faults";
 import { Tweaks } from "./Tweaks";
 import "./tweaks.css";
 import {
@@ -17,6 +19,7 @@ import {
   loadTweaks,
   mockOptions,
   saveTweaks,
+  shapeSnapshot,
   type TweakValues,
 } from "./values";
 
@@ -40,11 +43,19 @@ export function DevFrame({
   const [frame, setFrame] = useState({ path: "/", n: 0 });
   const frameRef = useRef<HTMLIFrameElement>(null);
 
+  // 실패·지연 상황은 요청 시점의 값을 읽으므로 바꿔도 화면을 다시 만들지 않는다
+  const wrapApi = (api: WebterApi) =>
+    withFaults(api, () => latest.current.fault);
+
   const rebuild = async (next: TweakValues) => {
     const s = await createApi(mockOptions(next)).bootstrap();
-    setSnap(s);
+    setSnap(shapeSnapshot(s, next));
     setNonce((n) => n + 1);
   };
+
+  /** 목업 DB 를 새로 만들어야 하는 설정인지 */
+  const needsRebuild = (t: Partial<TweakValues>) =>
+    "session" in t || "sample" in t || "data" in t || "images" in t;
 
   useEffect(() => {
     const stored = loadTweaks();
@@ -54,7 +65,12 @@ export function DevFrame({
     latest.current = stored;
     setFrame({ path: here(), n: 0 });
     /* eslint-enable react-hooks/set-state-in-effect */
-    if (stored.session !== "guest" || stored.sample !== "default")
+    if (
+      stored.session !== "guest" ||
+      stored.sample !== "default" ||
+      stored.data !== "default" ||
+      stored.images !== "ok"
+    )
       void rebuild(stored);
   }, []);
 
@@ -78,7 +94,7 @@ export function DevFrame({
     const next = { ...latest.current, ...patch };
     latest.current = next;
     saveTweaks(next);
-    if ("session" in patch || "sample" in patch) await rebuild(next);
+    if (needsRebuild(patch)) await rebuild(next);
     setT(next);
     const mobile = next.viewport === "mobile";
     if (patch.viewport === "mobile")
@@ -89,14 +105,14 @@ export function DevFrame({
       const target = path ?? (loc ? loc.pathname + loc.search : here());
       if (target !== here()) router.push(target);
     } else if (path) go(path, mobile);
-    else if (mobile && ("session" in patch || "sample" in patch))
+    else if (mobile && (needsRebuild(patch) || "fault" in patch))
       // 같은 출처라 iframe 이 보던 주소 그대로 다시 불러온다(새 설정은 저장돼 있다)
       frameRef.current?.contentWindow?.location.reload();
   };
 
   if (embedded)
     return (
-      <WtProvider key={nonce} snapshot={snap}>
+      <WtProvider key={nonce} snapshot={snap} wrapApi={wrapApi}>
         {children}
       </WtProvider>
     );
@@ -119,7 +135,7 @@ export function DevFrame({
           </span>
         </div>
       ) : (
-        <WtProvider key={nonce} snapshot={snap}>
+        <WtProvider key={nonce} snapshot={snap} wrapApi={wrapApi}>
           {children}
         </WtProvider>
       )}

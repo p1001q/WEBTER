@@ -19,6 +19,7 @@ const JUMPS: [string, string, boolean?][] = [
   ["07 상세 · 댓글 탭", "/services/s01?tab=comments"],
   ["07 상세 · 사용 불가능", "/services/s16"],
   ["07 상세 · 본인 서비스", "/services/s10", true],
+  ["07 상세 · 없는 서비스", "/services/none"],
   ["08 로그인", "/login"],
   ["09 가입 온보딩", "/onboarding"],
   ["10 서비스 등록", "/services/new", true],
@@ -28,9 +29,13 @@ const JUMPS: [string, string, boolean?][] = [
   ["13 마이페이지", "/mypage", true],
   ["13 마이페이지 · 내가 쓴 댓글", "/mypage?tab=comments", true],
   ["14 제작자 프로필", "/users/u_bori"],
+  ["14 프로필 · 없는 사용자", "/users/none"],
   ["15 오픈소스", "/opensource"],
   ["16 이용약관", "/terms"],
   ["17 개인정보", "/privacy"],
+  ["오류 · 없는 주소(404)", "/no-such-page"],
+  ["오류 · 화면 렌더링 실패", "/dev/crash-screen"],
+  ["오류 · 앱 전체 실패 (뒤로 가기로 복귀)", "/dev/crash-app"],
 ];
 
 interface Props {
@@ -65,14 +70,14 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
     k: K,
     opts: [TweakValues[K], string][],
   ) => (
-    <div className="flex gap-0.5 rounded-md bg-light p-0.5">
+    <div className="flex flex-wrap gap-0.5 rounded-md bg-light p-0.5">
       {opts.map(([v, l]) => (
         <button
           key={String(v)}
           type="button"
           aria-pressed={t[k] === v}
           className={
-            "h-[26px] flex-1 cursor-pointer rounded-[6px] text-12 font-semibold " +
+            "h-[26px] flex-1 cursor-pointer rounded-[6px] px-1.5 text-12 font-semibold whitespace-nowrap " +
             (t[k] === v
               ? "bg-card text-ink shadow-[0_1px_2px_rgb(0_0_0/0.1)]"
               : "text-text-3")
@@ -89,7 +94,7 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
       role="dialog"
       aria-label="Tweaks"
       data-dev-marker={DEV_ONLY_MARKER}
-      className="fixed right-4 bottom-4 z-[2147483000] flex w-[300px] flex-col gap-2.5 rounded-lg border border-border bg-card px-3.5 pt-3 pb-3.5 text-12 shadow-pop"
+      className="fixed right-4 bottom-4 z-[2147483000] flex max-h-[calc(100vh-32px)] w-[300px] flex-col gap-2.5 overflow-y-auto rounded-lg border border-border bg-card px-3.5 pt-3 pb-3.5 text-12 shadow-pop"
     >
       <div className="flex items-baseline gap-2">
         <b className="text-13">Tweaks</b>
@@ -159,6 +164,31 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
         seg("scope", [
           [true, "표시"],
           [false, "숨김"],
+        ]),
+      )}
+      {row(
+        "오류 상황",
+        seg("fault", [
+          ["none", "없음"],
+          ["server", "서버 오류"],
+          ["network", "연결 끊김"],
+          ["session", "로그인 만료"],
+          ["slow", "느린 응답"],
+        ]),
+      )}
+      {row(
+        "데이터 상태",
+        seg("data", [
+          ["default", "기본"],
+          ["quiet", "리뷰·댓글 없음"],
+          ["empty", "서비스 없음"],
+        ]),
+      )}
+      {row(
+        "이미지",
+        seg("images", [
+          ["ok", "정상"],
+          ["broken", "깨짐"],
         ]),
       )}
       <button
