@@ -17,6 +17,7 @@ export function ServiceListSkeleton({ view }: { view: "card" | "list" }) {
     );
   return (
     <div
+      data-component="service-list"
       className={styles.grid}
       style={{ "--cols": DISPLAY.defaultCols } as CSSProperties}
     >

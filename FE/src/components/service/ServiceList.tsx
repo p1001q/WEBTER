@@ -45,6 +45,7 @@ export function ServiceList({
     );
   return (
     <div
+      data-component="service-list"
       className={m2 ? `${styles.grid} ${styles.m2}` : styles.grid}
       style={{ "--cols": cols || DISPLAY.defaultCols } as CSSProperties}
     >
