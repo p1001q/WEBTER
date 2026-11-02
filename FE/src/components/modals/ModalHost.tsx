@@ -31,7 +31,7 @@ export function ModalHost() {
           title="서비스를 삭제할까요?"
           body={
             <>
-              <b className="text-ink">{s.name}</b> — 서비스와 리뷰가 함께
+              <b className="text-ink">{s.name}</b> — 서비스와 리뷰·댓글이 함께
               삭제됩니다. 삭제하면 되돌릴 수 없어요.
             </>
           }
@@ -57,7 +57,16 @@ export function ModalHost() {
         <ConfirmDeleteModal
           title="댓글을 삭제할까요?"
           body="삭제한 댓글은 되돌릴 수 없어요. 답글이 달려 있으면 '삭제된 댓글입니다'로 남아요."
-          onConfirm={() => wt.deleteComment(m.cid)}
+          onConfirm={() =>
+            wt.deleteComment(m.cid).catch(() =>
+              wt.toast(
+                "댓글을 삭제하지 못했어요. 잠시 뒤에 다시 시도해 주세요.",
+                {
+                  err: true,
+                },
+              ),
+            )
+          }
           onClose={close}
         />
       );

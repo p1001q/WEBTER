@@ -69,7 +69,7 @@ function SavedHiddenCard({ s }: { s: Service }) {
       <div className="aspect-[16/10] bg-light" />
       <div className="flex flex-1 flex-col gap-1.5 px-4 pt-4 pb-3.5">
         <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
-          <StatusBadge kind="private" />
+          <StatusBadge kind={s.pub as "private" | "temp"} />
         </div>
         <h3 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em] text-muted">
           {s.name}

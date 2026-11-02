@@ -133,6 +133,12 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       return clone({ users, session });
     },
     signup: async ({ handle, nick, interests }) => {
+      const key = handle.toLowerCase();
+      if (
+        takenHandles.includes(key) ||
+        Object.values(users).some((x) => x.handle.toLowerCase() === key)
+      )
+        throw new Error("이미 사용 중인 아이디예요.");
       const id = "u_new";
       users[id] = {
         id,
@@ -271,11 +277,12 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       const s = findService(c.sid);
       c.text = v.text;
       c.edited = true;
-      c.a = {
-        kind:
-          v.anon && s.allowAnonComment && s.owner !== u.id ? "anon" : "member",
-        uid: u.id,
-      };
+      // 익명 설정이 꺼진 뒤에도 기존 익명 댓글은 익명으로 둔다(작성자를 드러내지 않는다)
+      if (s.allowAnonComment)
+        c.a = {
+          kind: v.anon && s.owner !== u.id ? "anon" : "member",
+          uid: u.id,
+        };
       return clone(c);
     },
     deleteComment: async (id) => {

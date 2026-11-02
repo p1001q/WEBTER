@@ -1,6 +1,6 @@
 "use client";
 
-import type { Service } from "@/api/types";
+import type { Comment, Service } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
 import { helpClass, labelClass } from "@/components/ui/field";
@@ -14,7 +14,10 @@ export function CommentSection({ s }: { s: Service }) {
   const wt = useWt();
   const all = wt.comments.filter((c) => c.sid === s.id);
   const tops = all.filter((c) => !c.parent);
-  const repliesOf = (id: string) => all.filter((c) => c.parent === id);
+  const repliesOf = new Map<string, Comment[]>();
+  for (const c of all)
+    if (c.parent)
+      repliesOf.set(c.parent, [...(repliesOf.get(c.parent) ?? []), c]);
   const total = all.filter((c) => !c.deleted).length;
   return (
     <div data-component="comment-section">
@@ -56,7 +59,7 @@ export function CommentSection({ s }: { s: Service }) {
       <div className={`${helpClass} py-2`}>댓글 {total}개</div>
       {tops.length ? (
         tops.map((c) => (
-          <CommentItem key={c.id} c={c} s={s} replies={repliesOf(c.id)} />
+          <CommentItem key={c.id} c={c} s={s} replies={repliesOf.get(c.id)} />
         ))
       ) : (
         <p className="m-0 py-10 text-center text-14 text-muted">

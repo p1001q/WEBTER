@@ -249,11 +249,19 @@ export function WtProvider({
         toast("이미 로그인되어 있어요.");
         return;
       }
-      const r = await api.signup({
-        handle: data.handle,
-        nick: data.nick,
-        interests: data.interests ?? [],
-      });
+      let r;
+      try {
+        r = await api.signup({
+          handle: data.handle,
+          nick: data.nick,
+          interests: data.interests ?? [],
+        });
+      } catch {
+        toast("가입하지 못했어요. 아이디가 이미 사용 중인지 확인해 주세요.", {
+          err: true,
+        });
+        return;
+      }
       setUsers(r.users);
       applySession(r.session);
       const to = safeBackPath(backPath);
@@ -416,7 +424,7 @@ export function WtProvider({
       setComments((l) => l.filter((c) => c.sid !== id));
       setLikes((l) => new Set([...l].filter((x) => x !== id)));
       setSaves((l) => new Set([...l].filter((x) => x !== id)));
-      toast("서비스와 리뷰를 삭제했어요.");
+      toast("서비스와 리뷰·댓글을 삭제했어요.");
     },
     checkServiceUrl: (url, selfId) => api.checkServiceUrl(url, selfId),
 
