@@ -137,6 +137,9 @@ export function WtProvider({
   // 응답을 받지 못한 호출이 있거나 브라우저가 오프라인이면 켜 두고, 다음 호출이 성공하거나 연결이 돌아오면 끈다
   const [offline, setOffline] = useState(false);
   useEffect(() => {
+    // 이미 오프라인인 채로 열렸다면 이벤트가 오지 않으므로 지금 상태를 반영한다
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 브라우저 상태는 마운트 뒤에만 읽을 수 있다(서버 렌더링과 어긋나지 않게)
+    setOffline(!navigator.onLine);
     const on = () => setOffline(false);
     const off = () => setOffline(true);
     window.addEventListener("online", on);
@@ -354,8 +357,13 @@ export function WtProvider({
         </span>,
       );
       // 집계는 사용자에게 보이지 않는 요청이라 실패해도 알리지 않는다
-      if (!mine)
-        applyService(await call(() => api.recordClick(s.id)).catch(() => s));
+      if (!mine) {
+        try {
+          applyService(await call(() => api.recordClick(s.id)));
+        } catch {
+          // 실패했을 때 이전 서비스 값을 다시 넣으면 그 사이 바뀐 값을 덮어쓰므로 아무것도 하지 않는다
+        }
+      }
     },
     openSource: () =>
       toast(

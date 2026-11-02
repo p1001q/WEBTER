@@ -29,7 +29,7 @@ export function StopReasonModal({
   const [v, setV] = useState(s.stopReason || "");
   const [busy, setBusy] = useState(false);
   return (
-    <Modal onClose={onClose} labelledBy={hid} width={460}>
+    <Modal onClose={onClose} labelledBy={hid} width={460} locked={busy}>
       <h3 id={hid}>사용 불가능으로 바꿀까요?</h3>
       <p>
         <b className="text-ink">{s.name}</b>의 이용하기 버튼이 비활성화되고,

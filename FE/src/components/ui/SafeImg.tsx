@@ -7,12 +7,18 @@ import { useState, type CSSProperties, type ReactNode } from "react";
  * 서버에서 먼저 그려진 이미지가 hydration 전에 이미 실패했다면 onError 를 받지 못하므로 로드 상태를 직접 확인한다.
  */
 function useBadImage(src: string) {
-  const [bad, setBad] = useState<string | null>(null);
-  const onError = () => setBad(src);
+  const [failed, setFailed] = useState(false);
+  // 주소가 바뀌면 이전 실패는 버린다(같은 주소로 되돌아와도 다시 불러온다)
+  const [seen, setSeen] = useState(src);
+  if (seen !== src) {
+    setSeen(src);
+    setFailed(false);
+  }
+  const onError = () => setFailed(true);
   const attach = (el: HTMLImageElement | null) => {
-    if (el?.complete && el.naturalWidth === 0) setBad(src);
+    if (el?.complete && el.naturalWidth === 0) setFailed(true);
   };
-  return [bad === src, onError, attach] as const;
+  return [failed, onError, attach] as const;
 }
 
 interface ImgProps {

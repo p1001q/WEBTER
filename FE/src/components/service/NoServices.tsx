@@ -11,12 +11,8 @@ export function NoServices() {
       title="지금 둘러볼 수 있는 서비스가 없어요"
       desc="서비스가 등록되면 이곳에 보여 드려요. 첫 서비스를 직접 등록해 보세요."
       action="서비스 등록하기"
-      onAction={() =>
-        wt.requireLogin(
-          () => wt.go("register"),
-          "서비스를 등록하려면 로그인이 필요해요.",
-        )
-      }
+      // 비회원이면 등록 화면이 로그인 안내를 보여 주고, 로그인하면 등록 화면으로 돌아온다
+      onAction={() => wt.go("register")}
       icon="plus"
     />
   );

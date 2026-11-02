@@ -19,7 +19,8 @@ export function ModalHost() {
   const wt = useWt();
   const m = wt.modal;
   if (!m) return null;
-  const close = () => wt.setModal(null);
+  // 요청이 끝난 뒤에 불려도 그 사이 열린 다른 모달은 닫지 않는다
+  const close = () => wt.setModal((cur) => (cur === m ? null : cur));
   const s = "sid" in m ? wt.svc(m.sid) : undefined;
   switch (m.type) {
     case "login":

@@ -57,7 +57,7 @@ export function ReportModal({
     } else setBusy(false);
   };
   return (
-    <Modal onClose={onClose} labelledBy={hid} width={460}>
+    <Modal onClose={onClose} labelledBy={hid} width={460} locked={busy}>
       <div className={`${modalIconClass} bg-wine-50 text-wine`}>
         <Icon name="flag" size={22} />
       </div>

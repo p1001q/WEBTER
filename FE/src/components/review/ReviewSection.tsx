@@ -140,7 +140,7 @@ export function ReviewSection({ s }: { s: Service }) {
         </div>
       </div>
       {form}
-      {list.length ? (
+      {list.length || agg.total ? (
         <>
           <div className={`${helpClass} py-2`}>
             전체 리뷰 {agg.total}개 중 최근 {list.length}개를 표시하고 있어요.

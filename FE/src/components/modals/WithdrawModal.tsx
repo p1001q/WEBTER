@@ -18,7 +18,7 @@ export function WithdrawModal({ onClose }: { onClose: () => void }) {
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
-    <Modal onClose={onClose} labelledBy={hid} width={480}>
+    <Modal onClose={onClose} labelledBy={hid} width={480} locked={busy}>
       <div className={`${modalIconClass} bg-wine-50 text-wine`}>
         <Icon name="alert" size={22} />
       </div>

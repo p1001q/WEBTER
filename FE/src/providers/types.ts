@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from "react";
 import type {
   AiSearchResult,
   Comment,
@@ -65,7 +66,8 @@ export interface WtStore {
   side: boolean;
   setSide: (v: boolean) => void;
   modal: ModalState | null;
-  setModal: (m: ModalState | null) => void;
+  /** 함수로 넘기면 지금 열린 모달을 보고 정한다(요청이 끝난 뒤 다른 모달을 닫지 않게) */
+  setModal: Dispatch<SetStateAction<ModalState | null>>;
   toastState: ToastContent | null;
   toast: (msg: ToastContent["msg"], opts?: ToastOptions) => void;
   /** 서버와 연결되지 않은 상태(요청이 응답 없이 실패했거나 브라우저가 오프라인) */

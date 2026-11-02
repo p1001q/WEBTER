@@ -29,7 +29,7 @@ export function ConfirmDeleteModal({
   const hid = useId();
   const [busy, setBusy] = useState(false);
   return (
-    <Modal onClose={onClose} labelledBy={hid}>
+    <Modal onClose={onClose} labelledBy={hid} locked={busy}>
       <div className={`${modalIconClass} bg-wine-50 text-wine`}>
         <Icon name="trash" size={22} />
       </div>
