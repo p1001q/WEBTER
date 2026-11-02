@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FILTER_DEFAULT, type FilterState } from "@/domain/filter";
+import { inListTransition } from "@/lib/listTransition";
 import { useWt } from "@/providers/context";
 
 /**
@@ -13,10 +14,14 @@ export function useListState(
   opts: { filterOpen?: boolean } = {},
 ) {
   const wt = useWt();
-  const [f, setF] = useState<FilterState>({
+  const [f, setFilter] = useState<FilterState>({
     ...FILTER_DEFAULT,
     cats: initialCat ? [initialCat] : [],
   });
+  const setF = useCallback(
+    (next: FilterState) => inListTransition(() => setFilter(next)),
+    [],
+  );
   const [open, setOpen] = useState(!!opts.filterOpen);
   const [mobileOnly, setMobileOnly] = useState(true);
   return {

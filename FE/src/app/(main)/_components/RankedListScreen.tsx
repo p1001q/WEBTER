@@ -11,6 +11,7 @@ import { FILTER_DEFAULT, applyFilter } from "@/domain/filter";
 import { CAT } from "@/domain/options";
 import { POLICY } from "@/domain/policy";
 import { scoreOf } from "@/domain/score";
+import { inListTransition } from "@/lib/listTransition";
 import { useWt } from "@/providers/context";
 import { ListHead } from "./ListHead";
 import { ListToolbar } from "./ListToolbar";
@@ -55,7 +56,7 @@ export function RankedListScreen({
       <SegmentedControl
         label="인기 기간"
         value={chosen}
-        onChange={setChosen}
+        onChange={(p) => inListTransition(() => setChosen(p))}
         options={[
           ["w", "주간"],
           ["m", "월간"],

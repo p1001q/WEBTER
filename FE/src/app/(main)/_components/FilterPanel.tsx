@@ -8,7 +8,7 @@ import {
   type FilterKey,
   type FilterState,
 } from "@/domain/filter";
-import { CATEGORIES, OPT, TYPE_SHORT } from "@/domain/options";
+import { OPT, TYPE_SHORT } from "@/domain/options";
 
 const rowClass =
   "grid grid-cols-[96px_1fr] items-center gap-3 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-1.5";
@@ -62,11 +62,6 @@ export function FilterPanel({
       data-component="filter-panel"
     >
       {row(
-        "cats",
-        "서비스 용도",
-        CATEGORIES.map((c) => [c.id, c.label] as const),
-      )}
-      {row(
         "type",
         "프로젝트 유형",
         OPT.type.map(([v]) => [v, TYPE_SHORT[v]] as const),
@@ -94,7 +89,7 @@ export function FilterPanel({
           variant="text"
           size="sm"
           className="ml-auto"
-          onClick={() => setF({ ...FILTER_DEFAULT })}
+          onClick={() => setF({ ...FILTER_DEFAULT, cats: f.cats })}
         >
           초기화
         </Button>
