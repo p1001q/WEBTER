@@ -1,5 +1,7 @@
 import type {
   AiSearchResult,
+  Comment,
+  CommentInput,
   Review,
   ReviewInput,
   ReviewRole,
@@ -28,7 +30,9 @@ export interface WebterApi {
   ): Promise<{ users: Record<string, User>; session: SessionState }>;
   logout(): Promise<SessionState>;
   /** 등록한 서비스 삭제, 작성한 리뷰는 “탈퇴한 사용자”로 남긴다 */
-  withdraw(): Promise<Pick<Snapshot, "services" | "reviews" | "session">>;
+  withdraw(): Promise<
+    Pick<Snapshot, "services" | "reviews" | "comments" | "session">
+  >;
   updateProfile(patch: Partial<User>): Promise<User>;
 
   /* 반응 */
@@ -47,6 +51,16 @@ export interface WebterApi {
   updateReview(reviewId: string, input: ReviewInput): Promise<Review>;
   deleteReview(reviewId: string): Promise<void>;
   setReply(reviewId: string, text: string | null): Promise<Review>;
+
+  /* 댓글 */
+  addComment(
+    serviceId: string,
+    input: CommentInput,
+    parentId?: string,
+  ): Promise<Comment>;
+  updateComment(commentId: string, input: CommentInput): Promise<Comment>;
+  /** 답글이 달린 댓글은 자리만 남기고(deleted) 돌려준다. 지운 뒤 목록은 다시 받는다 */
+  deleteComment(commentId: string): Promise<Comment[]>;
 
   /* 서비스 */
   createService(input: ServiceInput): Promise<Service>;

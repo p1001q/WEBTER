@@ -1,4 +1,5 @@
 import type {
+  Comment,
   OpenSourceItem,
   Review,
   ReviewCounts,
@@ -137,6 +138,7 @@ const S0 = {
   previews: null,
   allowGuest: false,
   allowAnon: false,
+  allowAnonComment: false,
   views: 0,
   clicks: 0,
   likes: 0,
@@ -162,6 +164,7 @@ const mk = (o: SeedService): Service =>
 export const SEED_SERVICES: Service[] = [
   mk({
     id: "s01",
+    allowAnonComment: true,
     name: "둘이서 한 판",
     tagline: "링크 하나로 친구와 바로 붙는 2인용 미니게임 모음",
     owner: "u_bori",
@@ -860,5 +863,74 @@ export const SEED_OPENSOURCE: OpenSourceItem[] = [
     saves: 260,
     sc: [70, 180, 300],
     thumb: { kind: "flash", bg: "#E6E9DA", a: "#35445C", b: "#F2DB94" },
+  },
+];
+
+/** 댓글(리뷰와 별개). 등록순으로 둔다. 답글은 한 단계까지, 삭제된 댓글은 답글이 있을 때만 자리가 남는다 */
+export const SEED_COMMENTS: Comment[] = [
+  {
+    id: "c1",
+    sid: "s01",
+    parent: null,
+    a: { kind: "member", uid: "u_mint" },
+    date: "2026-10-10",
+    text: "친구랑 점심 내기용으로 쓰고 있어요. 점수판이 결과마다 남으면 더 좋을 것 같아요.",
+  },
+  {
+    id: "c2",
+    sid: "s01",
+    parent: "c1",
+    a: { kind: "member", uid: "u_bori" },
+    date: "2026-10-11",
+    text: "좋은 의견 감사해요! 판마다 결과를 남기는 기능을 검토해 볼게요.",
+  },
+  {
+    id: "c3",
+    sid: "s01",
+    parent: "c1",
+    a: { kind: "member", uid: "u_me" },
+    date: "2026-10-12",
+    text: "저도 그 기능 기다려요.",
+  },
+  {
+    id: "c4",
+    sid: "s01",
+    parent: null,
+    a: { kind: "anon", uid: "u_jun" },
+    date: "2026-10-13",
+    text: "모바일 가로 모드에서 버튼이 조금 작게 보여요.",
+  },
+  {
+    id: "c5",
+    sid: "s01",
+    parent: null,
+    a: { kind: "left" },
+    date: "2026-10-14",
+    text: "",
+    deleted: true,
+  },
+  {
+    id: "c6",
+    sid: "s01",
+    parent: "c5",
+    a: { kind: "member", uid: "u_pixel" },
+    date: "2026-10-15",
+    text: "지워진 글에 남기는 답글이에요. 원 댓글이 지워져도 대화는 남아요.",
+  },
+  {
+    id: "c7",
+    sid: "s04",
+    parent: null,
+    a: { kind: "member", uid: "u_me" },
+    date: "2026-10-16",
+    text: "색 조합을 복사하는 버튼이 정말 편해요. 다크 팔레트도 나오면 좋겠어요.",
+  },
+  {
+    id: "c8",
+    sid: "s04",
+    parent: "c7",
+    a: { kind: "member", uid: "u_pixel" },
+    date: "2026-10-17",
+    text: "다크 팔레트는 다음 버전에 넣을 예정이에요.",
   },
 ];

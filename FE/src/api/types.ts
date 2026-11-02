@@ -92,6 +92,8 @@ export interface Service {
   previews: PreviewSpec | null;
   allowGuest: boolean;
   allowAnon: boolean;
+  /** 회원이 댓글마다 익명으로 남길 수 있게 할지 */
+  allowAnonComment: boolean;
   views: number;
   clicks: number;
   likes: number;
@@ -144,6 +146,28 @@ export interface Review {
   edited?: boolean;
 }
 
+export type CommentAuthorKind = "member" | "anon" | "left";
+
+/** 서비스 상세의 댓글. 리뷰와 별개이고 평가·집계에 영향을 주지 않는다 */
+export interface Comment {
+  id: string;
+  sid: string;
+  /** 답글이면 원 댓글의 id. 답글은 한 단계까지만 둔다 */
+  parent: string | null;
+  /** 작성자. anon 도 본인 확인을 위해 uid 를 가진다(화면에는 보이지 않는다) */
+  a: { kind: CommentAuthorKind; uid?: string };
+  date: string;
+  text: string;
+  edited?: boolean;
+  /** 답글이 달린 댓글을 지우면 자리만 남긴다 */
+  deleted?: boolean;
+  fresh?: boolean;
+}
+export interface CommentInput {
+  text: string;
+  anon?: boolean;
+}
+
 export type ReviewRole = "member" | "maker" | "guest";
 export interface ReviewInput {
   rate: Rate | null;
@@ -171,6 +195,7 @@ export type ServiceInput = Pick<
   | "previews"
   | "allowGuest"
   | "allowAnon"
+  | "allowAnonComment"
 > & { iconImg: string | null; thumbImg: string | null };
 
 export interface SessionState {
@@ -188,6 +213,7 @@ export interface Snapshot {
   users: Record<string, User>;
   services: Service[];
   reviews: Review[];
+  comments: Comment[];
   opensource: OpenSourceItem[];
   /** 이미 사용 중인 아이디 목록(실서비스에서는 중복 확인 API로 대체) */
   takenHandles: string[];

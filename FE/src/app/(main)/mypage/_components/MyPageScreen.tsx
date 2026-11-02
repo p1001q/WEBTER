@@ -98,6 +98,9 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
   const myReviews = wt.reviews.filter(
     (r) => r.a.uid === me.id && r.a.kind !== "guest",
   );
+  const myComments = wt.comments.filter(
+    (c) => !c.deleted && c.a.uid === me.id && c.a.kind !== "left",
+  );
   return (
     <>
       <div className="page-wrap">
@@ -121,6 +124,9 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
               <span>
                 <b>{myReviews.length}</b>리뷰
               </span>
+              <span>
+                <b>{myComments.length}</b>댓글
+              </span>
             </div>
           </div>
           <RouteLink
@@ -138,6 +144,7 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
             ["services", "내 서비스", mine.length],
             ["saved", "저장한 서비스", saved.length],
             ["reviews", "내가 쓴 리뷰", myReviews.length],
+            ["comments", "내가 쓴 댓글", myComments.length],
             ["settings", "계정 설정"],
           ]}
         />
@@ -258,6 +265,68 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
                 title="아직 쓴 리뷰가 없어요"
                 desc="이용해 본 서비스에 리뷰를 남겨 제작자에게 힘이 되어 주세요."
                 icon="edit"
+              />
+            ))}
+          {tab === "comments" &&
+            (myComments.length ? (
+              <div>
+                {myComments.map((c) => {
+                  const s = wt.svc(c.sid);
+                  if (!s) return null;
+                  return (
+                    <div
+                      key={c.id}
+                      className="flex items-start gap-4 border-b border-border py-[18px]"
+                      data-my-comment={c.id}
+                    >
+                      <ServiceIcon s={s} size={44} />
+                      <div className="min-w-0 flex-1">
+                        <RouteLink
+                          to="detail"
+                          params={{ id: s.id, tab: "comments" }}
+                          className="font-bold"
+                        >
+                          {s.name}
+                        </RouteLink>
+                        <div className={helpClass}>
+                          {c.parent ? "답글 · " : ""}
+                          {c.a.kind === "anon" ? "익명으로 작성 · " : ""}
+                          {fmtDate(c.date)}
+                          {c.edited && " · 수정됨"}
+                        </div>
+                        <p className={reviewText}>{c.text}</p>
+                      </div>
+                      <div className="flex">
+                        <MiniButton
+                          onClick={() =>
+                            wt.setModal({
+                              type: "comment",
+                              sid: s.id,
+                              comment: c,
+                            })
+                          }
+                        >
+                          <Icon name="edit" size={13} />
+                          수정
+                        </MiniButton>
+                        <MiniButton
+                          onClick={() =>
+                            wt.setModal({ type: "delete-comment", cid: c.id })
+                          }
+                        >
+                          <Icon name="trash" size={13} />
+                          삭제
+                        </MiniButton>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState
+                title="아직 쓴 댓글이 없어요"
+                desc="서비스 상세의 댓글 탭에서 제작자와 다른 사용자에게 이야기를 남겨 보세요."
+                icon="reply"
               />
             ))}
           {tab === "settings" && <SettingsPanel />}

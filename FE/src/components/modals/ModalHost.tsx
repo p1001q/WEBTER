@@ -1,6 +1,7 @@
 "use client";
 
 import { useWt } from "@/providers/context";
+import { CommentEditModal } from "./CommentEditModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { Lightbox } from "@/components/service/Lightbox";
 import { LoginPromptModal } from "./LoginPromptModal";
@@ -44,6 +45,19 @@ export function ModalHost() {
           title="리뷰를 삭제할까요?"
           body="삭제한 리뷰는 되돌릴 수 없어요."
           onConfirm={() => wt.deleteReview(m.rid)}
+          onClose={close}
+        />
+      );
+    case "comment":
+      return s ? (
+        <CommentEditModal s={s} comment={m.comment} onClose={close} />
+      ) : null;
+    case "delete-comment":
+      return (
+        <ConfirmDeleteModal
+          title="댓글을 삭제할까요?"
+          body="삭제한 댓글은 되돌릴 수 없어요. 답글이 달려 있으면 '삭제된 댓글입니다'로 남아요."
+          onConfirm={() => wt.deleteComment(m.cid)}
           onClose={close}
         />
       );

@@ -1,5 +1,7 @@
 import type {
   AiSearchResult,
+  Comment,
+  CommentInput,
   OpenSourceItem,
   Review,
   ReviewInput,
@@ -16,7 +18,7 @@ import type { RouteName, RouteParams } from "@/lib/routes";
 export type ViewMode = "card" | "list";
 
 export interface ReportTarget {
-  type: "service" | "review" | "reply" | "profile";
+  type: "service" | "review" | "reply" | "comment" | "profile";
   /** 'review:r2' 처럼 type:id */
   key: string;
   label?: string;
@@ -28,6 +30,8 @@ export type ModalState =
   | { type: "report"; target: ReportTarget }
   | { type: "delete"; sid: string }
   | { type: "delete-review"; rid: string }
+  | { type: "comment"; sid: string; comment: Comment }
+  | { type: "delete-comment"; cid: string }
   | { type: "stop"; sid: string }
   | { type: "review"; sid: string; review: Review }
   | { type: "versions"; sid: string }
@@ -43,6 +47,7 @@ export interface WtStore {
   services: Service[];
   publicServices: Service[];
   reviews: Review[];
+  comments: Comment[];
   opensource: OpenSourceItem[];
   likes: Set<string>;
   saves: Set<string>;
@@ -98,6 +103,10 @@ export interface WtStore {
   updateReview: (id: string, v: ReviewInput) => Promise<void>;
   deleteReview: (id: string) => Promise<void>;
   setReply: (rid: string, text: string | null) => Promise<void>;
+
+  addComment: (s: Service, v: CommentInput, parentId?: string) => Promise<void>;
+  updateComment: (id: string, v: CommentInput) => Promise<void>;
+  deleteComment: (id: string) => Promise<void>;
 
   createService: (data: ServiceInput) => Promise<Service>;
   updateService: (id: string, patch: Partial<Service>) => Promise<void>;
