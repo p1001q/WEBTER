@@ -20,7 +20,7 @@ export function FormAside({
     <aside>
       <div className={stickyAsideClass}>
         <div className={cx(helpClass, "font-bold")}>카드 미리보기</div>
-        <div className="pointer-events-none">
+        <div className="pointer-events-none" inert>
           <ServiceCard s={preview} />
         </div>
         <div

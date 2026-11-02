@@ -83,6 +83,8 @@ export function ServiceForm({
   const [touched, setTouched] = useState(false);
   /** 진행 중인 접속 검사 번호. 주소를 고치거나 화면을 떠나면 올려서 이전 결과를 버린다 */
   const checkRun = useRef(0);
+  /** 등록·수정 요청을 보냈는지. 화면이 넘어가기 전에 버튼을 또 눌러도 한 번만 보낸다 */
+  const submitting = useRef(false);
   useEffect(
     () => () => {
       checkRun.current = -1;
@@ -162,7 +164,7 @@ export function ServiceForm({
   };
   const submit = async () => {
     setTouched(true);
-    if (!canSubmit) return;
+    if (!canSubmit || submitting.current) return;
     const data: ServiceInput = {
       name: f.name.trim(),
       tagline: f.tagline.trim(),
@@ -186,22 +188,28 @@ export function ServiceForm({
       allowGuest: f.allowGuest,
       allowAnon: f.allowAnon,
     };
-    if (src) {
-      const keep = {
-        hasIcon: f.iconImg ? true : src.iconImg ? false : src.hasIcon,
-        hasThumb: f.thumbImg ? true : src.thumbImg ? false : src.hasThumb,
-        previews: f.pv.length
-          ? data.previews
-          : src.previews && !src.previews.imgs
-            ? src.previews
-            : null,
-      };
-      await wt.updateService(src.id, { ...data, ...keep });
-      wt.toast("수정 내용을 저장했어요.");
-      wt.go("detail", { id: src.id });
-    } else {
-      const s = await wt.createService(data);
-      wt.go("registered", { id: s.id });
+    submitting.current = true;
+    try {
+      if (src) {
+        const keep = {
+          hasIcon: f.iconImg ? true : src.iconImg ? false : src.hasIcon,
+          hasThumb: f.thumbImg ? true : src.thumbImg ? false : src.hasThumb,
+          previews: f.pv.length
+            ? data.previews
+            : src.previews && !src.previews.imgs
+              ? { ...src.previews, ratio: f.pvRatio, fit: f.pvFit }
+              : null,
+        };
+        await wt.updateService(src.id, { ...data, ...keep });
+        wt.toast("수정 내용을 저장했어요.");
+        wt.go("detail", { id: src.id });
+      } else {
+        const s = await wt.createService(data);
+        wt.go("registered", { id: s.id });
+      }
+    } catch (e) {
+      submitting.current = false;
+      throw e;
     }
   };
   const base = src ?? BLANK_PREVIEW;
@@ -231,12 +239,13 @@ export function ServiceForm({
   const showErr = (cond: boolean) => touched && cond;
   const errBorder = (cond: boolean) => (showErr(cond) ? "border-wine!" : "");
   const radio = <T extends string>(
+    labelId: string,
     value: T | "",
     options: [T, string][],
     onPick: (v: T) => void,
     render: (v: T, l: string) => ReactNode = (_, l) => l,
   ) => (
-    <div className={optionRowClass} role="radiogroup">
+    <div className={optionRowClass} role="radiogroup" aria-labelledby={labelId}>
       {options.map(([v, l]) => (
         <button
           type="button"
@@ -424,10 +433,11 @@ export function ServiceForm({
               </div>
               <div className={twoColumnClass}>
                 <div className={fieldClass}>
-                  <span className={labelClass}>
+                  <span className={labelClass} id={P + "f-type"}>
                     프로젝트 유형 <span className={requiredMarkClass}>*</span>
                   </span>
                   {radio(
+                    P + "f-type",
                     f.type,
                     OPT.type,
                     (v) => set("type", v),
@@ -435,10 +445,12 @@ export function ServiceForm({
                   )}
                 </div>
                 <div className={fieldClass}>
-                  <span className={labelClass}>
+                  <span className={labelClass} id={P + "f-price"}>
                     가격 <span className={requiredMarkClass}>*</span>
                   </span>
-                  {radio(f.price, OPT.price, (v) => set("price", v))}
+                  {radio(P + "f-price", f.price, OPT.price, (v) =>
+                    set("price", v),
+                  )}
                 </div>
               </div>
               <div className={twoColumnClass}>
@@ -466,10 +478,12 @@ export function ServiceForm({
                   </div>
                 </div>
                 <div className={fieldClass}>
-                  <span className={labelClass}>
+                  <span className={labelClass} id={P + "f-owner"}>
                     등록 주체 <span className={requiredMarkClass}>*</span>
                   </span>
-                  {radio(f.owner, OPT.owner, (v) => set("owner", v))}
+                  {radio(P + "f-owner", f.owner, OPT.owner, (v) =>
+                    set("owner", v),
+                  )}
                 </div>
               </div>
               {f.owner === "team" && (
@@ -658,7 +672,9 @@ export function ServiceForm({
                 <FieldMessage state="err">
                   {limitHit
                     ? "오늘 등록 가능 개수를 모두 사용했어요."
-                    : `필수 항목 ${required.length - done}개를 확인해 주세요.`}
+                    : done === required.length
+                      ? "GitHub 주소를 확인해 주세요."
+                      : `필수 항목 ${required.length - done}개를 확인해 주세요.`}
                 </FieldMessage>
               )}
               <Button

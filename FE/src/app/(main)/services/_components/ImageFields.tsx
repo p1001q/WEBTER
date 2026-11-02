@@ -24,6 +24,7 @@ import { dropClass, removeImageClass } from "../../_components/formStyles";
 import { BLANK_PREVIEW, type FormState } from "./serviceFormState";
 
 const IMG_ACCEPT = "image/jpeg,image/png,image/webp";
+const UNREADABLE = "이미지를 읽을 수 없어요. 다른 파일을 골라 주세요.";
 type ImgErr = Partial<
   Record<"icon" | "thumb" | "pv" | "iconWarn", string | null>
 >;
@@ -60,10 +61,19 @@ export function ImageFields({
         errs.push(
           `미리보기는 최대 ${POLICY.maxPreviewImages}장이에요. ${ok.length - room}장은 추가하지 않았어요.`,
         );
-      const urls = await Promise.all(
-        ok.slice(0, Math.max(room, 0)).map(readAsURL),
+      const read = await Promise.all(
+        ok.slice(0, Math.max(room, 0)).map(async (file) => {
+          const url = await readAsURL(file);
+          if ((await imgSize(url))[0]) return url;
+          errs.push(`${file.name}: ${UNREADABLE}`);
+          return null;
+        }),
       );
-      setF((x) => ({ ...x, pv: [...x.pv, ...urls] }));
+      const urls = read.filter((u): u is string => !!u);
+      setF((x) => ({
+        ...x,
+        pv: [...x.pv, ...urls].slice(0, POLICY.maxPreviewImages),
+      }));
       setImgErr((x) => ({ ...x, pv: errs.join(" ") || null }));
       return;
     }
@@ -74,9 +84,13 @@ export function ImageFields({
       return;
     }
     const url = await readAsURL(file);
+    const [w, h] = await imgSize(url);
+    if (!w) {
+      setImgErr((x) => ({ ...x, [kind]: UNREADABLE }));
+      return;
+    }
     let warn: string | null = null;
     if (kind === "icon") {
-      const [w, h] = await imgSize(url);
       if (w !== h)
         warn = "정사각형 이미지가 아니라 가운데를 기준으로 잘려 보여요.";
       else if (w < POLICY.iconMinPx)
