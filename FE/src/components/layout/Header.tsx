@@ -61,9 +61,9 @@ export function Header() {
   );
   return (
     <header className="sticky top-0 z-30 border-b border-transparent bg-ivory">
-      <div className="page-wrap flex h-header items-center gap-3 @max-[560px]/app:h-14 @max-[560px]/app:gap-1">
+      <div className="page-wrap flex h-header items-center gap-3 @max-[560px]/app:h-14 @max-[560px]/app:gap-1 @max-[385px]/app:gap-0">
         <IconButton
-          className="-ml-2"
+          className="-ml-2 @max-[385px]/app:size-9"
           onClick={() => wt.setSide(true)}
           aria-label="메뉴 열기"
           aria-expanded={wt.side}
@@ -71,8 +71,12 @@ export function Header() {
           <Icon name="menu" size={22} />
         </IconButton>
         <Wordmark />
-        <div className="ml-auto flex items-center gap-2">
-          <IconButton aria-label="검색" onClick={() => wt.go("search", {})}>
+        <div className="ml-auto flex items-center gap-2 @max-[399px]/app:gap-1">
+          <IconButton
+            className="@max-[385px]/app:size-9"
+            aria-label="검색"
+            onClick={() => wt.go("search", {})}
+          >
             <Icon name="search" size={21} />
           </IconButton>
           <Button
@@ -84,7 +88,7 @@ export function Header() {
             서비스 등록
           </Button>
           <IconButton
-            className="@min-[561px]/app:hidden"
+            className="@min-[561px]/app:hidden @max-[385px]/app:size-9"
             onClick={register}
             aria-label="서비스 등록"
           >
@@ -141,6 +145,7 @@ export function Header() {
           ) : (
             <Button
               variant="ink"
+              className="@max-[385px]/app:px-2.5"
               onClick={() => wt.go("login", { back: wt.currentPath() })}
             >
               로그인
@@ -149,13 +154,16 @@ export function Header() {
           <span className="inline-flex items-center gap-1">
             <IconButton
               shape="square"
+              className="@max-[385px]/app:size-9"
               aria-label="오픈소스 영역"
               title="오픈소스 영역"
               onClick={() => wt.go("opensource")}
             >
               <Icon name="code" size={18} stroke={1.9} />
             </IconButton>
-            <ScopeBadge />
+            <span className="inline-flex @max-[385px]/app:hidden">
+              <ScopeBadge />
+            </span>
           </span>
         </div>
       </div>
