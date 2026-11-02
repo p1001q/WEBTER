@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ChangeEvent } from "react";
+import { useId, useRef, useState, type ChangeEvent } from "react";
 import type { CategoryId, LinkKind } from "@/api/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button, buttonClass } from "@/components/ui/Button";
@@ -53,13 +53,16 @@ export function SettingsPanel() {
   const [cats, setCats] = useState<CategoryId[]>(me.interests || []);
   const [avatar, setAvatar] = useState<string | null>(me.avatarImg || null);
   const [avErr, setAvErr] = useState("");
+  /** 사진 읽기 순번. 새로 고르거나 되돌리면 올려서 늦게 끝난 이전 읽기를 버린다 */
+  const avatarRun = useRef(0);
   const hc = handleCheck(handle, wt.takenHandles, me.handle);
   const nc = nickCheck(nick);
   const dirty =
     nick !== me.nick ||
     handle !== me.handle ||
     bio !== (me.bio || "") ||
-    JSON.stringify(links) !== JSON.stringify(me.links) ||
+    JSON.stringify(links.filter((l) => l[1].trim())) !==
+      JSON.stringify(me.links) ||
     JSON.stringify(cats) !== JSON.stringify(me.interests || []) ||
     avatar !== (me.avatarImg || null);
   const ok = hc.state === "ok" && nc.state === "ok";
@@ -73,7 +76,10 @@ export function SettingsPanel() {
       return;
     }
     setAvErr("");
-    readAsURL(f).then(setAvatar);
+    const run = ++avatarRun.current;
+    readAsURL(f).then((url) => {
+      if (avatarRun.current === run) setAvatar(url);
+    });
   };
   const tog = (c: CategoryId) =>
     setCats(
@@ -90,6 +96,8 @@ export function SettingsPanel() {
     setLinks(me.links.map((l) => [...l]));
     setCats(me.interests || []);
     setAvatar(me.avatarImg || null);
+    setAvErr("");
+    avatarRun.current++;
   };
   const save = async () => {
     await wt.updateMe({
@@ -131,7 +139,10 @@ export function SettingsPanel() {
                   <Button
                     variant="text"
                     size="sm"
-                    onClick={() => setAvatar(null)}
+                    onClick={() => {
+                      avatarRun.current++;
+                      setAvatar(null);
+                    }}
                   >
                     기본 사진으로
                   </Button>
@@ -202,7 +213,12 @@ export function SettingsPanel() {
               외부 링크 <span className={optionalClass}>선택</span>
             </span>
             {links.map(([k, url], i) => (
-              <div key={i} className="grid grid-cols-[140px_1fr_auto] gap-2">
+              <div
+                key={i}
+                role="group"
+                aria-label={`외부 링크 ${i + 1}`}
+                className="grid grid-cols-[140px_1fr_auto] gap-2"
+              >
                 <select
                   className={selectClass}
                   aria-label="링크 종류"

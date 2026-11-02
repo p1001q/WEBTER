@@ -63,7 +63,8 @@ export function handleCheck(
       state: "format",
       msg: `영문·숫자·마침표(.)·밑줄(_)만, 공백 없이 ${POLICY.idMax}자까지 쓸 수 있어요.`,
     };
-  if (v !== selfHandle && takenHandles.includes(v.toLowerCase()))
+  const key = v.toLowerCase();
+  if (key !== selfHandle?.toLowerCase() && takenHandles.includes(key))
     return { state: "taken", msg: "이미 사용 중인 아이디예요." };
   return { state: "ok", msg: "사용할 수 있는 아이디예요." };
 }
