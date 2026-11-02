@@ -1,6 +1,9 @@
 import { POLICY } from "./policy";
 
 export type FieldState = "idle" | "format" | "ok" | "taken";
+/** 입력 검증 상태 → 메시지 색상 */
+export const msgState = (s: FieldState): "ok" | "idle" | "err" =>
+  s === "ok" ? "ok" : s === "idle" ? "idle" : "err";
 export interface FieldCheck {
   state: FieldState;
   msg?: string;
@@ -60,7 +63,8 @@ export function handleCheck(
       state: "format",
       msg: `영문·숫자·마침표(.)·밑줄(_)만, 공백 없이 ${POLICY.idMax}자까지 쓸 수 있어요.`,
     };
-  if (v !== selfHandle && takenHandles.includes(v.toLowerCase()))
+  const key = v.toLowerCase();
+  if (key !== selfHandle?.toLowerCase() && takenHandles.includes(key))
     return { state: "taken", msg: "이미 사용 중인 아이디예요." };
   return { state: "ok", msg: "사용할 수 있는 아이디예요." };
 }
