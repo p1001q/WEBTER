@@ -30,12 +30,16 @@ export function ManageScreen() {
   const mine = wt.services
     .filter((s) => s.owner === wt.me?.id)
     .sort((a, b) => b.created.localeCompare(a.created));
-  const onUse = (id: string, cur: UseState, v: UseState) => {
+  const onUse = async (id: string, cur: UseState, v: UseState) => {
     if (v === cur) return;
     if (v === "stop") wt.setModal({ type: "stop", sid: id });
     else {
-      wt.updateService(id, { use: "live", stopReason: "" });
-      wt.toast("사용 가능으로 바꿨어요.");
+      try {
+        await wt.updateService(id, { use: "live", stopReason: "" });
+        wt.toast("사용 가능으로 바꿨어요.");
+      } catch {
+        wt.toast("사용 가능으로 바꾸지 못했어요.", { err: true });
+      }
     }
   };
   return (

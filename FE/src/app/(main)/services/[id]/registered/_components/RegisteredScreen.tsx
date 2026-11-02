@@ -12,7 +12,8 @@ import { useWt } from "@/providers/context";
 export function RegisteredScreen({ id }: { id: string }) {
   const wt = useWt();
   const s = wt.svc(id);
-  if (!s) return <Restricted title="서비스를 찾을 수 없어요" />;
+  if (!s || s.owner !== wt.me?.id)
+    return <Restricted title="서비스를 찾을 수 없어요" />;
   return (
     <>
       <div className="page-wrap">
