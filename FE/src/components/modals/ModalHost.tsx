@@ -7,6 +7,7 @@ import { Lightbox } from "@/components/service/Lightbox";
 import { LoginPromptModal } from "./LoginPromptModal";
 import { ReportModal } from "./ReportModal";
 import { ReviewEditModal } from "./ReviewEditModal";
+import { SessionExpiredModal } from "./SessionExpiredModal";
 import { StopReasonModal } from "./StopReasonModal";
 import { VersionModal } from "./VersionModal";
 import { WithdrawModal } from "./WithdrawModal";
@@ -57,16 +58,7 @@ export function ModalHost() {
         <ConfirmDeleteModal
           title="댓글을 삭제할까요?"
           body="삭제한 댓글은 되돌릴 수 없어요. 답글이 달려 있으면 '삭제된 댓글입니다'로 남아요."
-          onConfirm={() =>
-            wt.deleteComment(m.cid).catch(() =>
-              wt.toast(
-                "댓글을 삭제하지 못했어요. 잠시 뒤에 다시 시도해 주세요.",
-                {
-                  err: true,
-                },
-              ),
-            )
-          }
+          onConfirm={() => wt.deleteComment(m.cid)}
           onClose={close}
         />
       );
@@ -74,9 +66,13 @@ export function ModalHost() {
       return s ? (
         <StopReasonModal
           s={s}
-          onConfirm={(r) => {
-            wt.updateService(s.id, { use: "stop", stopReason: r });
-            wt.toast("사용 불가능으로 바꿨어요.");
+          onConfirm={async (r) => {
+            const ok = await wt.updateService(s.id, {
+              use: "stop",
+              stopReason: r,
+            });
+            if (ok) wt.toast("사용 불가능으로 바꿨어요.");
+            return ok;
           }}
           onClose={close}
         />
@@ -91,6 +87,8 @@ export function ModalHost() {
       return s ? <Lightbox s={s} index={m.index} onClose={close} /> : null;
     case "withdraw":
       return <WithdrawModal onClose={close} />;
+    case "session":
+      return <SessionExpiredModal onClose={close} />;
     default:
       return null;
   }

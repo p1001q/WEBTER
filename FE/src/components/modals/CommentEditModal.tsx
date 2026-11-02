@@ -29,8 +29,9 @@ export function CommentEditModal({
         minHeight={96}
         onCancel={onClose}
         onSubmit={async (v) => {
-          await wt.updateComment(comment.id, v);
-          onClose();
+          const ok = await wt.updateComment(comment.id, v);
+          if (ok) onClose();
+          return ok;
         }}
       />
     </Modal>

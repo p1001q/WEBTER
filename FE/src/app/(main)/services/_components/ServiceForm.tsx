@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { failureText, toApiError } from "@/api/errors";
 import type { Price, ProjectType, Service, ServiceInput } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
 import { Restricted } from "@/components/layout/Restricted";
@@ -85,6 +86,8 @@ export function ServiceForm({
   const checkRun = useRef(0);
   /** 등록·수정 요청을 보냈는지. 화면이 넘어가기 전에 버튼을 또 눌러도 한 번만 보낸다 */
   const submitting = useRef(false);
+  const [sending, setSending] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   useEffect(
     () => () => {
       checkRun.current = -1;
@@ -130,10 +133,19 @@ export function ServiceForm({
     }
     setUrlSt({ state: "checking" });
     const run = ++checkRun.current;
-    const [r] = await Promise.all([
-      wt.checkServiceUrl(f.url, src?.id),
-      delay(DISPLAY.urlCheckDelay),
-    ]);
+    let r: UrlSt;
+    try {
+      [r] = await Promise.all([
+        wt.checkServiceUrl(f.url, src?.id),
+        delay(DISPLAY.urlCheckDelay),
+      ]);
+    } catch (e) {
+      // 주소 자체가 아니라 확인 요청이 실패한 것이라 접속 불가와 구분해서 다시 검사하게 한다
+      r = {
+        state: "error",
+        msg: failureText("주소를 확인하지", toApiError(e)),
+      };
+    }
     if (checkRun.current === run) setUrlSt(r);
   };
   const ghErr = githubCheck(f.github);
@@ -190,28 +202,34 @@ export function ServiceForm({
       allowAnonComment: f.allowAnonComment,
     };
     submitting.current = true;
-    try {
-      if (src) {
-        const keep = {
-          hasIcon: f.iconImg ? true : src.iconImg ? false : src.hasIcon,
-          hasThumb: f.thumbImg ? true : src.thumbImg ? false : src.hasThumb,
-          previews: f.pv.length
-            ? data.previews
-            : src.previews && !src.previews.imgs
-              ? { ...src.previews, ratio: f.pvRatio, fit: f.pvFit }
-              : null,
-        };
-        await wt.updateService(src.id, { ...data, ...keep });
+    setSaveFailed(false);
+    setSending(true);
+    if (src) {
+      const keep = {
+        hasIcon: f.iconImg ? true : src.iconImg ? false : src.hasIcon,
+        hasThumb: f.thumbImg ? true : src.thumbImg ? false : src.hasThumb,
+        previews: f.pv.length
+          ? data.previews
+          : src.previews && !src.previews.imgs
+            ? { ...src.previews, ratio: f.pvRatio, fit: f.pvFit }
+            : null,
+      };
+      if (await wt.updateService(src.id, { ...data, ...keep })) {
         wt.toast("수정 내용을 저장했어요.");
         wt.go("detail", { id: src.id });
-      } else {
-        const s = await wt.createService(data);
-        wt.go("registered", { id: s.id });
+        return;
       }
-    } catch (e) {
-      submitting.current = false;
-      throw e;
+    } else {
+      const s = await wt.createService(data);
+      if (s) {
+        wt.go("registered", { id: s.id });
+        return;
+      }
     }
+    // 실패하면 입력한 내용은 그대로 두고 다시 누를 수 있게 한다
+    submitting.current = false;
+    setSending(false);
+    setSaveFailed(true);
   };
   const base = src ?? BLANK_PREVIEW;
   const preview: Service = {
@@ -234,6 +252,7 @@ export function ServiceForm({
       unreachable: "err",
       format: "err",
       dup: "err",
+      error: "err",
       pass: "idle",
     } as const
   )[urlState];
@@ -363,7 +382,9 @@ export function ServiceForm({
                       ? "검사 중"
                       : urlState === "ok"
                         ? "확인됨"
-                        : "접속 검사"}
+                        : urlState === "error"
+                          ? "다시 검사"
+                          : "접속 검사"}
                   </Button>
                 </div>
                 <div id={P + "f-url-msg"}>
@@ -692,6 +713,12 @@ export function ServiceForm({
               </span>
             </label>
             <div className={submitBarClass}>
+              {saveFailed && (
+                <FieldMessage state="err">
+                  {editing ? "수정" : "등록"}하지 못했어요. 입력한 내용은 그대로
+                  남아 있어요. 잠시 뒤에 다시 시도해 주세요.
+                </FieldMessage>
+              )}
               {touched && !canSubmit && (
                 <FieldMessage state="err">
                   {limitHit
@@ -708,8 +735,18 @@ export function ServiceForm({
               >
                 취소
               </Button>
-              <Button size="lg" aria-disabled={!canSubmit} onClick={submit}>
-                {editing ? "수정 완료" : "등록하기"}
+              <Button
+                size="lg"
+                aria-disabled={!canSubmit || sending}
+                onClick={submit}
+              >
+                {sending
+                  ? editing
+                    ? "저장 중…"
+                    : "등록 중…"
+                  : editing
+                    ? "수정 완료"
+                    : "등록하기"}
               </Button>
             </div>
           </div>

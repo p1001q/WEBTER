@@ -19,7 +19,8 @@ interface Props {
   placeholder?: string;
   submitLabel?: string;
   minHeight?: number;
-  onSubmit: (v: CommentInput) => void | Promise<void>;
+  /** 저장에 성공하면 true. false 면 입력한 내용을 그대로 둔다 */
+  onSubmit: (v: CommentInput) => Promise<boolean>;
   onCancel?: () => void;
 }
 
@@ -43,19 +44,12 @@ export function CommentForm({
   const ok = text.trim().length > 0 && !busy;
   const submit = async () => {
     setBusy(true);
-    try {
-      await onSubmit({ text: text.trim(), anon: canAnon && anon });
-      if (!initial) {
-        setText("");
-        setAnon(false);
-      }
-    } catch {
-      wt.toast("댓글을 저장하지 못했어요. 잠시 뒤에 다시 시도해 주세요.", {
-        err: true,
-      });
-    } finally {
-      setBusy(false);
+    const ok = await onSubmit({ text: text.trim(), anon: canAnon && anon });
+    if (ok && !initial) {
+      setText("");
+      setAnon(false);
     }
+    setBusy(false);
   };
   return (
     <div className="flex flex-col gap-2.5">
@@ -96,7 +90,7 @@ export function CommentForm({
             </Button>
           )}
           <Button size="sm" disabled={!ok} onClick={submit}>
-            {submitLabel}
+            {busy ? "저장 중…" : submitLabel}
           </Button>
         </div>
       </div>

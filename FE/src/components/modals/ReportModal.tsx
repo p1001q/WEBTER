@@ -47,11 +47,14 @@ export function ReportModal({
   const name = useId();
   const [reason, setReason] = useState(target.preset || "");
   const [etc, setEtc] = useState("");
+  const [busy, setBusy] = useState(false);
   const need = reason === "기타" && !etc.trim();
-  const submit = () => {
-    wt.report(target.key);
-    onClose();
-    wt.toast("신고가 접수됐어요. 같은 대상은 한 번만 신고할 수 있어요.");
+  const submit = async () => {
+    setBusy(true);
+    if (await wt.report(target.key)) {
+      onClose();
+      wt.toast("신고가 접수됐어요. 같은 대상은 한 번만 신고할 수 있어요.");
+    } else setBusy(false);
   };
   return (
     <Modal onClose={onClose} labelledBy={hid} width={460}>
@@ -108,10 +111,10 @@ export function ReportModal({
         <Button
           variant="danger"
           className={modalActionButton}
-          disabled={!reason || need}
+          disabled={!reason || need || busy}
           onClick={submit}
         >
-          신고하기
+          {busy ? "접수 중…" : "신고하기"}
         </Button>
       </div>
     </Modal>

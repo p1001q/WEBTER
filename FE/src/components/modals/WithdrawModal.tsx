@@ -16,6 +16,7 @@ export function WithdrawModal({ onClose }: { onClose: () => void }) {
   const wt = useWt();
   const hid = useId();
   const [ok, setOk] = useState(false);
+  const [busy, setBusy] = useState(false);
   return (
     <Modal onClose={onClose} labelledBy={hid} width={480}>
       <div className={`${modalIconClass} bg-wine-50 text-wine`}>
@@ -42,19 +43,25 @@ export function WithdrawModal({ onClose }: { onClose: () => void }) {
         위 내용을 확인했어요.
       </label>
       <div className={modalActionsClass}>
-        <Button variant="ghost" className={modalActionButton} onClick={onClose}>
+        <Button
+          variant="ghost"
+          className={modalActionButton}
+          disabled={busy}
+          onClick={onClose}
+        >
           취소
         </Button>
         <Button
           variant="danger"
           className={modalActionButton}
-          disabled={!ok}
-          onClick={() => {
-            onClose();
-            wt.withdraw();
+          disabled={!ok || busy}
+          onClick={async () => {
+            setBusy(true);
+            if (await wt.withdraw()) onClose();
+            else setBusy(false);
           }}
         >
-          탈퇴하기
+          {busy ? "처리 중…" : "탈퇴하기"}
         </Button>
       </div>
     </Modal>

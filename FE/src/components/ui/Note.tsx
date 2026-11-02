@@ -12,14 +12,18 @@ const TONE = {
 export function Note({
   tone = "neutral",
   className,
+  role,
   children,
 }: {
   tone?: keyof typeof TONE;
   className?: string;
+  /** 바로 알려야 하는 오류 안내면 "alert" */
+  role?: "alert" | "status";
   children: ReactNode;
 }) {
   return (
     <div
+      role={role}
       className={cx(
         "flex flex-wrap items-center gap-2 rounded-md border px-3.5 py-2.5 text-13",
         TONE[tone],

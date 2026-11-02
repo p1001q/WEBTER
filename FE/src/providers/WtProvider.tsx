@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createApi } from "@/api";
+import { failureText, toApiError } from "@/api/errors";
 import type {
   Comment,
   Review,
@@ -19,6 +20,7 @@ import type {
   Snapshot,
   User,
 } from "@/api/types";
+import type { WebterApi } from "@/api/webterApi";
 import type { ToastContent } from "@/components/ui/Toast";
 import { reviewAgg } from "@/domain/review";
 import {
@@ -43,13 +45,19 @@ const subscribeResize = (cb: () => void) => {
  */
 export function WtProvider({
   snapshot: snap,
+  wrapApi,
   children,
 }: {
   snapshot: Snapshot;
+  /** 개발 도구가 API 호출에 지연·실패를 끼워 넣을 때만 쓴다 */
+  wrapApi?: (api: WebterApi) => WebterApi;
   children: ReactNode;
 }) {
   const router = useRouter();
-  const [api] = useState(() => createApi({ snapshot: snap }));
+  const [api] = useState(() => {
+    const base = createApi({ snapshot: snap });
+    return wrapApi ? wrapApi(base) : base;
+  });
 
   const [services, setServices] = useState<Service[]>(snap.services);
   const [reviews, setReviews] = useState<Review[]>(snap.reviews);
@@ -125,6 +133,49 @@ export function WtProvider({
     },
     [],
   );
+
+  // 응답을 받지 못한 호출이 있거나 브라우저가 오프라인이면 켜 두고, 다음 호출이 성공하거나 연결이 돌아오면 끈다
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
+  /** API 호출을 감싼다. 성공하면 연결 문제 표시를 걷고, 실패하면 공통 처리(연결 배너·로그인 만료 모달)를 한 뒤 다시 던진다 */
+  const call = async <T,>(run: () => Promise<T>): Promise<T> => {
+    try {
+      const r = await run();
+      setOffline(false);
+      return r;
+    } catch (e) {
+      const err = toApiError(e);
+      // 서버가 응답했다면(오류 응답이라도) 연결은 되어 있는 것이다
+      setOffline(err.kind === "network");
+      if (err.kind === "auth") setModal({ type: "session" });
+      throw err;
+    }
+  };
+  /** 쓰기 동작. 실패하면 이유에 맞는 안내를 띄우고 false 를 돌려준다. 호출한 쪽은 false 면 모달·입력값을 그대로 둔다 */
+  const act = async (
+    what: string,
+    run: () => Promise<void>,
+  ): Promise<boolean> => {
+    try {
+      await call(run);
+      return true;
+    } catch (e) {
+      const err = toApiError(e);
+      // 로그인 만료는 모달이 안내한다
+      if (err.kind !== "auth") toast(failureText(what, err), { err: true });
+      return false;
+    }
+  };
 
   const currentPath = useCallback(
     () => window.location.pathname + window.location.search,
@@ -224,6 +275,8 @@ export function WtProvider({
     setModal,
     toastState,
     toast,
+    offline,
+    dismissOffline: () => setOffline(false),
     currentPath,
     go,
     back,
@@ -234,59 +287,58 @@ export function WtProvider({
       else setModal({ type: "login", reason });
     },
 
-    login: async (backPath) => {
-      const r = await api.login();
-      setUsers(r.users);
-      applySession(r.session);
-      const to = safeBackPath(backPath);
-      if (to) goPath(to);
-      else go("home");
-      toast(to ? "로그인했어요. 보던 페이지로 돌아왔어요." : "로그인했어요.");
-    },
+    login: (backPath) =>
+      act("로그인하지", async () => {
+        const r = await api.login();
+        setUsers(r.users);
+        applySession(r.session);
+        const to = safeBackPath(backPath);
+        if (to) goPath(to);
+        else go("home");
+        toast(to ? "로그인했어요. 보던 페이지로 돌아왔어요." : "로그인했어요.");
+      }),
     signup: async (data, backPath) => {
       if (me) {
         go("home");
         toast("이미 로그인되어 있어요.");
-        return;
+        return true;
       }
-      let r;
-      try {
-        r = await api.signup({
+      return act("가입하지", async () => {
+        const r = await api.signup({
           handle: data.handle,
           nick: data.nick,
           interests: data.interests ?? [],
         });
-      } catch {
-        toast("가입하지 못했어요. 아이디가 이미 사용 중인지 확인해 주세요.", {
-          err: true,
-        });
-        return;
-      }
-      setUsers(r.users);
-      applySession(r.session);
-      const to = safeBackPath(backPath);
-      if (to) goPath(to);
-      else go("home");
-      toast("가입을 마쳤어요. 보던 페이지로 돌아갑니다.");
+        setUsers(r.users);
+        applySession(r.session);
+        const to = safeBackPath(backPath);
+        if (to) goPath(to);
+        else go("home");
+        toast("가입을 마쳤어요. 보던 페이지로 돌아갑니다.");
+      });
     },
-    logout: async () => {
-      applySession(await api.logout());
-      go("home");
-      toast("로그아웃했어요.");
-    },
-    withdraw: async () => {
-      const r = await api.withdraw();
-      setServices(r.services);
-      setReviews(r.reviews);
-      setComments(r.comments);
-      applySession(r.session);
-      go("home");
-      toast("탈퇴 처리했어요. (데모: 실제 계정은 삭제되지 않아요)");
-    },
-    updateMe: async (patch) => {
-      const u = await api.updateProfile(patch);
-      setUsers((us) => ({ ...us, [u.id]: u }));
-    },
+    logout: () =>
+      act("로그아웃하지", async () => {
+        applySession(await api.logout());
+        go("home");
+        toast("로그아웃했어요.");
+      }),
+    withdraw: () =>
+      act("탈퇴 처리하지", async () => {
+        const r = await api.withdraw();
+        setServices(r.services);
+        setReviews(r.reviews);
+        setComments(r.comments);
+        applySession(r.session);
+        go("home");
+        toast("탈퇴 처리했어요. (데모: 실제 계정은 삭제되지 않아요)");
+      }),
+    updateMe: (patch) =>
+      act("계정 설정을 저장하지", async () => {
+        const u = await api.updateProfile(patch);
+        setUsers((us) => ({ ...us, [u.id]: u }));
+        toast("계정 설정을 저장했어요. (데모: 이 탭에서만 유지돼요)");
+      }),
 
     launch: async (s) => {
       if (s.use !== "live") return;
@@ -301,7 +353,9 @@ export function WtProvider({
           {mine ? " 본인 클릭은 집계하지 않아요." : " 이용하기 클릭 +1"}
         </span>,
       );
-      if (!mine) applyService(await api.recordClick(s.id));
+      // 집계는 사용자에게 보이지 않는 요청이라 실패해도 알리지 않는다
+      if (!mine)
+        applyService(await call(() => api.recordClick(s.id)).catch(() => s));
     },
     openSource: () =>
       toast(
@@ -346,89 +400,108 @@ export function WtProvider({
           { err: true },
         );
     },
-    toggleLike: async (id) => {
-      const r = await api.toggleLike(id);
-      applyService(r.service);
-      setLikes((l) => flip(l, id, r.on));
-      toast(r.on ? "좋아요를 눌렀어요." : "좋아요를 취소했어요.");
-    },
-    toggleSave: async (id) => {
-      const r = await api.toggleSave(id);
-      applyService(r.service);
-      setSaves((l) => flip(l, id, r.on));
-      toast(
-        r.on
-          ? "저장했어요. 마이페이지에서 다시 볼 수 있어요."
-          : "저장을 취소했어요.",
-        r.on
-          ? { action: "보기", onAction: () => go("mypage", { tab: "saved" }) }
-          : {},
-      );
-    },
-    report: async (key) => {
-      await api.report(key);
-      setReported((r) => new Set([...r, key]));
-    },
+    toggleLike: (id) =>
+      act("좋아요를 바꾸지", async () => {
+        const r = await api.toggleLike(id);
+        applyService(r.service);
+        setLikes((l) => flip(l, id, r.on));
+        toast(r.on ? "좋아요를 눌렀어요." : "좋아요를 취소했어요.");
+      }),
+    toggleSave: (id) =>
+      act("저장을 바꾸지", async () => {
+        const r = await api.toggleSave(id);
+        applyService(r.service);
+        setSaves((l) => flip(l, id, r.on));
+        toast(
+          r.on
+            ? "저장했어요. 마이페이지에서 다시 볼 수 있어요."
+            : "저장을 취소했어요.",
+          r.on
+            ? { action: "보기", onAction: () => go("mypage", { tab: "saved" }) }
+            : {},
+        );
+      }),
+    report: (key) =>
+      act("신고를 접수하지", async () => {
+        await api.report(key);
+        setReported((r) => new Set([...r, key]));
+      }),
     countView: (s) => {
-      if (!isOwner(s)) api.recordView(s.id).then(applyService);
+      // 조회수 집계도 사용자에게 보이지 않는 요청이다
+      if (!isOwner(s))
+        call(() => api.recordView(s.id)).then(applyService, () => {});
     },
 
-    addReview: async (s, role, v) => {
-      const r = await api.addReview(s.id, role, v);
-      setReviews((l) => [r, ...l]);
-      if (role === "guest") setGuestReviewed((g) => new Set([...g, s.id]));
-      toast("리뷰를 남겼어요.");
-    },
-    updateReview: async (id, v) => {
-      applyReview(await api.updateReview(id, v));
-      toast("리뷰를 수정했어요.");
-    },
-    deleteReview: async (id) => {
-      await api.deleteReview(id);
-      setReviews((l) => l.filter((r) => r.id !== id));
-      toast("리뷰를 삭제했어요.");
-    },
-    setReply: async (rid, text) => {
-      applyReview(await api.setReply(rid, text));
-      toast(text ? "답글을 등록했어요." : "답글을 삭제했어요.");
-    },
+    addReview: (s, role, v) =>
+      act("리뷰를 남기지", async () => {
+        const r = await api.addReview(s.id, role, v);
+        setReviews((l) => [r, ...l]);
+        if (role === "guest") setGuestReviewed((g) => new Set([...g, s.id]));
+        toast("리뷰를 남겼어요.");
+      }),
+    updateReview: (id, v) =>
+      act("리뷰를 수정하지", async () => {
+        applyReview(await api.updateReview(id, v));
+        toast("리뷰를 수정했어요.");
+      }),
+    deleteReview: (id) =>
+      act("리뷰를 삭제하지", async () => {
+        await api.deleteReview(id);
+        setReviews((l) => l.filter((r) => r.id !== id));
+        toast("리뷰를 삭제했어요.");
+      }),
+    setReply: (rid, text) =>
+      act(text ? "답글을 등록하지" : "답글을 삭제하지", async () => {
+        applyReview(await api.setReply(rid, text));
+        toast(text ? "답글을 등록했어요." : "답글을 삭제했어요.");
+      }),
 
-    addComment: async (s, v, parentId) => {
-      const c = await api.addComment(s.id, v, parentId);
-      setComments((l) => [...l, c]);
-      toast(parentId ? "답글을 남겼어요." : "댓글을 남겼어요.");
-    },
-    updateComment: async (id, v) => {
-      const c = await api.updateComment(id, v);
-      setComments((l) => l.map((x) => (x.id === c.id ? c : x)));
-      toast("댓글을 수정했어요.");
-    },
-    deleteComment: async (id) => {
-      setComments(await api.deleteComment(id));
-      toast("댓글을 삭제했어요.");
-    },
+    addComment: (s, v, parentId) =>
+      act(parentId ? "답글을 남기지" : "댓글을 남기지", async () => {
+        const c = await api.addComment(s.id, v, parentId);
+        setComments((l) => [...l, c]);
+        toast(parentId ? "답글을 남겼어요." : "댓글을 남겼어요.");
+      }),
+    updateComment: (id, v) =>
+      act("댓글을 수정하지", async () => {
+        const c = await api.updateComment(id, v);
+        setComments((l) => l.map((x) => (x.id === c.id ? c : x)));
+        toast("댓글을 수정했어요.");
+      }),
+    deleteComment: (id) =>
+      act("댓글을 삭제하지", async () => {
+        setComments(await api.deleteComment(id));
+        toast("댓글을 삭제했어요.");
+      }),
 
     createService: async (data) => {
-      const s = await api.createService(data);
-      setServices((l) => [s, ...l]);
-      setTodayCount((c) => c + 1);
-      return s;
+      let created: Service | null = null;
+      await act("서비스를 등록하지", async () => {
+        const s = await api.createService(data);
+        setServices((l) => [s, ...l]);
+        setTodayCount((c) => c + 1);
+        created = s;
+      });
+      return created;
     },
-    updateService: async (id, patch) => {
-      applyService(await api.updateService(id, patch));
-    },
-    deleteService: async (id) => {
-      await api.deleteService(id);
-      setServices((l) => l.filter((s) => s.id !== id));
-      setReviews((l) => l.filter((r) => r.sid !== id));
-      setComments((l) => l.filter((c) => c.sid !== id));
-      setLikes((l) => new Set([...l].filter((x) => x !== id)));
-      setSaves((l) => new Set([...l].filter((x) => x !== id)));
-      toast("서비스와 리뷰·댓글을 삭제했어요.");
-    },
-    checkServiceUrl: (url, selfId) => api.checkServiceUrl(url, selfId),
+    updateService: (id, patch) =>
+      act("서비스를 수정하지", async () => {
+        applyService(await api.updateService(id, patch));
+      }),
+    deleteService: (id) =>
+      act("서비스를 삭제하지", async () => {
+        await api.deleteService(id);
+        setServices((l) => l.filter((s) => s.id !== id));
+        setReviews((l) => l.filter((r) => r.sid !== id));
+        setComments((l) => l.filter((c) => c.sid !== id));
+        setLikes((l) => new Set([...l].filter((x) => x !== id)));
+        setSaves((l) => new Set([...l].filter((x) => x !== id)));
+        toast("서비스와 리뷰·댓글을 삭제했어요.");
+      }),
+    checkServiceUrl: (url, selfId) =>
+      call(() => api.checkServiceUrl(url, selfId)),
 
-    aiSearch: (q) => api.aiSearch(q),
+    aiSearch: (q) => call(() => api.aiSearch(q)),
     recordAiUse: () => setAiUsed((n) => n + 1),
   };
 

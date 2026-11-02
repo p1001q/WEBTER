@@ -86,22 +86,37 @@ function SearchResults({
   }, [natural]);
   // 검색어가 바뀔 때만 AI 횟수를 1회 차감한다(목업). 이 컴포넌트는 검색어마다 새로 만들어진다
   const [ai, setAi] = useState<Ai | null>(null);
+  // AI 분석 요청이 실패하면 일반 검색 결과를 대신 보여 주고, 사용자가 다시 시도할 수 있게 한다
+  const [aiFailed, setAiFailed] = useState(false);
+  const [aiTry, setAiTry] = useState(0);
   useEffect(() => {
     if (!natural || exhausted) return;
     let alive = true;
-    wt.aiSearch(q).then((r) => {
-      if (!alive) return;
-      wt.recordAiUse();
-      setAi({ ...r, left: limit - usedAtStart - 1 });
-    });
+    wt.aiSearch(q).then(
+      (r) => {
+        if (!alive) return;
+        wt.recordAiUse();
+        setAiFailed(false);
+        setAi({ ...r, left: limit - usedAtStart - 1 });
+      },
+      () => {
+        if (alive) setAiFailed(true);
+      },
+    );
     return () => {
       alive = false;
     };
-    // 검색 시작 시점의 값으로 한 번만 실행한다(AI 횟수는 이 안에서 올라간다)
+    // 검색 시작 시점의 값으로 실행한다(AI 횟수는 이 안에서 올라간다). 다시 시도하면 aiTry 가 바뀌어 한 번 더 실행한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [aiTry]);
 
-  const mode = !natural ? "kw" : exhausted ? "exhausted" : ai ? "ai" : null;
+  const mode = !natural
+    ? "kw"
+    : exhausted || aiFailed
+      ? "exhausted"
+      : ai
+        ? "ai"
+        : null;
   let items: ReturnType<typeof keywordSearch>[number]["s"][] = [];
   let reasons: Record<string, string> | null = null;
   const pool = applyFilter(
@@ -144,7 +159,7 @@ function SearchResults({
     .sort((a, b) => scoreOf(b, "m") - scoreOf(a, "m"))
     .slice(0, 4);
 
-  if (loading)
+  if (loading || (natural && !exhausted && !ai && !aiFailed))
     return (
       <div className="pt-7" aria-busy="true">
         <div className={`${helpClass} mb-4 flex items-center gap-1.5`}>
@@ -183,7 +198,23 @@ function SearchResults({
           </div>
         </div>
       )}
-      {mode === "exhausted" && (
+      {aiFailed && (
+        <Note tone="butter" className="mb-5" role="alert">
+          <Icon name="info" size={16} />
+          AI 분석에 실패해서 일반 검색 결과를 보여 드려요.
+          <button
+            type="button"
+            className="ml-auto font-semibold underline underline-offset-2"
+            onClick={() => {
+              setAiFailed(false);
+              setAiTry((n) => n + 1);
+            }}
+          >
+            다시 시도
+          </button>
+        </Note>
+      )}
+      {mode === "exhausted" && !aiFailed && (
         <Note tone="butter" className="mb-5">
           <Icon name="info" size={16} />
           오늘 AI 검색 {limit}회를 모두 사용해서 일반 검색 결과를 보여 드려요.
@@ -222,13 +253,19 @@ function SearchResults({
         <>
           <EmptyState
             title="검색 결과가 없어요"
-            desc="다른 단어로 검색하거나, 아래 인기 서비스를 둘러보세요."
+            desc={
+              popular.length
+                ? "다른 단어로 검색하거나, 아래 인기 서비스를 둘러보세요."
+                : "다른 단어로 검색해 보세요."
+            }
             icon="search"
           />
-          <section className="mt-4">
-            <SectionHead title="이번 달 인기 서비스" />
-            <ServiceList items={popular} />
-          </section>
+          {popular.length > 0 && (
+            <section className="mt-4">
+              <SectionHead title="이번 달 인기 서비스" />
+              <ServiceList items={popular} />
+            </section>
+          )}
         </>
       )}
     </>

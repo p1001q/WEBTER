@@ -99,7 +99,9 @@ export function SettingsPanel() {
     setAvErr("");
     avatarRun.current++;
   };
+  const [saving, setSaving] = useState(false);
   const save = async () => {
+    setSaving(true);
     await wt.updateMe({
       nick,
       handle,
@@ -108,7 +110,7 @@ export function SettingsPanel() {
       interests: cats,
       avatarImg: avatar,
     });
-    wt.toast("계정 설정을 저장했어요. (데모: 이 탭에서만 유지돼요)");
+    setSaving(false);
   };
   const errBorder = (s: Parameters<typeof msgState>[0]) =>
     msgState(s) === "err" ? "border-wine!" : "";
@@ -298,7 +300,7 @@ export function SettingsPanel() {
           <Button variant="ghost" disabled={!dirty} onClick={reset}>
             되돌리기
           </Button>
-          <Button disabled={!dirty || !ok} onClick={save}>
+          <Button disabled={!dirty || !ok || saving} onClick={save}>
             저장
           </Button>
         </div>
