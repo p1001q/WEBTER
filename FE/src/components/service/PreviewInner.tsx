@@ -1,4 +1,6 @@
 import type { Service } from "@/api/types";
+import { Icon } from "@/components/ui/Icon";
+import { ImgFrame } from "@/components/ui/SafeImg";
 import { ServiceThumb } from "./ServiceThumb";
 
 const inner = "absolute inset-0 flex items-center justify-center";
@@ -75,19 +77,23 @@ export function PreviewInner({
   const f = fit || p.fit;
   if (p.imgs && p.imgs[i])
     return (
-      <div className={inner}>
-        {/* 사용자가 올린 이미지의 크기·출처를 알 수 없어 next/image 최적화를 쓰지 않는다. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={p.imgs[i]}
-          alt=""
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: f === "cover" ? "cover" : "contain",
-          }}
-        />
-      </div>
+      <ImgFrame
+        src={p.imgs[i]}
+        frameClassName={inner}
+        imgStyle={{
+          width: "100%",
+          height: "100%",
+          objectFit: f === "cover" ? "cover" : "contain",
+        }}
+        fallback={
+          <div
+            className={`${inner} flex-col gap-2 bg-light text-13 text-muted`}
+          >
+            <Icon name="image" size={28} />
+            이미지를 불러오지 못했어요
+          </div>
+        }
+      />
     );
   if (p.ratio === "port")
     return (

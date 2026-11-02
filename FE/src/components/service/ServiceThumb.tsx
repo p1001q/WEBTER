@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Service } from "@/api/types";
 import { CAT } from "@/domain/options";
+import { ImgFrame } from "@/components/ui/SafeImg";
 import { CategoryGlyph } from "./CategoryGlyph";
 import styles from "./ServiceThumb.module.css";
 import { ThumbArt } from "./ThumbArt";
@@ -25,27 +26,29 @@ export function ServiceThumb({
 }) {
   const c = CAT[s.cats[0]] || CAT.etc;
   const root = className ? `${styles.thumb} ${className}` : styles.thumb;
+  const defaultThumb = (
+    <div
+      className={root}
+      style={{ background: c.bg, ...style }}
+      data-default-thumb=""
+    >
+      <div className={styles.fallback} style={{ color: c.fg }}>
+        <CategoryGlyph cat={c.id} size={44} />
+        <b>{c.label}</b>
+      </div>
+    </div>
+  );
   if (s.thumbImg)
     return (
-      <div className={root} style={style}>
-        {/* 사용자가 올린 이미지의 크기·출처를 알 수 없어 next/image 최적화를 쓰지 않는다. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={styles.img} src={s.thumbImg} alt="" />
-      </div>
+      <ImgFrame
+        src={s.thumbImg}
+        frameClassName={root}
+        frameStyle={style}
+        imgClassName={styles.img}
+        fallback={defaultThumb}
+      />
     );
-  if (!s.hasThumb)
-    return (
-      <div
-        className={root}
-        style={{ background: c.bg, ...style }}
-        data-default-thumb=""
-      >
-        <div className={styles.fallback} style={{ color: c.fg }}>
-          <CategoryGlyph cat={c.id} size={44} />
-          <b>{c.label}</b>
-        </div>
-      </div>
-    );
+  if (!s.hasThumb) return defaultThumb;
   return (
     <div className={root} style={{ background: s.thumb.bg, ...style }}>
       {plain ? (

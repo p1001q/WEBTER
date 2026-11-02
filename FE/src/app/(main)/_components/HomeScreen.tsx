@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { MainNav } from "@/components/layout/MainNav";
 import { SearchBar } from "@/components/layout/SearchBar";
 import { SectionHead } from "@/components/layout/SectionHead";
+import { NoServices } from "@/components/service/NoServices";
 import { ServiceList } from "@/components/service/ServiceList";
 import { Icon } from "@/components/ui/Icon";
 import { RouteLink } from "@/components/ui/RouteLink";
@@ -98,22 +99,28 @@ export function HomeScreen() {
             </div>
           )}
         </section>
-        {DISPLAY.homeSections.map((k) => {
-          const sec = sections[k];
-          return (
-            <section className="mt-14 @max-[560px]/app:mt-10" key={k}>
-              <SectionHead
-                title={sec.title}
-                sub={sec.sub}
-                onMore={() => wt.go(sec.to)}
-              />
-              <ServiceList
-                items={sec.items}
-                rankStart={sec.rank ? 1 : undefined}
-              />
-            </section>
-          );
-        })}
+        {live.length === 0 ? (
+          <section className="mt-14 @max-[560px]/app:mt-10">
+            <NoServices />
+          </section>
+        ) : (
+          DISPLAY.homeSections.map((k) => {
+            const sec = sections[k];
+            return (
+              <section className="mt-14 @max-[560px]/app:mt-10" key={k}>
+                <SectionHead
+                  title={sec.title}
+                  sub={sec.sub}
+                  onMore={() => wt.go(sec.to)}
+                />
+                <ServiceList
+                  items={sec.items}
+                  rankStart={sec.rank ? 1 : undefined}
+                />
+              </section>
+            );
+          })
+        )}
       </div>
       <Footer />
     </>

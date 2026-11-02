@@ -34,6 +34,34 @@ export function Restricted({
   );
 }
 
+/** 화면을 그리다 오류가 났을 때(헤더·푸터는 그대로 두고 본문 자리에 보여 준다) */
+export function ErrorNotice({ onRetry }: { onRetry: () => void }) {
+  const wt = useWt();
+  return (
+    <>
+      <div className="page-wrap">
+        <div className={box} role="alert">
+          <span className="grid size-14 place-items-center rounded-full bg-wine-50 text-wine">
+            <Icon name="alert" size={24} />
+          </span>
+          <h1>화면을 표시하지 못했어요</h1>
+          <p>
+            일시적인 문제일 수 있어요. 다시 시도해 보고, 계속되면 새로고침하거나
+            잠시 뒤에 이용해 주세요.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => wt.go("home")}>
+              홈으로 가기
+            </Button>
+            <Button onClick={onRetry}>다시 시도</Button>
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
+}
+
 export const NotFoundNotice = () => (
   <Restricted
     title="페이지를 찾을 수 없어요"
