@@ -23,8 +23,19 @@ export interface ServiceItemProps {
 const reveal =
   "group-hover/card:translate-y-0 group-hover/card:opacity-100 group-focus-within/card:translate-y-0 group-focus-within/card:opacity-100 group-data-[hover]/card:translate-y-0 group-data-[hover]/card:opacity-100";
 
+interface ServiceCardProps extends ServiceItemProps {
+  /** 서비스 이름의 제목 수준. 앞에 h2 가 없는 화면(h1 바로 아래)에서는 h2 로 둔다 */
+  heading?: "h2" | "h3";
+}
+
 /** 카드형 서비스 항목 */
-export function ServiceCard({ s, rank, reason, hover }: ServiceItemProps) {
+export function ServiceCard({
+  s,
+  rank,
+  reason,
+  hover,
+  heading: Heading = "h3",
+}: ServiceCardProps) {
   const wt = useWt();
   const agg = wt.agg(s);
   const down = s.use === "stop";
@@ -48,12 +59,12 @@ export function ServiceCard({ s, rank, reason, hover }: ServiceItemProps) {
             </span>
             {down && <StatusBadge kind="stop" />}
           </div>
-          <h3
+          <Heading
             className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em]"
             title={s.name}
           >
             {s.name}
-          </h3>
+          </Heading>
           <p className="m-0 line-clamp-2 min-h-[2.9em] text-[13.5px] leading-[1.45] text-text-2">
             {s.tagline}
           </p>

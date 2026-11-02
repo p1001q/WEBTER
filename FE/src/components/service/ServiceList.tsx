@@ -15,6 +15,8 @@ interface ServiceListProps {
   cols?: number;
   /** 좁은 화면에서도 2열을 유지 */
   m2?: boolean;
+  /** 카드 이름의 제목 수준(기본 h3). 목록 앞에 h2 가 없으면 h2 로 둔다 */
+  heading?: "h2" | "h3";
   /** 카드형에서 항목을 직접 그린다(공개 상태에 따라 모양이 다른 목록용) */
   renderItem?: (s: Service) => ReactNode;
 }
@@ -27,6 +29,7 @@ export function ServiceList({
   reasons,
   cols,
   m2,
+  heading,
   renderItem,
 }: ServiceListProps) {
   const rank = (i: number) => (rankStart != null ? rankStart + i : undefined);
@@ -56,6 +59,7 @@ export function ServiceList({
           <ServiceCard
             key={s.id}
             s={s}
+            heading={heading}
             rank={rank(i)}
             reason={reasons?.[s.id]}
           />

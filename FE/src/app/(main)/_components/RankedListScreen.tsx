@@ -82,6 +82,7 @@ export function RankedListScreen({
             items={items}
             view={st.view}
             rankStart={ranked ? 1 : undefined}
+            heading="h2"
           />
         ) : (
           <EmptyState

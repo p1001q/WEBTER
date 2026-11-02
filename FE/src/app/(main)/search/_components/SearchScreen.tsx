@@ -211,7 +211,12 @@ function SearchResults({
               />
             }
           />
-          <ServiceList items={items} view={st.view} reasons={reasons} />
+          <ServiceList
+            items={items}
+            view={st.view}
+            reasons={reasons}
+            heading="h2"
+          />
         </>
       ) : (
         <>
