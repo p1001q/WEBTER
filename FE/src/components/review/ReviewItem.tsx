@@ -13,6 +13,7 @@ import { RouteLink } from "@/components/ui/RouteLink";
 import { fmtDate } from "@/domain/format";
 import { authorName, hasLink } from "@/domain/review";
 import { cx } from "@/lib/cx";
+import { useRevealWhenFresh } from "@/lib/revealFresh";
 import { useWt } from "@/providers/context";
 
 const RATE = {
@@ -26,6 +27,7 @@ const text =
 /** 리뷰 한 건: 작성자·평가·수정/삭제/신고·제작자 답글 */
 export function ReviewItem({ r, s }: { r: Review; s: Service }) {
   const wt = useWt();
+  const revealRef = useRevealWhenFresh(r.id, r.fresh);
   const isOwner = !!wt.me && s.owner === wt.me.id;
   const mine =
     !!wt.me &&
@@ -62,6 +64,7 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
   const who = "font-bold";
   return (
     <div
+      ref={revealRef}
       className={cx(
         "flex flex-col gap-2.5 border-b border-border py-5",
         r.fresh && "animate-fresh",
@@ -98,7 +101,7 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
         )}
         <span className="text-12 text-muted">
           {fmtDate(r.date)}
-          {r.edited && " · 수정됨"}
+          {r.edited && " (수정됨)"}
         </span>
         <span className="ml-auto flex gap-0.5">
           {mine && (

@@ -235,8 +235,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       r.rate = r.a.kind === "maker" ? null : v.rate;
       r.text = v.text;
       r.edited = true;
-      if (r.a.kind !== "maker")
-        r.a = { kind: v.anon ? "anon" : "member", uid: r.a.uid };
+      // 익명 여부는 등록할 때만 정한다. 수정해도 바뀌지 않는다
       return clone(r);
     },
     deleteReview: async (id) => {
@@ -274,15 +273,9 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       const c = findComment(id);
       if (c.a.uid !== u.id || c.deleted)
         throw new Error("내 댓글만 수정할 수 있어요.");
-      const s = findService(c.sid);
       c.text = v.text;
       c.edited = true;
-      // 익명 설정이 꺼진 뒤에도 기존 익명 댓글은 익명으로 둔다(작성자를 드러내지 않는다)
-      if (s.allowAnonComment)
-        c.a = {
-          kind: v.anon && s.owner !== u.id ? "anon" : "member",
-          uid: u.id,
-        };
+      // 익명 여부는 등록할 때만 정한다. 수정해도 바뀌지 않는다
       return clone(c);
     },
     deleteComment: async (id) => {

@@ -22,7 +22,7 @@ import type {
 } from "@/api/types";
 import type { WebterApi } from "@/api/webterApi";
 import type { ToastContent } from "@/components/ui/Toast";
-import { reviewAgg } from "@/domain/review";
+import { gradeOf, reviewAgg } from "@/domain/review";
 import {
   pathFor,
   safeBackPath,
@@ -72,6 +72,8 @@ export function WtProvider({
   const [guestReviewed, setGuestReviewed] = useState(
     () => new Set(snap.session.guestReviewed),
   );
+  /** 의견 없이 추천·비추천만 누른 평가(서비스 id → 평가). 리뷰 목록에는 오르지 않고 집계에만 들어간다 */
+  const [votes, setVotes] = useState<Record<string, "up" | "down">>({});
   const [aiUsed, setAiUsed] = useState(snap.session.aiUsed);
   const [todayCount, setTodayCount] = useState(snap.session.todayCount);
 
@@ -235,6 +237,15 @@ export function WtProvider({
   );
   const isOwner = (s: Service) => !!me && s.owner === me.id;
 
+  const myReviewOf = (sid: string) =>
+    me
+      ? reviews.find(
+          (r) =>
+            r.sid === sid &&
+            r.a.uid === me.id &&
+            (r.a.kind === "member" || r.a.kind === "anon"),
+        )
+      : undefined;
   const applyService = (s: Service) =>
     setServices((l) => l.map((x) => (x.id === s.id ? s : x)));
   const applyReview = (r: Review) =>
@@ -246,6 +257,7 @@ export function WtProvider({
     setReported(new Set(s.reported));
     setGuestReviewed(new Set(s.guestReviewed));
     setTodayCount(s.todayCount);
+    setVotes({});
   };
   const flip = (set: Set<string>, id: string, on: boolean) => {
     const n = new Set(set);
@@ -284,7 +296,36 @@ export function WtProvider({
     go,
     back,
     svc,
-    agg: (s) => reviewAgg(s, reviews),
+    agg: (s) => {
+      const base = reviewAgg(s, reviews);
+      const v =
+        me && !isOwner(s) && !myReviewOf(s.id) ? votes[s.id] : undefined;
+      if (!v) return base;
+      const up = base.up + (v === "up" ? 1 : 0);
+      const down = base.down + (v === "down" ? 1 : 0);
+      return { ...base, up, down, ...gradeOf(up, down) };
+    },
+    myVote: (sid) => {
+      const r = myReviewOf(sid);
+      if (r) return r.rate === "up" || r.rate === "down" ? r.rate : null;
+      return votes[sid] ?? null;
+    },
+    vote: (sid, rate) =>
+      store.setVote(sid, store.myVote(sid) === rate ? null : rate),
+    setVote: (sid, next) => {
+      const r = myReviewOf(sid);
+      if (r)
+        setReviews((l) =>
+          l.map((x) => (x.id === r.id ? { ...x, rate: next ?? "none" } : x)),
+        );
+      else
+        setVotes((m) => {
+          const n = { ...m };
+          if (next) n[sid] = next;
+          else delete n[sid];
+          return n;
+        });
+    },
     requireLogin: (fn, reason) => {
       if (me) fn();
       else setModal({ type: "login", reason });
@@ -444,6 +485,11 @@ export function WtProvider({
       act("리뷰를 남기지", async () => {
         const r = await api.addReview(s.id, role, v);
         setReviews((l) => [r, ...l]);
+        setVotes((m) => {
+          const n = { ...m };
+          delete n[s.id];
+          return n;
+        });
         if (role === "guest") setGuestReviewed((g) => new Set([...g, s.id]));
         toast("리뷰를 남겼어요.");
       }),

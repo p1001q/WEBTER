@@ -292,7 +292,7 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
                           {c.parent ? "답글 · " : ""}
                           {c.a.kind === "anon" ? "익명으로 작성 · " : ""}
                           {fmtDate(c.date)}
-                          {c.edited && " · 수정됨"}
+                          {c.edited && " (수정됨)"}
                         </div>
                         <p className={reviewText}>{c.text}</p>
                       </div>

@@ -87,6 +87,12 @@ export interface WtStore {
 
   svc: (id: string | undefined) => Service | undefined;
   agg: (s: Service) => ReviewAgg;
+  /** 내가 이 서비스에 남긴 평가(리뷰의 평가 또는 추천·비추천 단독 평가) */
+  myVote: (sid: string) => "up" | "down" | null;
+  /** 의견 없이 추천·비추천만 누른다. 같은 걸 다시 누르면 취소하고, 이미 리뷰가 있으면 리뷰의 평가를 바꾼다 */
+  vote: (sid: string, rate: "up" | "down") => void;
+  /** 평가를 직접 정한다(null 이면 취소). 리뷰 작성 폼의 평가 버튼이 쓴다 */
+  setVote: (sid: string, rate: "up" | "down" | null) => void;
 
   // 쓰기 동작은 실패하면 안내(토스트·연결 배너·로그인 만료 모달)를 직접 띄우고 false 를 돌려준다.
   // 호출한 쪽은 true 일 때만 모달을 닫거나 입력값을 비운다.
