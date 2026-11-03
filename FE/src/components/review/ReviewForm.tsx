@@ -123,7 +123,7 @@ export function ReviewForm({
           )}
           {role === "member" && stopLock && (
             <span className={helpClass}>
-              사용할 수 없는 서비스라 지금은 미설정으로만 남길 수 있어요.
+              운영 중지된 서비스라 지금은 미설정으로만 남길 수 있어요.
             </span>
           )}
         </div>

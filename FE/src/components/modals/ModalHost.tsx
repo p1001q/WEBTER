@@ -72,7 +72,7 @@ export function ModalHost() {
               use: "stop",
               stopReason: r,
             });
-            if (ok) wt.toast("사용 불가능으로 바꿨어요.");
+            if (ok) wt.toast("운영 중지로 바꿨어요.");
             return ok;
           }}
           onClose={close}

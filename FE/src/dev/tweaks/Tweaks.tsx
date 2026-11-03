@@ -17,7 +17,7 @@ const JUMPS: [string, string, boolean?][] = [
   ],
   ["07 상세", "/services/s01"],
   ["07 상세 · 댓글 탭", "/services/s01?tab=comments"],
-  ["07 상세 · 사용 불가능", "/services/s16"],
+  ["07 상세 · 운영 중지", "/services/s16"],
   ["07 상세 · 본인 서비스", "/services/s10", true],
   ["07 상세 · 없는 서비스", "/services/none"],
   ["08 로그인", "/login"],
@@ -156,7 +156,7 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
         seg("sample", [
           ["default", "기본 4개"],
           ["none", "없음"],
-          ["stopped", "전부 사용 불가"],
+          ["stopped", "전부 운영 중지"],
         ]),
       )}
       {row(

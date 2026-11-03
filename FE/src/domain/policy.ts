@@ -31,5 +31,5 @@ export const DISPLAY = {
   defaultCols: 4,
   demoToday: "2026-10-22",
   urlCheckDelay: 700, // 목업 접속 검사 지연(ms) — 결정적
-  stopCanRateNew: false, // 사용 불가능 서비스의 신규 리뷰 평가: 미설정만
+  stopCanRateNew: false, // 운영 중지 서비스의 신규 리뷰 평가: 미설정만
 } as const;

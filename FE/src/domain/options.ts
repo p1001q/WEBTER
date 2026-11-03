@@ -63,8 +63,8 @@ export const OPT: {
     ["en", "영어"],
   ],
   use: [
-    ["live", "사용 가능"],
-    ["stop", "사용 불가능"],
+    ["live", "운영 중"],
+    ["stop", "운영 중지"],
   ],
 };
 const labels = <T extends string>(o: Opts<T>) =>
@@ -99,8 +99,8 @@ export const LINK_LABEL: Record<LinkKind, string> = {
 };
 
 export const STATE_LABEL: Record<UseState | PubState, string> = {
-  live: "사용 가능",
-  stop: "사용 불가능",
+  live: "운영 중",
+  stop: "운영 중지",
   private: "비공개",
   temp: "임시 비공개",
   public: "공개",

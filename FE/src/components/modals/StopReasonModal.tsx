@@ -30,7 +30,7 @@ export function StopReasonModal({
   const [busy, setBusy] = useState(false);
   return (
     <Modal onClose={onClose} labelledBy={hid} width={460} locked={busy}>
-      <h3 id={hid}>사용 불가능으로 바꿀까요?</h3>
+      <h3 id={hid}>운영 중지로 바꿀까요?</h3>
       <p>
         <b className="text-ink">{s.name}</b>의 이용하기 버튼이 비활성화되고,
         기본 목록에서 숨겨져요. 상세 페이지 상단에 아래 사유가 표시돼요.
@@ -69,7 +69,7 @@ export function StopReasonModal({
             else setBusy(false);
           }}
         >
-          {busy ? "처리 중…" : "사용 불가능으로 변경"}
+          {busy ? "처리 중…" : "운영 중지로 변경"}
         </Button>
       </div>
     </Modal>

@@ -81,7 +81,7 @@ export function FilterPanel({
         </div>
       </div>
       {row("langs", "지원 언어", OPT.langs)}
-      {row("use", "사용 상태", OPT.use)}
+      {row("use", "운영 상태", OPT.use)}
       <div className="flex items-center gap-3 border-t border-light pt-3 text-12 text-muted">
         같은 항목 안에서는 하나라도 맞으면, 다른 항목끼리는 모두 맞는 서비스를
         보여 줘요.

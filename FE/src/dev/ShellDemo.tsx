@@ -90,7 +90,7 @@ export function ShellDemo() {
               first && wt.setModal({ type: "stop", sid: first.id })
             }
           >
-            사용 불가 모달
+            운영 중지 모달
           </button>
           <button style={btn} onClick={() => wt.setModal({ type: "withdraw" })}>
             탈퇴 모달
@@ -133,7 +133,7 @@ export function ShellDemo() {
         </h2>
         <ServiceList items={pub.slice(0, 4)} rankStart={1} />
         <h2 style={{ margin: "32px 0 16px", fontSize: 22, fontWeight: 800 }}>
-          카드형 · 사용 불가 · hover
+          카드형 · 운영 중지 · hover
         </h2>
         <div
           style={{

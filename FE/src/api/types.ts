@@ -7,7 +7,7 @@ export type Device = "pc" | "mobile";
 export type Price = "free" | "paid" | "partial";
 export type OwnerKind = "solo" | "team";
 export type Lang = "ko" | "en";
-/** 사용 상태: 제작자가 바꾼다 */
+/** 운영 상태: 제작자가 바꾼다 */
 export type UseState = "live" | "stop";
 /** 공개 상태: 운영자가 정한다. public 일 때는 화면에 표시하지 않는다 */
 export type PubState = "public" | "private" | "temp";
