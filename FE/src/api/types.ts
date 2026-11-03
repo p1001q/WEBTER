@@ -128,6 +128,8 @@ export interface User {
   links: [LinkKind, string][];
   interests?: CategoryId[];
   avatarImg?: string | null;
+  /** 아이디를 바꾼 날짜(YYYY-MM-DD). 최근 변경 횟수 제한에 쓴다 */
+  handleChanges?: string[];
 }
 
 export type ReviewAuthorKind = "member" | "anon" | "guest" | "left" | "maker";
@@ -209,11 +211,27 @@ export interface SessionState {
   todayCount: number;
 }
 
+/** 알림 종류: 내 서비스에 리뷰·댓글, 내 댓글에 답글, 내 리뷰에 제작자 답글, 서비스 임시 비공개 */
+export type NotificationKind =
+  "review" | "comment" | "reply" | "maker-reply" | "hidden";
+export interface Notification {
+  id: string;
+  kind: NotificationKind;
+  /** 알림을 일으킨 회원(운영 처리 알림에는 없다) */
+  actor?: string;
+  sid: string;
+  date: string;
+  read: boolean;
+  /** 리뷰·댓글·답글 내용 일부 */
+  quote?: string;
+}
+
 export interface Snapshot {
   users: Record<string, User>;
   services: Service[];
   reviews: Review[];
   comments: Comment[];
+  notifications: Notification[];
   opensource: OpenSourceItem[];
   /** 이미 사용 중인 아이디 목록(실서비스에서는 중복 확인 API로 대체) */
   takenHandles: string[];

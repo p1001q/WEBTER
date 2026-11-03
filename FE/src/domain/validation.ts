@@ -100,20 +100,52 @@ export function handleCheck(
   v: string,
   takenHandles: string[],
   selfHandle?: string,
+  opts: { required?: boolean } = {},
 ): FieldCheck {
-  if (!v) return { state: "idle" };
+  if (!v) {
+    return opts.required
+      ? { state: "format", msg: "아이디를 입력해 주세요." }
+      : { state: "idle" };
+  }
   const key = v.toLowerCase();
-  if (v.length > POLICY.idMax || !/^[a-z0-9._]+$/.test(key))
+  if (!key.trim())
+    return { state: "format", msg: "공백만으로는 만들 수 없어요." };
+  if (/\s/.test(key))
+    return { state: "format", msg: "아이디에는 공백을 쓸 수 없어요." };
+  if (key.length < POLICY.idMin || key.length > POLICY.idMax)
     return {
       state: "format",
-      msg: `영문·숫자·마침표(.)·밑줄(_)만, 공백 없이 ${POLICY.idMax}자까지 쓸 수 있어요.`,
+      msg: `${POLICY.idMin}~${POLICY.idMax}자로 입력하세요.`,
     };
+  if (!/^[a-z0-9._]+$/.test(key))
+    return {
+      state: "format",
+      msg: "영문·숫자·마침표(.)·밑줄(_)만 쓸 수 있어요.",
+    };
+  if (!/[a-z0-9]/.test(key))
+    return {
+      state: "format",
+      msg: "기호만으로는 만들 수 없어요. 영문이나 숫자를 한 글자 이상 넣어 주세요.",
+    };
+  if (key.startsWith(".") || key.endsWith("."))
+    return { state: "format", msg: "마침표(.)로 시작하거나 끝낼 수 없어요." };
+  if (key.includes(".."))
+    return { state: "format", msg: "마침표(.)를 연달아 쓸 수 없어요." };
   if (key !== selfHandle?.toLowerCase() && takenHandles.includes(key))
     return { state: "taken", msg: "이미 사용 중인 아이디예요." };
   return { state: "ok", msg: "사용할 수 있는 아이디예요." };
 }
-export function nickCheck(v: string): FieldCheck {
-  if (!v) return { state: "idle" };
+export function nickCheck(
+  v: string,
+  opts: { required?: boolean } = {},
+): FieldCheck {
+  if (!v) {
+    return opts.required
+      ? { state: "format", msg: "닉네임을 입력해 주세요." }
+      : { state: "idle" };
+  }
+  if (!v.trim())
+    return { state: "format", msg: "공백만으로는 만들 수 없어요." };
   if (v !== v.trim())
     return { state: "format", msg: "앞뒤 공백은 쓸 수 없어요." };
   if (v.length < POLICY.nickMin || v.length > POLICY.nickMax)
@@ -121,12 +153,42 @@ export function nickCheck(v: string): FieldCheck {
       state: "format",
       msg: `${POLICY.nickMin}~${POLICY.nickMax}자로 입력하세요.`,
     };
+  if (/\s{2,}/.test(v))
+    return { state: "format", msg: "공백은 한 칸씩만 쓸 수 있어요." };
   if (!/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ]+$/.test(v))
-    return { state: "format", msg: "한글·영문·숫자·중간 공백만 쓸 수 있어요." };
+    return {
+      state: "format",
+      msg: "한글·영문·숫자·중간 공백만 쓸 수 있어요. 기호나 이모지는 쓸 수 없어요.",
+    };
+  if (!/[가-힣A-Za-z0-9]/.test(v))
+    return {
+      state: "format",
+      msg: "완성된 글자(한글·영문·숫자)를 한 글자 이상 넣어 주세요.",
+    };
   return {
     state: "ok",
     msg: "좋은 닉네임이에요. 닉네임은 다른 사람과 같아도 돼요.",
   };
+}
+
+/** 아이디 변경 제한(인스타그램 방식 제안): 최근 N일 안에 M번까지 바꿀 수 있다 */
+export function handleChangeStatus(
+  changes: string[] | undefined,
+  today: string,
+) {
+  const day = 24 * 60 * 60 * 1000;
+  const t = new Date(today).getTime();
+  const recent = (changes ?? [])
+    .map((d) => new Date(d).getTime())
+    .filter((c) => t - c < POLICY.handleChangeDays * day)
+    .sort((x, y) => x - y);
+  const left = Math.max(0, POLICY.handleChangeMax - recent.length);
+  // 가장 오래된 변경이 기간을 벗어나면 다시 바꿀 수 있다
+  const waitDays =
+    left > 0 || !recent.length
+      ? 0
+      : Math.ceil((recent[0] + POLICY.handleChangeDays * day - t) / day);
+  return { left, waitDays };
 }
 
 /* 이미지 파일 */

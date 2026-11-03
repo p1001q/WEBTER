@@ -1,6 +1,6 @@
-import { DISPLAY } from "@/domain/policy";
+import { DISPLAY, POLICY } from "@/domain/policy";
 import { CAT } from "@/domain/options";
-import { normUrl } from "@/domain/validation";
+import { handleChangeStatus, normUrl } from "@/domain/validation";
 import type {
   Comment,
   CommentInput,
@@ -24,6 +24,7 @@ import {
   SEED_TAKEN_HANDLES,
   SEED_USERS,
 } from "./seed";
+import { SEED_NOTIFICATIONS } from "./notifications";
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
@@ -50,6 +51,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
   let reviews = clone(snap?.reviews ?? SEED_REVIEWS);
   let comments = clone(snap?.comments ?? SEED_COMMENTS);
   const users = clone(snap?.users ?? SEED_USERS);
+  const notifications = clone(snap?.notifications ?? SEED_NOTIFICATIONS);
   const opensource = clone(snap?.opensource ?? SEED_OPENSOURCE);
   const takenHandles = clone(snap?.takenHandles ?? SEED_TAKEN_HANDLES);
   if (!snap && opts.sample === "none") {
@@ -121,6 +123,9 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
         services,
         reviews,
         comments,
+        notifications: notifications.filter((n) =>
+          services.some((s) => s.id === n.sid),
+        ),
         opensource,
         takenHandles,
         session,
@@ -184,8 +189,22 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     },
     updateProfile: async (patch: Partial<User>) => {
       const u = need();
+      const nextHandle = patch.handle?.toLowerCase();
+      const changed = !!nextHandle && nextHandle !== u.handle;
+      if (changed) {
+        const { left, waitDays } = handleChangeStatus(
+          u.handleChanges,
+          DISPLAY.demoToday,
+        );
+        if (left === 0)
+          throw new Error(
+            `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. ${waitDays}일 뒤에 다시 바꿀 수 있어요.`,
+          );
+      }
       Object.assign(u, patch);
-      if (patch.handle) u.handle = patch.handle.toLowerCase();
+      if (nextHandle) u.handle = nextHandle;
+      if (changed)
+        u.handleChanges = [...(u.handleChanges ?? []), DISPLAY.demoToday];
       return clone(u);
     },
 

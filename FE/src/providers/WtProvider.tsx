@@ -14,6 +14,7 @@ import { createApi } from "@/api";
 import { failureText, toApiError } from "@/api/errors";
 import type {
   Comment,
+  Notification,
   Review,
   Service,
   SessionState,
@@ -22,6 +23,7 @@ import type {
 } from "@/api/types";
 import type { WebterApi } from "@/api/webterApi";
 import type { ToastContent } from "@/components/ui/Toast";
+import { FILTER_DEFAULT, type FilterState } from "@/domain/filter";
 import { gradeOf, reviewAgg } from "@/domain/review";
 import {
   pathFor,
@@ -62,6 +64,9 @@ export function WtProvider({
   const [services, setServices] = useState<Service[]>(snap.services);
   const [reviews, setReviews] = useState<Review[]>(snap.reviews);
   const [comments, setComments] = useState<Comment[]>(snap.comments);
+  const [notifications, setNotifications] = useState<Notification[]>(
+    snap.notifications,
+  );
   const [users, setUsers] = useState<Record<string, User>>(snap.users);
   const [meId, setMeId] = useState<string | null>(snap.session.meId);
   const [likes, setLikes] = useState(() => new Set(snap.session.likes));
@@ -80,7 +85,9 @@ export function WtProvider({
   const [side, setSide] = useState(false);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [toastState, setToastState] = useState<ToastContent | null>(null);
-  const [view, setView] = useState<ViewMode>("card");
+  const [viewPref, setView] = useState<ViewMode | null>(null);
+  /** 트렌딩·인기·최신이 함께 쓰는 필터. 탭을 옮겨도, 사이드바에서 골라도 이어진다 */
+  const [listFilter, setListFilter] = useState<FilterState>(FILTER_DEFAULT);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     const timer = toastTimer;
@@ -92,6 +99,8 @@ export function WtProvider({
     () => window.innerWidth <= MOBILE_MAX,
     () => false,
   );
+  // 보기 방식을 고르기 전에는 모바일은 목록형, 데스크톱은 카드형이다
+  const view: ViewMode = viewPref ?? (isMobile ? "list" : "card");
 
   const closeOverlays = useCallback(() => {
     setModal(null);
@@ -272,6 +281,16 @@ export function WtProvider({
     services,
     reviews,
     comments,
+    notifications,
+    readNotification: (id) =>
+      setNotifications((l) =>
+        l.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      ),
+    readAllNotifications: () =>
+      setNotifications((l) => l.map((n) => ({ ...n, read: true }))),
+    deleteNotification: (id) =>
+      setNotifications((l) => l.filter((n) => n.id !== id)),
+    clearNotifications: () => setNotifications([]),
     likes,
     saves,
     reported,
@@ -283,6 +302,8 @@ export function WtProvider({
     publicServices: services.filter((s) => s.pub === "public"),
     view,
     setView,
+    listFilter,
+    setListFilter,
     isMobile,
     side,
     setSide,
@@ -312,20 +333,17 @@ export function WtProvider({
     },
     vote: (sid, rate) =>
       store.setVote(sid, store.myVote(sid) === rate ? null : rate),
+    // 이미 리뷰가 있으면 평가는 리뷰를 수정해서만 바꾼다(호출하는 쪽이 수정 창을 연다)
     setVote: (sid, next) => {
-      const r = myReviewOf(sid);
-      if (r)
-        setReviews((l) =>
-          l.map((x) => (x.id === r.id ? { ...x, rate: next ?? "none" } : x)),
-        );
-      else
-        setVotes((m) => {
-          const n = { ...m };
-          if (next) n[sid] = next;
-          else delete n[sid];
-          return n;
-        });
+      if (myReviewOf(sid)) return;
+      setVotes((m) => {
+        const n = { ...m };
+        if (next) n[sid] = next;
+        else delete n[sid];
+        return n;
+      });
     },
+    myReview: (sid) => myReviewOf(sid),
     requireLogin: (fn, reason) => {
       if (me) fn();
       else setModal({ type: "login", reason });
