@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useCallback,
+  useRef,
   useState,
   type ChangeEvent,
   type Dispatch,
@@ -16,6 +18,7 @@ import {
   labelClass,
   optionalClass,
 } from "@/components/ui/field";
+import { ImageZoom } from "@/components/service/ImageZoom";
 import { ServiceThumb } from "@/components/service/ServiceThumb";
 import { POLICY } from "@/domain/policy";
 import { imageError, imgSize, readAsURL } from "@/domain/validation";
@@ -38,6 +41,9 @@ export function ImageFields({
   setF: Dispatch<SetStateAction<FormState>>;
 }) {
   const [imgErr, setImgErr] = useState<ImgErr>({});
+  const [zoom, setZoom] = useState<number | null>(null);
+  const pvBoxes = useRef<(HTMLDivElement | null)[]>([]);
+  const pvOrigin = useCallback((k: number) => pvBoxes.current[k] ?? null, []);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setF((x) => ({ ...x, [k]: v }));
 
@@ -223,13 +229,25 @@ export function ImageFields({
         </div>
         <div className="flex flex-wrap gap-2">
           {f.pv.map((u, i) => (
-            <div key={i} className={pvClass(f.pvRatio)}>
+            <div
+              key={i}
+              ref={(el) => {
+                pvBoxes.current[i] = el;
+              }}
+              className={pvClass(f.pvRatio)}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={u}
                 alt={`미리보기 ${i + 1}`}
                 className="block size-full"
                 style={{ objectFit: f.pvFit === "cover" ? "cover" : "contain" }}
+              />
+              <button
+                type="button"
+                className="absolute inset-0 cursor-zoom-in"
+                aria-label={`미리보기 ${i + 1} 크게 보기`}
+                onClick={() => setZoom(i)}
               />
               <button
                 type="button"
@@ -269,6 +287,17 @@ export function ImageFields({
           </p>
         )}
       </div>
+      {zoom !== null && (
+        <ImageZoom
+          srcs={f.pv}
+          index={zoom}
+          ratio={f.pvRatio}
+          fit={f.pvFit}
+          label="미리보기 이미지 확대"
+          getOrigin={pvOrigin}
+          onClose={() => setZoom(null)}
+        />
+      )}
     </div>
   );
 }
