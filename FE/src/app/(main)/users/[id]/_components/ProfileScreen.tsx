@@ -5,7 +5,6 @@ import { Restricted } from "@/components/layout/Restricted";
 import { SectionHead } from "@/components/layout/SectionHead";
 import { ServiceList } from "@/components/service/ServiceList";
 import { Avatar } from "@/components/ui/Avatar";
-import { buttonClass } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -40,18 +39,27 @@ export function ProfileScreen({ id }: { id: string }) {
               <small className="font-mono text-14 font-medium text-muted">
                 @{u.handle}
               </small>
+              {isMe && (
+                <RouteLink
+                  to="mypage"
+                  params={{ tab: "settings" }}
+                  className="text-13 font-medium text-muted underline underline-offset-[3px] hover:text-ink"
+                >
+                  프로필 수정
+                </RouteLink>
+              )}
             </h1>
             {u.bio && <p className="m-0 text-text-2">{u.bio}</p>}
             <div className="flex flex-wrap gap-5 text-14 text-muted">
               <span>
-                <b className="mr-0.5 font-extrabold text-ink">{list.length}</b>
                 등록한 서비스
+                <b className="ml-0.5 font-extrabold text-ink">{list.length}</b>
               </span>
               <span>
-                <b className="mr-0.5 font-extrabold text-ink">
+                받은 좋아요
+                <b className="ml-0.5 font-extrabold text-ink">
                   {fmtNum(likes)}
                 </b>
-                받은 좋아요
               </span>
             </div>
             {u.links.length > 0 && (
@@ -79,15 +87,7 @@ export function ProfileScreen({ id }: { id: string }) {
             )}
           </div>
           <div className="flex gap-2">
-            {isMe ? (
-              <RouteLink
-                to="mypage"
-                params={{ tab: "settings" }}
-                className={buttonClass({ variant: "ghost" })}
-              >
-                프로필 수정
-              </RouteLink>
-            ) : reported ? (
+            {isMe ? null : reported ? (
               <MiniButton disabled>
                 <Icon name="check" size={13} />
                 신고 완료

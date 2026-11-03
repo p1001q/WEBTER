@@ -7,7 +7,7 @@ export function IconButton({
   className,
   ...rest
 }: {
-  /** square: 테두리가 있는 둥근 사각형(오픈소스 진입 버튼 등) */
+  /** square: 테두리가 있는 둥근 사각형 */
   shape?: "round" | "square";
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (

@@ -6,8 +6,6 @@ import type { Fault } from "./faults";
 
 export interface TweakValues {
   session: "guest" | "member" | "signup";
-  /** 확장 기능 표시(ScopeBadge) 노출 여부 */
-  scope: boolean;
   cols: 3 | 4;
   sample: "default" | "none" | "stopped";
   viewport: "desktop" | "mobile";
@@ -21,7 +19,6 @@ export interface TweakValues {
 
 export const DEFAULT_TWEAKS: TweakValues = {
   session: "guest",
-  scope: true,
   cols: 4,
   sample: "default",
   viewport: "desktop",
@@ -43,7 +40,6 @@ function sanitize(raw: Partial<Record<keyof TweakValues, unknown>>) {
       : DEFAULT_TWEAKS[k];
   return {
     session: pick("session", ["guest", "member", "signup"]),
-    scope: pick("scope", [true, false]),
     cols: pick("cols", [3, 4]),
     sample: pick("sample", ["default", "none", "stopped"]),
     viewport: pick("viewport", ["desktop", "mobile"]),

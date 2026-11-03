@@ -5,8 +5,10 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
-import { ScopeBadge } from "@/components/ui/ScopeBadge";
+import { cx } from "@/lib/cx";
+import { usePressHold } from "@/lib/usePressHold";
 import { useWt } from "@/providers/context";
+import { NotificationMenu } from "@/components/notification/NotificationMenu";
 import { Wordmark } from "./Wordmark";
 
 const popItem =
@@ -32,6 +34,21 @@ export function Header() {
       document.removeEventListener("keydown", k);
     };
   }, []);
+  // 닫을 때는 위로 살짝 사라지는 모션이 끝난 뒤에 화면에서 뺀다. 모션 줄이기 설정에서는 바로 뺀다
+  const [leaving, setLeaving] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    setLeaving(
+      !open && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+  }
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => setLeaving(false), 190);
+    return () => clearTimeout(t);
+  }, [leaving]);
+  const press = usePressHold(340);
   const me = wt.me;
   const register = () =>
     wt.requireLogin(
@@ -79,9 +96,14 @@ export function Header() {
           >
             <Icon name="search" size={21} />
           </IconButton>
+          {me && <NotificationMenu />}
           <Button
             variant="outline"
-            className="@max-[560px]/app:hidden"
+            className={cx(
+              "transition-[color,background-color,scale]! duration-[380ms]! ease-[cubic-bezier(0.22,1,0.36,1)]! @max-[560px]/app:hidden",
+              press.pressed && "scale-[.88]! bg-black! text-white!",
+            )}
+            {...press.bind}
             onClick={register}
           >
             <Icon name="plus" size={16} stroke={2.2} />
@@ -106,10 +128,16 @@ export function Header() {
                 <Avatar user={me} size={34} />
                 <Icon name="chevDown" size={16} />
               </button>
-              {open && (
+              {(open || leaving) && (
                 <div
-                  className="absolute top-[calc(100%+8px)] right-0 z-40 min-w-[248px] animate-pop-sm rounded-md border border-border bg-card p-1.5 shadow-pop"
+                  className={cx(
+                    "absolute top-[calc(100%+8px)] right-0 z-40 min-w-[248px] rounded-md border border-border bg-card p-1.5 shadow-pop",
+                    leaving
+                      ? "pointer-events-none animate-fold"
+                      : "animate-unfold",
+                  )}
                   role="menu"
+                  inert={leaving}
                 >
                   <div className="flex items-center gap-3 px-3 pt-3 pb-3.5">
                     <Avatar user={me} size={44} />
@@ -151,20 +179,6 @@ export function Header() {
               로그인
             </Button>
           )}
-          <span className="inline-flex items-center gap-1">
-            <IconButton
-              shape="square"
-              className="@max-[385px]/app:size-9"
-              aria-label="오픈소스 영역"
-              title="오픈소스 영역"
-              onClick={() => wt.go("opensource")}
-            >
-              <Icon name="code" size={18} stroke={1.9} />
-            </IconButton>
-            <span className="inline-flex @max-[385px]/app:hidden">
-              <ScopeBadge />
-            </span>
-          </span>
         </div>
       </div>
     </header>

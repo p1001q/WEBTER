@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { ViewTransition } from "react";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { cx } from "@/lib/cx";
 import { routeNameOf, type RouteName } from "@/lib/routes";
@@ -18,7 +19,7 @@ export function MainNav() {
   return (
     <div className="page-wrap">
       <nav
-        className="flex h-nav items-center gap-1 border-b border-border @max-[560px]/app:h-[46px] @max-[560px]/app:gap-0"
+        className="flex h-nav w-fit items-center border-b border-border @max-[560px]/app:h-[46px]"
         aria-label="메인 메뉴"
       >
         {NAV.map(([id, label]) => {
@@ -29,13 +30,15 @@ export function MainNav() {
               to={id}
               aria-current={active ? "page" : undefined}
               className={cx(
-                "relative flex h-nav flex-col justify-center px-3.5 text-[17px] hover:text-ink @max-[560px]/app:h-[46px] @max-[560px]/app:px-2.5 @max-[560px]/app:text-15",
+                "relative flex h-nav w-[92px] flex-col items-center justify-center text-[17px] hover:text-ink @max-[560px]/app:h-[46px] @max-[560px]/app:w-[74px] @max-[560px]/app:text-15",
                 active ? "font-bold text-ink" : "font-semibold text-muted",
               )}
             >
               {label}
               {active && (
-                <span className="absolute inset-x-3.5 -bottom-px h-0.5 rounded-[2px] bg-ink @max-[560px]/app:inset-x-2.5" />
+                <ViewTransition name="main-nav-underline" share="nav-underline">
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 bg-ink" />
+                </ViewTransition>
               )}
             </RouteLink>
           );

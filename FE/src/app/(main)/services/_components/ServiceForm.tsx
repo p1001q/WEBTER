@@ -28,6 +28,7 @@ import { CATEGORIES, OPT, TYPE_SHORT } from "@/domain/options";
 import { DISPLAY, POLICY } from "@/domain/policy";
 import { githubCheck, urlFormat } from "@/domain/validation";
 import { cx } from "@/lib/cx";
+import { scrollFieldIntoFocus } from "@/lib/focusScroll";
 import { useWt } from "@/providers/context";
 import { ListHead } from "../../_components/ListHead";
 import {
@@ -303,7 +304,11 @@ export function ServiceForm({
           </div>
         )}
         <div className={formLayoutClass}>
-          <div className={formClass}>
+          <div
+            className={formClass}
+            onFocus={(e) => scrollFieldIntoFocus(e.target)}
+            onClick={(e) => scrollFieldIntoFocus(e.target)}
+          >
             <section className={sectionClass} aria-labelledby={P + "fs-basic"}>
               <h2 className={sectionTitleClass} id={P + "fs-basic"}>
                 기본 정보 <small>필수</small>
@@ -641,56 +646,61 @@ export function ServiceForm({
               </div>
             </section>
 
-            <section
-              className={sectionClass}
-              aria-labelledby={P + "fs-rv"}
-              data-component="review-settings"
-            >
-              <h2 className={sectionTitleClass} id={P + "fs-rv"}>
-                리뷰 설정
-              </h2>
-              <Switch
-                on={f.allowGuest}
-                onChange={(v) => set("allowGuest", v)}
-                label="비회원 리뷰 허용"
-                desc="로그인하지 않은 사람도 평가 없이(미설정) 리뷰를 남길 수 있어요."
-              />
-              <Switch
-                on={f.allowAnon}
-                onChange={(v) => set("allowAnon", v)}
-                label="회원 익명 리뷰 허용"
-                desc="회원이 리뷰마다 익명으로 남길지 고를 수 있어요."
-              />
-              {(f.allowGuest || f.allowAnon) && (
-                <Note tone="butter">
-                  <Icon name="alert" size={16} />
-                  익명·비회원 리뷰를 허용하면 스팸, 비방, 욕설이 달릴 수 있어요.
-                  문제가 되는 리뷰는 신고할 수 있어요.
-                </Note>
-              )}
-            </section>
-
-            <section
-              className={sectionClass}
-              aria-labelledby={P + "fs-cm"}
-              data-component="comment-settings"
-            >
-              <h2 className={sectionTitleClass} id={P + "fs-cm"}>
-                댓글 설정
-              </h2>
-              <Switch
-                on={f.allowAnonComment}
-                onChange={(v) => set("allowAnonComment", v)}
-                label="회원 익명 댓글 허용"
-                desc="회원이 댓글마다 익명으로 남길지 고를 수 있어요."
-              />
-              {f.allowAnonComment && (
-                <Note tone="butter">
-                  <Icon name="alert" size={16} />
-                  익명 댓글을 허용하면 스팸, 비방, 욕설이 달릴 수 있어요. 문제가
-                  되는 댓글은 신고할 수 있어요.
-                </Note>
-              )}
+            <section className={sectionClass}>
+              <div className="grid grid-cols-2 items-start gap-10 @max-[860px]/app:grid-cols-1">
+                <div
+                  className="flex flex-col gap-[22px]"
+                  role="group"
+                  aria-labelledby={P + "fs-cm"}
+                  data-component="comment-settings"
+                >
+                  <h2 className={sectionTitleClass} id={P + "fs-cm"}>
+                    댓글 설정
+                  </h2>
+                  <Switch
+                    on={f.allowAnonComment}
+                    onChange={(v) => set("allowAnonComment", v)}
+                    label="회원 익명 댓글 허용"
+                    desc="회원이 댓글마다 익명으로 남길지 고를 수 있어요."
+                  />
+                  {f.allowAnonComment && (
+                    <Note tone="butter">
+                      <Icon name="alert" size={16} />
+                      익명 댓글을 허용하면 스팸, 비방, 욕설이 달릴 수 있어요.
+                      문제가 되는 댓글은 신고할 수 있어요.
+                    </Note>
+                  )}
+                </div>
+                <div
+                  className="flex flex-col gap-[22px]"
+                  role="group"
+                  aria-labelledby={P + "fs-rv"}
+                  data-component="review-settings"
+                >
+                  <h2 className={sectionTitleClass} id={P + "fs-rv"}>
+                    리뷰 설정
+                  </h2>
+                  <Switch
+                    on={f.allowAnon}
+                    onChange={(v) => set("allowAnon", v)}
+                    label="회원 익명 리뷰 허용"
+                    desc="회원이 리뷰마다 익명으로 남길지 고를 수 있어요."
+                  />
+                  <Switch
+                    on={f.allowGuest}
+                    onChange={(v) => set("allowGuest", v)}
+                    label="비회원 리뷰 허용"
+                    desc="로그인하지 않은 사람도 평가 없이(미설정) 리뷰를 남길 수 있어요."
+                  />
+                  {(f.allowGuest || f.allowAnon) && (
+                    <Note tone="butter">
+                      <Icon name="alert" size={16} />
+                      익명·비회원 리뷰를 허용하면 스팸, 비방, 욕설이 달릴 수
+                      있어요. 문제가 되는 리뷰는 신고할 수 있어요.
+                    </Note>
+                  )}
+                </div>
+              </div>
             </section>
 
             <label

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import type { ModalState } from "@/providers/types";
 import { useWt } from "@/providers/context";
 import { CommentEditModal } from "./CommentEditModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
@@ -7,6 +9,7 @@ import { Lightbox } from "@/components/service/Lightbox";
 import { LoginPromptModal } from "./LoginPromptModal";
 import { ReportModal } from "./ReportModal";
 import { ReviewEditModal } from "./ReviewEditModal";
+import { ReviewRateConfirmModal } from "./ReviewRateConfirmModal";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 import { StopReasonModal } from "./StopReasonModal";
 import { VersionModal } from "./VersionModal";
@@ -17,8 +20,38 @@ import { WithdrawModal } from "./WithdrawModal";
  */
 export function ModalHost() {
   const wt = useWt();
-  const m = wt.modal;
-  if (!m) return null;
+  // 닫힐 때는 사라지는 모션이 끝난 뒤에 화면에서 뺀다(모션 줄이기 설정에서는 바로 뺀다)
+  const [last, setLast] = useState<ModalState | null>(wt.modal);
+  const [leaving, setLeaving] = useState(false);
+  if (wt.modal && wt.modal !== last) setLast(wt.modal);
+  const [wasOpen, setWasOpen] = useState(!!wt.modal);
+  if (wasOpen !== !!wt.modal) {
+    setWasOpen(!!wt.modal);
+    setLeaving(
+      !wt.modal &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+  }
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => setLeaving(false), 160);
+    return () => clearTimeout(t);
+  }, [leaving]);
+  const shown = wt.modal ?? (leaving ? last : null);
+  if (!shown) return null;
+  return (
+    <div
+      className="contents"
+      data-modal-leaving={wt.modal ? undefined : ""}
+      inert={!wt.modal}
+    >
+      <ModalBody m={shown} />
+    </div>
+  );
+}
+
+function ModalBody({ m }: { m: ModalState }) {
+  const wt = useWt();
   // 요청이 끝난 뒤에 불려도 그 사이 열린 다른 모달은 닫지 않는다
   const close = () => wt.setModal((cur) => (cur === m ? null : cur));
   const s = "sid" in m ? wt.svc(m.sid) : undefined;
@@ -72,7 +105,7 @@ export function ModalHost() {
               use: "stop",
               stopReason: r,
             });
-            if (ok) wt.toast("사용 불가능으로 바꿨어요.");
+            if (ok) wt.toast("운영 중지로 바꿨어요.");
             return ok;
           }}
           onClose={close}
@@ -81,6 +114,15 @@ export function ModalHost() {
     case "review":
       return s ? (
         <ReviewEditModal s={s} review={m.review} onClose={close} />
+      ) : null;
+    case "confirm-review-edit":
+      return s ? (
+        <ReviewRateConfirmModal
+          s={s}
+          review={m.review}
+          rate={m.rate}
+          onClose={close}
+        />
       ) : null;
     case "versions":
       return s ? <VersionModal s={s} onClose={close} /> : null;

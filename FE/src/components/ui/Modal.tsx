@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
 
@@ -21,6 +22,7 @@ export function Modal({
   labelledBy,
   locked = false,
 }: ModalProps) {
+  useScrollLock();
   const ref = useRef<HTMLDivElement>(null);
   // Esc 핸들러는 열릴 때 한 번만 걸리므로 최신 값은 ref 로 읽는다
   const lockedRef = useRef(locked);

@@ -5,7 +5,6 @@ export type RouteName =
   | "popular"
   | "latest"
   | "search"
-  | "opensource"
   | "detail"
   | "profile"
   | "login"
@@ -15,6 +14,7 @@ export type RouteName =
   | "registered"
   | "manage"
   | "mypage"
+  | "notifications"
   | "terms"
   | "privacy";
 
@@ -27,7 +27,6 @@ export const ROUTE_PATHS: [RouteName, string][] = [
   ["popular", "/popular"],
   ["latest", "/latest"],
   ["search", "/search"],
-  ["opensource", "/opensource"],
   ["register", "/services/new"],
   ["edit", "/services/:id/edit"],
   ["registered", "/services/:id/registered"],
@@ -37,6 +36,7 @@ export const ROUTE_PATHS: [RouteName, string][] = [
   ["onboarding", "/onboarding"],
   ["manage", "/manage"],
   ["mypage", "/mypage"],
+  ["notifications", "/notifications"],
   ["terms", "/terms"],
   ["privacy", "/privacy"],
 ];
@@ -48,6 +48,7 @@ export const AUTH_ONLY: ReadonlySet<RouteName> = new Set([
   "registered",
   "manage",
   "mypage",
+  "notifications",
 ]);
 
 const compiled = ROUTE_PATHS.map(([name, pattern]) => ({

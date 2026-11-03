@@ -77,12 +77,10 @@ export function DevFrame({
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.twCols = String(t.cols);
-    root.dataset.twScope = t.scope ? "show" : "hide";
     return () => {
       delete root.dataset.twCols;
-      delete root.dataset.twScope;
     };
-  }, [t.cols, t.scope]);
+  }, [t.cols]);
 
   const go = (path: string, mobile: boolean) => {
     if (mobile) setFrame((f) => ({ path, n: f.n + 1 }));

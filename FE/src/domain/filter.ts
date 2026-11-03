@@ -43,7 +43,7 @@ export function applyFilter(
   });
 }
 export const filterCount = (f: FilterState) =>
-  (["cats", "type", "devices", "price", "owner", "langs"] as const).reduce(
+  (["type", "devices", "price", "owner", "langs"] as const).reduce(
     (a, k) => a + f[k].length,
     0,
   ) + (f.use.length === 1 && f.use[0] === "live" ? 0 : 1);

@@ -1,24 +1,51 @@
 "use client";
 
-import type { Service } from "@/api/types";
+import type { Grade, Service } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
 import { helpClass, labelClass } from "@/components/ui/field";
 import { Icon } from "@/components/ui/Icon";
 import { Note } from "@/components/ui/Note";
-import { GRADE_LABEL, ratioText } from "@/domain/review";
+import { GRADE_LABEL } from "@/domain/review";
 import { POLICY } from "@/domain/policy";
+import { cx } from "@/lib/cx";
+import { useTween } from "@/lib/useTween";
 import { useWt } from "@/providers/context";
+import { RatingVote } from "./RatingVote";
+import { ReviewListSkeleton } from "./ReviewListSkeleton";
 import { RatioBar } from "./RatioBar";
 import { ReviewForm } from "./ReviewForm";
 import { ReviewItem } from "./ReviewItem";
 
+/** 평가 문구 색: 긍정은 파랑, 애매하면 노랑, 부정은 빨강 */
+const GRADE_TEXT: Record<Grade, string> = {
+  vpos: "text-navy",
+  pos: "text-navy",
+  mpos: "text-navy",
+  mixed: "text-butter-ink",
+  mneg: "text-wine",
+  neg: "text-wine",
+  vneg: "text-wine",
+  few: "text-ink",
+};
+
 const linkClass = "font-bold text-navy underline underline-offset-[3px]";
 
 /** 서비스 상세의 리뷰 탭: 평가 요약, 작성 폼(권한별), 리뷰 목록 */
-export function ReviewSection({ s }: { s: Service }) {
+export function ReviewSection({
+  s,
+  loading = false,
+}: {
+  s: Service;
+  /** 리뷰 목록을 불러오는 중이면 자리 표시를 보인다(API 연동 때 연결) */
+  loading?: boolean;
+}) {
   const wt = useWt();
   const agg = wt.agg(s);
+  const ratioShown = useTween(agg.ratio ?? 0, 650);
+  const upShown = useTween(agg.up, 600);
+  const downShown = useTween(agg.down, 600);
+  const noneShown = useTween(agg.none, 600);
   const list = wt.reviews.filter((r) => r.sid === s.id);
   const isOwner = !!wt.me && s.owner === wt.me.id;
   const myReview =
@@ -46,6 +73,8 @@ export function ReviewSection({ s }: { s: Service }) {
         <ReviewForm
           s={s}
           role={isOwner ? "maker" : "member"}
+          syncRate={wt.myVote(s.id)}
+          onRate={(r) => wt.setVote(s.id, r === "none" ? null : r)}
           onSubmit={(v) => wt.addReview(s, isOwner ? "maker" : "member", v)}
         />
       </div>
@@ -103,10 +132,16 @@ export function ReviewSection({ s }: { s: Service }) {
     );
   return (
     <div data-component="review-section">
-      <div className="grid grid-cols-[240px_1fr] items-center gap-8 border-b border-border py-6 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-4">
+      <div className="grid grid-cols-[240px_minmax(0,300px)_1fr] items-center gap-8 border-b border-border py-6 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-4">
         <div className="flex flex-col gap-2">
           <span className={helpClass}>평가</span>
-          <span className="text-28 font-extrabold tracking-[-0.02em]">
+          <span
+            key={agg.grade}
+            className={cx(
+              "animate-fade text-28 font-extrabold tracking-[-0.02em] transition-colors duration-300",
+              GRADE_TEXT[agg.grade],
+            )}
+          >
             {GRADE_LABEL[agg.grade]}
           </span>
           <span className={helpClass}>
@@ -116,31 +151,34 @@ export function ReviewSection({ s }: { s: Service }) {
           </span>
         </div>
         <div className="flex flex-col gap-1.5">
-          <div className="flex justify-between text-13">
-            <b>추천 비율 {ratioText(agg.ratio)}</b>
-            <span className={helpClass}>
-              미설정·제작자 리뷰는 집계에서 제외
-            </span>
+          <div className="text-13">
+            <b>
+              추천 비율 {agg.ratio == null ? "–" : `${Math.round(ratioShown)}%`}
+            </b>
           </div>
           <RatioBar up={agg.up} down={agg.down} />
           <div className="flex flex-wrap gap-4 text-13 text-text-3 [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1">
             <span>
               <Icon name="thumbUp" size={14} />
-              추천 {agg.up}
+              추천 {Math.round(upShown)}
             </span>
             <span>
               <Icon name="thumbDown" size={14} />
-              비추천 {agg.down}
+              비추천 {Math.round(downShown)}
             </span>
             <span>
               <Icon name="minus" size={14} />
-              미설정 {agg.none}
+              미설정 {Math.round(noneShown)}
             </span>
           </div>
+          <span className={helpClass}>미설정·제작자 리뷰는 집계에서 제외</span>
         </div>
+        <RatingVote s={s} />
       </div>
       {form}
-      {list.length || agg.total ? (
+      {loading ? (
+        <ReviewListSkeleton />
+      ) : list.length || agg.total ? (
         <>
           <div className={`${helpClass} py-2`}>
             전체 리뷰 {agg.total}개 중 최근 {list.length}개를 표시하고 있어요.

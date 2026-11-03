@@ -1,4 +1,4 @@
-/** 목록 행(서비스 행·오픈소스 행)이 같이 쓰는 클래스 */
+/** 목록 행이 쓰는 클래스 */
 export const rowsClass =
   "flex flex-col overflow-hidden rounded-md border border-border bg-card";
 export const rowClass =

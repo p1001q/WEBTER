@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type SetStateAction } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip, chipClass } from "@/components/ui/Chip";
 import {
@@ -8,7 +8,7 @@ import {
   type FilterKey,
   type FilterState,
 } from "@/domain/filter";
-import { CATEGORIES, OPT, TYPE_SHORT } from "@/domain/options";
+import { OPT, TYPE_SHORT } from "@/domain/options";
 
 const rowClass =
   "grid grid-cols-[96px_1fr] items-center gap-3 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-1.5";
@@ -21,14 +21,16 @@ export function FilterPanel({
   setF,
 }: {
   f: FilterState;
-  setF: (f: FilterState) => void;
+  setF: (next: SetStateAction<FilterState>) => void;
 }) {
   const P = useId();
   const tog = (k: FilterKey, v: string) =>
-    setF({
-      ...f,
-      [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v],
-    });
+    setF((prev) => ({
+      ...prev,
+      [k]: prev[k].includes(v)
+        ? prev[k].filter((x) => x !== v)
+        : [...prev[k], v],
+    }));
   const row = (
     k: FilterKey,
     label: string,
@@ -62,11 +64,6 @@ export function FilterPanel({
       data-component="filter-panel"
     >
       {row(
-        "cats",
-        "서비스 용도",
-        CATEGORIES.map((c) => [c.id, c.label] as const),
-      )}
-      {row(
         "type",
         "프로젝트 유형",
         OPT.type.map(([v]) => [v, TYPE_SHORT[v]] as const),
@@ -86,7 +83,7 @@ export function FilterPanel({
         </div>
       </div>
       {row("langs", "지원 언어", OPT.langs)}
-      {row("use", "사용 상태", OPT.use)}
+      {row("use", "운영 상태", OPT.use)}
       <div className="flex items-center gap-3 border-t border-light pt-3 text-12 text-muted">
         같은 항목 안에서는 하나라도 맞으면, 다른 항목끼리는 모두 맞는 서비스를
         보여 줘요.
@@ -94,9 +91,11 @@ export function FilterPanel({
           variant="text"
           size="sm"
           className="ml-auto"
-          onClick={() => setF({ ...FILTER_DEFAULT })}
+          onClick={() =>
+            setF((prev) => ({ ...FILTER_DEFAULT, cats: prev.cats }))
+          }
         >
-          초기화
+          용도 제외 초기화
         </Button>
       </div>
     </div>

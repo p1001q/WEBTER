@@ -11,7 +11,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { FieldMessage } from "@/components/ui/FieldMessage";
 import { MakerBadge } from "@/components/ui/MakerBadge";
 import { Modal } from "@/components/ui/Modal";
-import { ScopeBadge } from "@/components/ui/ScopeBadge";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Switch } from "@/components/ui/Switch";
 import { Tabs } from "@/components/ui/Tabs";
@@ -237,7 +236,6 @@ export function UiGallery() {
             <Avatar user={SEED_USERS.u_bori} size={32} />
             <Avatar user={SEED_USERS.u_mint} size={48} />
             <Avatar user={SEED_USERS.u_pixel} size={64} />
-            <ScopeBadge />
             <MakerBadge />
           </div>
         </Section>

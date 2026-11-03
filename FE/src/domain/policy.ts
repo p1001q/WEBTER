@@ -17,8 +17,10 @@ export const POLICY = {
   reviewMinForGrade: 5, // 정책서 6.3 — 확정
   gradeBigN: 20, // 정책서 6.3 20개 기준 — 제안값
   scoreWeights: { click: 1, like: 3, save: 5 }, // 정책서 5.5 — 가중치 제안값
-  osWeights: { like: 3, save: 5 }, // 정책서 4.10 — 제안값
   idMax: 30, // 정책서 2.1 — 확정(참고 규칙), 세부 미정
+  idMin: 3,
+  handleChangeMax: 2, // 인스타그램 방식 따라 하기 — 제안값: 14일 안에 2번까지 바꿀 수 있다
+  handleChangeDays: 14,
   nickMin: 2,
   nickMax: 20, // 정책서 2.1 길이 — 제안값
   replyPerReview: 1, // 정책서 6.2 — 제안값
@@ -31,5 +33,5 @@ export const DISPLAY = {
   defaultCols: 4,
   demoToday: "2026-10-22",
   urlCheckDelay: 700, // 목업 접속 검사 지연(ms) — 결정적
-  stopCanRateNew: false, // 사용 불가능 서비스의 신규 리뷰 평가: 미설정만
+  stopCanRateNew: false, // 운영 중지 서비스의 신규 리뷰 평가: 미설정만
 } as const;

@@ -10,6 +10,7 @@ import { RouteLink } from "@/components/ui/RouteLink";
 import { commentAuthorName } from "@/domain/comment";
 import { fmtDate } from "@/domain/format";
 import { cx } from "@/lib/cx";
+import { useRevealWhenFresh } from "@/lib/revealFresh";
 import { useWt } from "@/providers/context";
 import { CommentForm } from "./CommentForm";
 
@@ -28,6 +29,7 @@ export function CommentItem({
   replies?: Comment[];
 }) {
   const wt = useWt();
+  const revealRef = useRevealWhenFresh(c.id, c.fresh);
   const [replying, setReplying] = useState(false);
   const isReply = !!c.parent;
   const mine = !!wt.me && !c.deleted && c.a.uid === wt.me.id;
@@ -37,6 +39,7 @@ export function CommentItem({
   const reported = wt.reported.has("comment:" + c.id);
   return (
     <div
+      ref={revealRef}
       id={"comment-" + c.id}
       className={cx(
         "flex flex-col gap-2",
@@ -77,7 +80,7 @@ export function CommentItem({
             {isMaker && <MakerBadge />}
             <span className="text-12 text-muted">
               {fmtDate(c.date)}
-              {c.edited && " · 수정됨"}
+              {c.edited && " (수정됨)"}
             </span>
             <span className="ml-auto flex gap-0.5">
               {mine && (

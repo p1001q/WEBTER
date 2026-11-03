@@ -17,7 +17,7 @@ const JUMPS: [string, string, boolean?][] = [
   ],
   ["07 상세", "/services/s01"],
   ["07 상세 · 댓글 탭", "/services/s01?tab=comments"],
-  ["07 상세 · 사용 불가능", "/services/s16"],
+  ["07 상세 · 운영 중지", "/services/s16"],
   ["07 상세 · 본인 서비스", "/services/s10", true],
   ["07 상세 · 없는 서비스", "/services/none"],
   ["08 로그인", "/login"],
@@ -27,10 +27,10 @@ const JUMPS: [string, string, boolean?][] = [
   ["11 내 서비스 관리", "/manage", true],
   ["12 수정", "/services/s10/edit", true],
   ["13 마이페이지", "/mypage", true],
-  ["13 마이페이지 · 내가 쓴 댓글", "/mypage?tab=comments", true],
+  ["13 마이페이지 · 리뷰·댓글 · 댓글", "/mypage?tab=comments", true],
+  ["13 알림", "/notifications", true],
   ["14 제작자 프로필", "/users/u_bori"],
   ["14 프로필 · 없는 사용자", "/users/none"],
-  ["15 오픈소스", "/opensource"],
   ["16 이용약관", "/terms"],
   ["17 개인정보", "/privacy"],
   ["오류 · 없는 주소(404)", "/no-such-page"],
@@ -156,14 +156,7 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
         seg("sample", [
           ["default", "기본 4개"],
           ["none", "없음"],
-          ["stopped", "전부 사용 불가"],
-        ]),
-      )}
-      {row(
-        "확장 라벨",
-        seg("scope", [
-          [true, "표시"],
-          [false, "숨김"],
+          ["stopped", "전부 운영 중지"],
         ]),
       )}
       {row(

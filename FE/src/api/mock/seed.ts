@@ -1,11 +1,4 @@
-import type {
-  Comment,
-  OpenSourceItem,
-  Review,
-  ReviewCounts,
-  Service,
-  User,
-} from "../types";
+import type { Comment, Review, ReviewCounts, Service, User } from "../types";
 
 /* WEBTER — 목업 시드 데이터. 표시되는 서비스·사용자·수치는 모두 가상의 샘플이며 URL 은 예약 도메인(example.com)이다. */
 
@@ -802,67 +795,6 @@ export const SEED_REVIEWS: Review[] = [
     rate: "none",
     date: "2026-10-05",
     text: "주간 보기가 깔끔해요. 다크 모드가 있으면 좋겠어요.",
-  },
-];
-
-/* 오픈소스(확장 시연) — 웹 서비스와 분리된 별도 샘플 */
-export const SEED_OPENSOURCE: OpenSourceItem[] = [
-  {
-    id: "o1",
-    name: "hangul-romaja",
-    tagline: "한글을 로마자 표기법에 맞게 바꿔 주는 가벼운 라이브러리",
-    owner: "u_jun",
-    created: "2026-10-18",
-    cats: ["dev"],
-    github: "https://github.com/junlog-demo/hangul-romaja",
-    likes: 220,
-    saves: 340,
-    sc: [96, 210, 640],
-    thumb: { kind: "code", bg: "#DCE1E8", a: "#35445C", b: "#242424" },
-  },
-  {
-    id: "o2",
-    name: "tiny-toast",
-    tagline: "의존성 없는 2KB 토스트 알림 컴포넌트",
-    owner: "u_haneul",
-    created: "2026-09-30",
-    cats: ["dev"],
-    github: "https://github.com/haneul-demo/tiny-toast",
-    likes: 410,
-    saves: 280,
-    sc: [40, 260, 900],
-    thumb: { kind: "api", bg: "#1F2633", a: "#F2DB94", b: "#9FB3C8" },
-  },
-  {
-    id: "o3",
-    name: "palette-cli",
-    tagline: "터미널에서 색 조합을 만들고 CSS 변수로 내보내는 도구",
-    owner: "u_pixel",
-    created: "2026-08-14",
-    cats: ["design", "dev"],
-    github: "https://github.com/pixel-cat-demo/palette-cli",
-    likes: 380,
-    saves: 190,
-    sc: [12, 90, 520],
-    thumb: {
-      kind: "palette",
-      bg: "#F3EADF",
-      a: "#242424",
-      colors: ["#2F3E46", "#6E8B74", "#F3E3C3", "#E8B66B", "#C9704A"],
-    },
-  },
-  {
-    id: "o4",
-    name: "study-deck",
-    tagline: "마크다운으로 암기 카드를 만드는 오픈소스 템플릿",
-    owner: "u_mint",
-    created: "2026-10-11",
-    cats: ["learn"],
-    github: "https://github.com/mint-choco-demo/study-deck",
-    likes: 130,
-    saves: 260,
-    sc: [70, 180, 300],
-    thumb: { kind: "flash", bg: "#E6E9DA", a: "#35445C", b: "#F2DB94" },
   },
 ];
 

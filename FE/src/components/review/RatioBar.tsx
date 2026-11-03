@@ -9,7 +9,10 @@ export function RatioBar({ up, down }: { up: number; down: number }) {
       aria-label={n ? `추천 ${Math.round(r)}%` : "평가 없음"}
     >
       {n > 0 && (
-        <i className="block h-full bg-navy" style={{ width: r + "%" }} />
+        <i
+          className="block h-full bg-navy transition-[width] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ width: r + "%" }}
+        />
       )}
     </div>
   );

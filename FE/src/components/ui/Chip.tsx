@@ -11,7 +11,7 @@ interface ChipStyle {
 /** 칩 모양의 클래스. 눌러서 바꾸지 않는 표시용은 `<span className={chipClass(...)}>` 로 쓴다 */
 export function chipClass({ on, size = "md" }: ChipStyle = {}) {
   return cx(
-    "inline-flex items-center gap-1 rounded-pill border text-13 font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-45",
+    "inline-flex items-center gap-1 rounded-pill border text-13 font-semibold whitespace-nowrap transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45",
     size === "sm" ? "h-ctl-sm px-3" : "h-8 px-3.5",
     on
       ? "border-navy bg-navy text-white"

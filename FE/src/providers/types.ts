@@ -3,7 +3,8 @@ import type {
   AiSearchResult,
   Comment,
   CommentInput,
-  OpenSourceItem,
+  Notification,
+  Rate,
   Review,
   ReviewInput,
   ReviewRole,
@@ -13,6 +14,7 @@ import type {
   User,
 } from "@/api/types";
 import type { ToastContent } from "@/components/ui/Toast";
+import type { FilterState } from "@/domain/filter";
 import type { ReviewAgg } from "@/domain/review";
 import type { RouteName, RouteParams } from "@/lib/routes";
 
@@ -35,6 +37,8 @@ export type ModalState =
   | { type: "delete-comment"; cid: string }
   | { type: "stop"; sid: string }
   | { type: "review"; sid: string; review: Review }
+  /** 리뷰가 있는 서비스에서 추천·비추천을 누르면, 리뷰를 수정할지 묻는다 */
+  | { type: "confirm-review-edit"; sid: string; review: Review; rate: Rate }
   | { type: "versions"; sid: string }
   | { type: "lightbox"; sid: string; index: number }
   | { type: "withdraw" }
@@ -50,7 +54,12 @@ export interface WtStore {
   publicServices: Service[];
   reviews: Review[];
   comments: Comment[];
-  opensource: OpenSourceItem[];
+  /** 내 알림(최신순은 화면에서 정렬한다). 목업 데이터이며 이 탭에서만 바뀐다 */
+  notifications: Notification[];
+  readNotification: (id: string) => void;
+  readAllNotifications: () => void;
+  deleteNotification: (id: string) => void;
+  clearNotifications: () => void;
   likes: Set<string>;
   saves: Set<string>;
   reported: Set<string>;
@@ -61,6 +70,9 @@ export interface WtStore {
 
   view: ViewMode;
   setView: (v: ViewMode) => void;
+  /** 트렌딩·인기·최신이 함께 쓰는 목록 필터 */
+  listFilter: FilterState;
+  setListFilter: Dispatch<SetStateAction<FilterState>>;
   /** 화면 너비 560px 이하. 서버 렌더링과 첫 hydration 에서는 false */
   isMobile: boolean;
   side: boolean;
@@ -87,6 +99,14 @@ export interface WtStore {
 
   svc: (id: string | undefined) => Service | undefined;
   agg: (s: Service) => ReviewAgg;
+  /** 내가 이 서비스에 남긴 평가(리뷰의 평가 또는 추천·비추천 단독 평가) */
+  myVote: (sid: string) => "up" | "down" | null;
+  /** 의견 없이 추천·비추천만 누른다. 같은 걸 다시 누르면 취소하고, 이미 리뷰가 있으면 리뷰의 평가를 바꾼다 */
+  vote: (sid: string, rate: "up" | "down") => void;
+  /** 평가를 직접 정한다(null 이면 취소). 리뷰 작성 폼의 평가 버튼이 쓴다 */
+  setVote: (sid: string, rate: "up" | "down" | null) => void;
+  /** 내가 이 서비스에 남긴 리뷰(의견까지 남긴 평가). 없으면 undefined */
+  myReview: (sid: string) => Review | undefined;
 
   // 쓰기 동작은 실패하면 안내(토스트·연결 배너·로그인 만료 모달)를 직접 띄우고 false 를 돌려준다.
   // 호출한 쪽은 true 일 때만 모달을 닫거나 입력값을 비운다.

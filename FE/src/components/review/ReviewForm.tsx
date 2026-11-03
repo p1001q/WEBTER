@@ -26,6 +26,10 @@ interface Props {
   s: Service;
   role: ReviewRole;
   initial?: Review | null;
+  /** 평가 단독 버튼으로 고른 평가. 바뀌면 이 폼의 평가도 따라간다 */
+  syncRate?: Rate | null;
+  /** 평가 버튼을 눌렀을 때(작성 폼에서만). 위쪽 추천·비추천 버튼과 상태를 맞추는 데 쓴다 */
+  onRate?: (r: Rate) => void;
   /** 저장에 성공하면 true. false 면 입력한 내용을 그대로 둔다 */
   onSubmit: (v: ReviewInput & { anon: boolean }) => Promise<boolean>;
   onCancel?: () => void;
@@ -45,14 +49,34 @@ export function ReviewForm({
   s,
   role,
   initial,
+  syncRate,
+  onRate,
   onSubmit,
   onCancel,
   submitLabel = "리뷰 남기기",
 }: Props) {
   const id = useId();
   const [rate, setRate] = useState<Rate | null>(
-    initial ? initial.rate || "none" : role === "guest" ? "none" : null,
+    initial
+      ? initial.rate || "none"
+      : role === "guest"
+        ? "none"
+        : (syncRate ?? null),
   );
+  // 위쪽 추천·비추천 버튼으로 바뀐 평가는 이 폼에 따라온다. 이 폼에서 직접 고른 평가가 되돌아온 것은 무시한다
+  const [prevSync, setPrevSync] = useState(syncRate);
+  const [own, setOwn] = useState(false);
+  if (prevSync !== syncRate) {
+    setPrevSync(syncRate);
+    if (own) setOwn(false);
+    else if (role === "member" && !initial) setRate(syncRate ?? null);
+  }
+  const pickRate = (r: Rate) => {
+    setRate(r);
+    if (!onRate) return;
+    if ((syncRate ?? null) !== (r === "none" ? null : r)) setOwn(true);
+    onRate(r);
+  };
   const [text, setText] = useState(initial ? initial.text : "");
   const [anon, setAnon] = useState(initial ? initial.a.kind === "anon" : false);
   const link = hasLink(text);
@@ -79,7 +103,7 @@ export function ReviewForm({
     for (let n = 1; n <= RATES.length; n++) {
       const to = (from + step * n + RATES.length * n) % RATES.length;
       if (rateDisabled(RATES[to][0])) continue;
-      setRate(RATES[to][0]);
+      pickRate(RATES[to][0]);
       (e.currentTarget.parentElement?.children[to] as HTMLElement).focus();
       return;
     }
@@ -105,11 +129,11 @@ export function ReviewForm({
                 tabIndex={(rate ?? firstEnabled) === r ? 0 : -1}
                 onKeyDown={(e) => moveRate(e, idx)}
                 className={cx(
-                  "inline-flex h-9 items-center gap-1.5 rounded-pill border px-3.5 text-13 font-semibold disabled:cursor-not-allowed disabled:opacity-40",
-                  rate === r ? on : "border-border bg-card",
+                  "inline-flex h-9 items-center gap-1.5 rounded-pill border px-3.5 text-13 font-semibold transition-[transform,background-color,border-color,color] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:cursor-not-allowed disabled:opacity-40",
+                  rate === r ? cx(on, "scale-105") : "border-border bg-card",
                 )}
                 disabled={rateDisabled(r)}
-                onClick={() => setRate(r)}
+                onClick={() => pickRate(r)}
               >
                 <Icon name={icon} size={15} />
                 {label}
@@ -123,7 +147,7 @@ export function ReviewForm({
           )}
           {role === "member" && stopLock && (
             <span className={helpClass}>
-              사용할 수 없는 서비스라 지금은 미설정으로만 남길 수 있어요.
+              운영 중지된 서비스라 지금은 미설정으로만 남길 수 있어요.
             </span>
           )}
         </div>
@@ -142,7 +166,7 @@ export function ReviewForm({
           maxLength={MAX}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="서비스를 이용해 본 경험을 남겨 주세요."
+          placeholder="서비스를 이용해 본 경험을 남겨 주세요. 제작자들에게 큰 도움이 됩니다!"
           style={{ minHeight: 96 }}
         />
         <div className="flex items-center gap-2">
@@ -159,7 +183,7 @@ export function ReviewForm({
         </div>
       </div>
       <div className={`${row} justify-between`}>
-        {role === "member" && s.allowAnon ? (
+        {role === "member" && s.allowAnon && !initial ? (
           <label className={checkClass}>
             <input
               type="checkbox"

@@ -1,6 +1,7 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import type { Service } from "@/api/types";
 import { DISPLAY } from "@/domain/policy";
+import { ListItemTransition } from "./ListItemTransition";
 import { ServiceCard } from "./ServiceCard";
 import styles from "./ServiceList.module.css";
 import { ServiceRow } from "./ServiceRow";
@@ -37,12 +38,9 @@ export function ServiceList({
     return (
       <div className={rowsClass}>
         {items.map((s, i) => (
-          <ServiceRow
-            key={s.id}
-            s={s}
-            rank={rank(i)}
-            reason={reasons?.[s.id]}
-          />
+          <ListItemTransition key={s.id}>
+            <ServiceRow s={s} rank={rank(i)} reason={reasons?.[s.id]} />
+          </ListItemTransition>
         ))}
       </div>
     );
@@ -56,13 +54,14 @@ export function ServiceList({
         renderItem ? (
           <Fragment key={s.id}>{renderItem(s)}</Fragment>
         ) : (
-          <ServiceCard
-            key={s.id}
-            s={s}
-            heading={heading}
-            rank={rank(i)}
-            reason={reasons?.[s.id]}
-          />
+          <ListItemTransition key={s.id}>
+            <ServiceCard
+              s={s}
+              heading={heading}
+              rank={rank(i)}
+              reason={reasons?.[s.id]}
+            />
+          </ListItemTransition>
         ),
       )}
     </div>

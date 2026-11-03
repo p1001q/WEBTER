@@ -9,7 +9,11 @@ import {
   fieldClass,
   textareaClass,
 } from "@/components/ui/field";
+import { FieldMessage } from "@/components/ui/FieldMessage";
+import { helpClass } from "@/components/ui/field";
 import { COMMENT_MAX } from "@/domain/comment";
+import { hasLink } from "@/domain/review";
+import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 
 interface Props {
@@ -41,7 +45,8 @@ export function CommentForm({
   const [anon, setAnon] = useState(initial?.a.kind === "anon");
   const [busy, setBusy] = useState(false);
   const canAnon = s.allowAnonComment && wt.me?.id !== s.owner;
-  const ok = text.trim().length > 0 && !busy;
+  const link = hasLink(text);
+  const ok = text.trim().length > 0 && !link && !busy;
   const submit = async () => {
     setBusy(true);
     const ok = await onSubmit({ text: text.trim(), anon: canAnon && anon });
@@ -59,19 +64,28 @@ export function CommentForm({
         </label>
         <textarea
           id={id}
-          className={textareaClass}
+          className={cx(textareaClass, link && "border-wine!")}
           style={{ minHeight }}
           maxLength={COMMENT_MAX}
           value={text}
           placeholder={placeholder}
           onChange={(e) => setText(e.target.value)}
         />
-        <span className={`${counterClass} self-end`}>
-          {text.length}/{COMMENT_MAX}
-        </span>
+        <div className="flex items-center gap-2">
+          {link ? (
+            <FieldMessage state="err">
+              댓글에는 링크를 넣을 수 없어요. 주소를 지워 주세요.
+            </FieldMessage>
+          ) : (
+            <span className={helpClass}>링크는 넣을 수 없어요.</span>
+          )}
+          <span className={counterClass}>
+            {text.length}/{COMMENT_MAX}
+          </span>
+        </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {canAnon ? (
+        {canAnon && !initial ? (
           <label className={checkClass}>
             <input
               type="checkbox"

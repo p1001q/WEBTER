@@ -19,12 +19,12 @@ export interface Category {
 
 export const CATEGORIES: Category[] = [
   { id: "play", label: "놀이", bg: "#E6EFE0", fg: "#3E6B4F" },
-  { id: "life", label: "생활", bg: "#F1E9DA", fg: "#7A5A2E" },
+  { id: "life", label: "일상", bg: "#F1E9DA", fg: "#7A5A2E" },
   { id: "learn", label: "학습", bg: "#E2ECEB", fg: "#2F5D62" },
-  { id: "prod", label: "생산성", bg: "#E4E8F0", fg: "#35445C" },
-  { id: "design", label: "디자인·창작", bg: "#F3EADF", fg: "#9A5236" },
-  { id: "util", label: "유틸리티", bg: "#ECEAE4", fg: "#555555" },
-  { id: "dev", label: "개발자 도구", bg: "#DCE1E8", fg: "#2A3749" },
+  { id: "prod", label: "업무", bg: "#E4E8F0", fg: "#35445C" },
+  { id: "design", label: "창작", bg: "#F3EADF", fg: "#9A5236" },
+  { id: "util", label: "간편 도구", bg: "#ECEAE4", fg: "#555555" },
+  { id: "dev", label: "개발 도구", bg: "#DCE1E8", fg: "#2A3749" },
   { id: "etc", label: "기타", bg: "#EFEDE7", fg: "#6B6B6B" },
 ];
 export const CAT = Object.fromEntries(
@@ -63,8 +63,8 @@ export const OPT: {
     ["en", "영어"],
   ],
   use: [
-    ["live", "사용 가능"],
-    ["stop", "사용 불가능"],
+    ["live", "운영 중"],
+    ["stop", "운영 중지"],
   ],
 };
 const labels = <T extends string>(o: Opts<T>) =>
@@ -99,16 +99,15 @@ export const LINK_LABEL: Record<LinkKind, string> = {
 };
 
 export const STATE_LABEL: Record<UseState | PubState, string> = {
-  live: "사용 가능",
-  stop: "사용 불가능",
+  live: "운영 중",
+  stop: "운영 중지",
   private: "비공개",
   temp: "임시 비공개",
   public: "공개",
 };
 
 export const SEARCH_EXAMPLES = [
-  "친구와 10분 정도 즐길 수 있는 웹게임",
-  "공부 시간을 관리해 주는 웹 서비스",
-  "사진 배경을 제거하는 사이트",
-  "웹에서 바로 쓰는 디자인 도구",
+  "킬링타임용 게임",
+  "공부에 도움 될만한 것",
+  "업무에 쓸만한 도구",
 ];

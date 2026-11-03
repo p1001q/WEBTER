@@ -28,7 +28,7 @@ type Ai = AiSearchResult & { left: number };
 /** 검색 화면. 검색어(`q`)는 주소의 쿼리에서 받는다 */
 export function SearchScreen({ q }: { q: string }) {
   const wt = useWt();
-  const st = useListState(null);
+  const st = useListState(null, { shared: false });
   const [sort, setSort] = useState<Sort>("rel");
   return (
     <>

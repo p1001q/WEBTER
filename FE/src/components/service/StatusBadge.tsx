@@ -7,7 +7,7 @@ const TONE = {
   temp: "bg-status-temp-bg text-status-temp-fg",
 };
 
-/** 서비스 상태 배지(사용 가능·사용 불가능·비공개·임시 비공개) */
+/** 서비스 상태 배지(운영 중·운영 중지·비공개·임시 비공개) */
 export function StatusBadge({ kind }: { kind: keyof typeof TONE }) {
   return (
     <span

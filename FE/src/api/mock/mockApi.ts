@@ -1,6 +1,6 @@
-import { DISPLAY } from "@/domain/policy";
+import { DISPLAY, POLICY } from "@/domain/policy";
 import { CAT } from "@/domain/options";
-import { normUrl } from "@/domain/validation";
+import { handleChangeStatus, normUrl } from "@/domain/validation";
 import type {
   Comment,
   CommentInput,
@@ -18,12 +18,12 @@ import { mockAiSearch } from "./intents";
 import {
   ME_ID,
   SEED_COMMENTS,
-  SEED_OPENSOURCE,
   SEED_REVIEWS,
   SEED_SERVICES,
   SEED_TAKEN_HANDLES,
   SEED_USERS,
 } from "./seed";
+import { SEED_NOTIFICATIONS } from "./notifications";
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
@@ -50,7 +50,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
   let reviews = clone(snap?.reviews ?? SEED_REVIEWS);
   let comments = clone(snap?.comments ?? SEED_COMMENTS);
   const users = clone(snap?.users ?? SEED_USERS);
-  const opensource = clone(snap?.opensource ?? SEED_OPENSOURCE);
+  const notifications = clone(snap?.notifications ?? SEED_NOTIFICATIONS);
   const takenHandles = clone(snap?.takenHandles ?? SEED_TAKEN_HANDLES);
   if (!snap && opts.sample === "none") {
     const ids = services.filter((s) => s.owner === ME_ID).map((s) => s.id);
@@ -121,7 +121,9 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
         services,
         reviews,
         comments,
-        opensource,
+        notifications: notifications.filter((n) =>
+          services.some((s) => s.id === n.sid),
+        ),
         takenHandles,
         session,
       }),
@@ -184,8 +186,22 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     },
     updateProfile: async (patch: Partial<User>) => {
       const u = need();
+      const nextHandle = patch.handle?.toLowerCase();
+      const changed = !!nextHandle && nextHandle !== u.handle;
+      if (changed) {
+        const { left, waitDays } = handleChangeStatus(
+          u.handleChanges,
+          DISPLAY.demoToday,
+        );
+        if (left === 0)
+          throw new Error(
+            `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. ${waitDays}일 뒤에 다시 바꿀 수 있어요.`,
+          );
+      }
       Object.assign(u, patch);
-      if (patch.handle) u.handle = patch.handle.toLowerCase();
+      if (nextHandle) u.handle = nextHandle;
+      if (changed)
+        u.handleChanges = [...(u.handleChanges ?? []), DISPLAY.demoToday];
       return clone(u);
     },
 
@@ -235,8 +251,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       r.rate = r.a.kind === "maker" ? null : v.rate;
       r.text = v.text;
       r.edited = true;
-      if (r.a.kind !== "maker")
-        r.a = { kind: v.anon ? "anon" : "member", uid: r.a.uid };
+      // 익명 여부는 등록할 때만 정한다. 수정해도 바뀌지 않는다
       return clone(r);
     },
     deleteReview: async (id) => {
@@ -274,15 +289,9 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       const c = findComment(id);
       if (c.a.uid !== u.id || c.deleted)
         throw new Error("내 댓글만 수정할 수 있어요.");
-      const s = findService(c.sid);
       c.text = v.text;
       c.edited = true;
-      // 익명 설정이 꺼진 뒤에도 기존 익명 댓글은 익명으로 둔다(작성자를 드러내지 않는다)
-      if (s.allowAnonComment)
-        c.a = {
-          kind: v.anon && s.owner !== u.id ? "anon" : "member",
-          uid: u.id,
-        };
+      // 익명 여부는 등록할 때만 정한다. 수정해도 바뀌지 않는다
       return clone(c);
     },
     deleteComment: async (id) => {

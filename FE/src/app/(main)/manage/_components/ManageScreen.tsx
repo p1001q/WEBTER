@@ -6,7 +6,6 @@ import { Footer } from "@/components/layout/Footer";
 import { GradeBadge } from "@/components/review/GradeBadge";
 import { ServiceIcon } from "@/components/service/ServiceIcon";
 import { StatusBadge } from "@/components/service/StatusBadge";
-import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -19,11 +18,11 @@ import { useWt } from "@/providers/context";
 import { ListHead } from "../../_components/ListHead";
 
 const rowGrid =
-  "grid grid-cols-[minmax(0,2.2fr)_150px_minmax(0,1.6fr)_104px_188px] items-center gap-4 @max-[1180px]/app:grid-cols-[minmax(0,2fr)_140px_minmax(0,1.4fr)_180px] @max-[860px]/app:grid-cols-[1fr_auto]";
+  "grid grid-cols-[minmax(0,2.2fr)_150px_minmax(0,1.6fr)_188px_104px] items-center gap-4 @max-[1180px]/app:grid-cols-[minmax(0,2fr)_140px_minmax(0,1.4fr)_180px] @max-[860px]/app:grid-cols-[1fr_auto]";
 const mobileOnly = "@max-[860px]/app:col-span-full";
 const miniAction = "text-13!";
 
-/** 내 서비스 관리: 사용 상태·반응 확인과 수정·삭제 */
+/** 내 서비스 관리: 운영 상태·반응 확인과 수정·삭제 */
 export function ManageScreen() {
   const wt = useWt();
   const P = useId();
@@ -34,7 +33,7 @@ export function ManageScreen() {
     if (v === cur) return;
     if (v === "stop") wt.setModal({ type: "stop", sid: id });
     else if (await wt.updateService(id, { use: "live", stopReason: "" }))
-      wt.toast("사용 가능으로 바꿨어요.");
+      wt.toast("운영 중으로 바꿨어요.");
   };
   return (
     <>
@@ -42,13 +41,7 @@ export function ManageScreen() {
         <ListHead
           flush
           title="내 서비스 관리"
-          desc="내가 등록한 서비스의 사용 상태와 반응을 확인하고 관리해요."
-          action={
-            <Button className="ml-auto" onClick={() => wt.go("register")}>
-              <Icon name="plus" size={16} stroke={2.2} />
-              서비스 등록
-            </Button>
-          }
+          desc="내가 등록한 서비스의 운영 상태와 반응을 확인하고 관리해요."
         />
         {mine.length === 0 ? (
           <div className={`${boxClass} mt-6`}>
@@ -75,13 +68,13 @@ export function ManageScreen() {
               role="row"
             >
               <span role="columnheader">서비스</span>
-              <span role="columnheader">사용 상태</span>
+              <span role="columnheader">운영 상태</span>
               <span role="columnheader">통계</span>
+              <span role="columnheader" className="text-center">
+                동작
+              </span>
               <span role="columnheader" className="@max-[1180px]/app:hidden">
                 등록일
-              </span>
-              <span role="columnheader" className="text-right">
-                동작
               </span>
             </div>
             {mine.map((s) => {
@@ -129,16 +122,20 @@ export function ManageScreen() {
                       {hidden && (
                         <div
                           className={cx(
-                            "mt-1 flex flex-wrap items-center gap-1.5 text-12",
+                            "mt-1 hidden items-start gap-1.5 text-12 @max-[860px]/app:flex",
                             s.pub === "temp" ? "text-butter-ink" : "text-wine",
                           )}
                         >
-                          <Icon name="info" size={13} />
-                          {s.pubReason}
+                          <Icon
+                            name="info"
+                            size={13}
+                            className="mt-px shrink-0"
+                          />
+                          <span className="min-w-0">{s.pubReason}</span>
                         </div>
                       )}
                       {s.use === "stop" && (
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-12 text-muted">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-12 text-muted">
                           사유: {s.stopReason}
                         </div>
                       )}
@@ -146,7 +143,7 @@ export function ManageScreen() {
                   </div>
                   <div role="cell">
                     <label className="sr-only" htmlFor={P + "use-" + s.id}>
-                      {s.name} 사용 상태
+                      {s.name} 운영 상태
                     </label>
                     <select
                       id={P + "use-" + s.id}
@@ -160,55 +157,42 @@ export function ManageScreen() {
                         onUse(s.id, s.use, e.target.value as UseState)
                       }
                     >
-                      <option value="live">사용 가능</option>
-                      <option value="stop">사용 불가능</option>
+                      <option value="live">운영 중</option>
+                      <option value="stop">운영 중지</option>
                     </select>
                   </div>
                   <div
                     className={cx(
-                      "flex flex-wrap items-center gap-x-3 gap-y-1.5 text-13 text-text-3 [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1",
+                      "flex flex-wrap items-center gap-x-2 gap-y-1.5 text-13 text-text-3 [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1",
                       mobileOnly,
                     )}
                     role="cell"
                   >
-                    <span title="조회수">
+                    <span title="조회수" className="w-[54px]">
                       <Icon name="eye" size={14} />
                       {fmt(s.views)}
                     </span>
-                    <span title="이용하기 클릭">
+                    <span title="이용하기 클릭" className="w-[54px]">
                       <Icon name="click" size={14} />
                       {fmt(s.clicks)}
                     </span>
-                    <span title="좋아요">
+                    <span title="좋아요" className="w-[54px]">
                       <Icon name="heart" size={14} />
                       {fmt(s.likes)}
                     </span>
-                    <span title="저장">
+                    <span title="저장" className="w-[54px]">
                       <Icon name="bookmark" size={14} />
                       {fmt(s.saves)}
                     </span>
                     <GradeBadge grade={agg.grade} />
                   </div>
                   <div
-                    role="cell"
-                    className="font-mono text-[12.5px] text-muted @max-[1180px]/app:hidden"
-                  >
-                    {fmtDate(s.created)}
-                  </div>
-                  <div
                     className={cx(
-                      "flex flex-wrap items-center justify-end gap-0.5 @max-[860px]/app:justify-start @max-[860px]/app:border-t @max-[860px]/app:border-light @max-[860px]/app:pt-2.5",
+                      "grid grid-cols-[auto_auto] justify-center gap-x-1 gap-y-0.5 @max-[860px]/app:flex @max-[860px]/app:flex-wrap @max-[860px]/app:justify-start @max-[860px]/app:border-t @max-[860px]/app:border-light @max-[860px]/app:pt-2.5",
                       mobileOnly,
                     )}
                     role="cell"
                   >
-                    <MiniButton
-                      className={miniAction}
-                      onClick={() => wt.go("edit", { id: s.id })}
-                    >
-                      <Icon name="edit" size={14} />
-                      수정
-                    </MiniButton>
                     <MiniButton
                       className={miniAction}
                       onClick={() =>
@@ -232,6 +216,13 @@ export function ManageScreen() {
                       버전
                     </MiniButton>
                     <MiniButton
+                      className={cx(miniAction, "text-price-free!")}
+                      onClick={() => wt.go("edit", { id: s.id })}
+                    >
+                      <Icon name="edit" size={14} />
+                      수정
+                    </MiniButton>
+                    <MiniButton
                       className={cx(miniAction, "text-wine!")}
                       onClick={() => wt.setModal({ type: "delete", sid: s.id })}
                     >
@@ -239,6 +230,26 @@ export function ManageScreen() {
                       삭제
                     </MiniButton>
                   </div>
+                  <div
+                    role="cell"
+                    className="font-mono text-[12.5px] text-muted @max-[1180px]/app:hidden"
+                  >
+                    {fmtDate(s.created)}
+                  </div>
+                  {hidden && (
+                    <div
+                      className={cx(
+                        "col-span-full -mt-2 flex min-w-0 items-center gap-1.5 text-12 @max-[860px]/app:hidden",
+                        s.pub === "temp" ? "text-butter-ink" : "text-wine",
+                      )}
+                      role="cell"
+                    >
+                      <Icon name="info" size={13} className="shrink-0" />
+                      <span className="truncate" title={s.pubReason}>
+                        {s.pubReason}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

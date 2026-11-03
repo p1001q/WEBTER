@@ -5,6 +5,7 @@ import { boxClass } from "@/components/ui/box";
 import { helpClass } from "@/components/ui/field";
 import { cx } from "@/lib/cx";
 import { stickyAsideClass } from "../../_components/formStyles";
+import { FloatAside } from "./FloatAside";
 
 /** 서비스 폼 오른쪽: 카드 미리보기와 필수 항목 진행 */
 export function FormAside({
@@ -17,8 +18,8 @@ export function FormAside({
 }) {
   const done = required.filter((r) => r[1]).length;
   return (
-    <aside>
-      <div className={stickyAsideClass}>
+    <aside className="self-stretch">
+      <FloatAside className={stickyAsideClass}>
         <div className={cx(helpClass, "font-bold")}>카드 미리보기</div>
         <div className="pointer-events-none" inert>
           <ServiceCard s={preview} />
@@ -54,7 +55,7 @@ export function FormAside({
             ))}
           </ul>
         </div>
-      </div>
+      </FloatAside>
     </aside>
   );
 }
