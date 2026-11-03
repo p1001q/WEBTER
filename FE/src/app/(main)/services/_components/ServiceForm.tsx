@@ -28,6 +28,7 @@ import { CATEGORIES, OPT, TYPE_SHORT } from "@/domain/options";
 import { DISPLAY, POLICY } from "@/domain/policy";
 import { githubCheck, urlFormat } from "@/domain/validation";
 import { cx } from "@/lib/cx";
+import { scrollFieldIntoFocus } from "@/lib/focusScroll";
 import { useWt } from "@/providers/context";
 import { ListHead } from "../../_components/ListHead";
 import {
@@ -303,7 +304,11 @@ export function ServiceForm({
           </div>
         )}
         <div className={formLayoutClass}>
-          <div className={formClass}>
+          <div
+            className={formClass}
+            onFocus={(e) => scrollFieldIntoFocus(e.target)}
+            onClick={(e) => scrollFieldIntoFocus(e.target)}
+          >
             <section className={sectionClass} aria-labelledby={P + "fs-basic"}>
               <h2 className={sectionTitleClass} id={P + "fs-basic"}>
                 기본 정보 <small>필수</small>
