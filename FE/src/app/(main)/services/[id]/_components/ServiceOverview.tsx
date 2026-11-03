@@ -43,32 +43,45 @@ export function ServiceOverview({
   };
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_var(--spacing-detail-cta)] items-start gap-12 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-6">
-      <div className="flex min-w-0 items-start gap-6 @max-[560px]/app:gap-4">
-        <ServiceIcon s={s} size={96} />
-        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-          <h1 className="m-0 text-34 leading-[1.2] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere] @max-[560px]/app:text-[25px]">
-            {s.name}
-          </h1>
-          <p className="m-0 text-[16.5px] text-pretty text-text-2 @max-[560px]/app:text-15">
-            {s.tagline}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {s.cats.map((c, i) => (
-              <RouteLink
-                key={c}
-                to="latest"
-                params={{ cat: c }}
-                className={cx(
-                  "inline-flex h-6 items-center rounded-sm border bg-card px-2.5 text-12 font-semibold whitespace-nowrap text-ink",
-                  i === 0 ? "border-ink" : "border-border",
-                )}
-              >
-                {CAT[c].label}
-              </RouteLink>
-            ))}
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 items-start gap-6 @max-[560px]/app:gap-4">
+          <ServiceIcon s={s} size={96} />
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+            <h1 className="m-0 text-34 leading-[1.2] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere] @max-[560px]/app:text-[25px]">
+              {s.name}
+            </h1>
+            <p className="m-0 text-[16.5px] text-pretty text-text-2 @max-[560px]/app:text-15">
+              {s.tagline}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {s.cats.map((c, i) => (
+                <RouteLink
+                  key={c}
+                  to="latest"
+                  params={{ cat: c }}
+                  className={cx(
+                    "inline-flex h-6 items-center rounded-sm border bg-card px-2.5 text-12 font-semibold whitespace-nowrap text-ink",
+                    i === 0 ? "border-ink" : "border-border",
+                  )}
+                >
+                  {CAT[c].label}
+                </RouteLink>
+              ))}
+            </div>
           </div>
+        </div>
+        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-6 @max-[560px]/app:gap-x-4">
+          <RouteLink
+            to="profile"
+            params={{ id: owner.id }}
+            className="group inline-flex min-w-0 items-center justify-center gap-1.5 text-14 text-ink"
+          >
+            <Avatar user={owner} size={26} />
+            <b className="min-w-0 truncate font-bold group-hover:underline">
+              {owner.nick}
+            </b>
+          </RouteLink>
           <div className="flex flex-wrap gap-y-1.5 text-13 text-text-3">
-            <span className={meta}>{OPTL.type[s.type]}</span>
             <span className={meta}>
               <Icon
                 name={
@@ -97,22 +110,11 @@ export function ServiceOverview({
                 "개인"
               )}
             </span>
+            <span className={meta}>{OPTL.type[s.type]}</span>
             <span className={meta}>
               {s.langs.map((l) => OPTL.langs[l]).join(" · ")}
             </span>
-            <span className={meta}>웹 서비스</span>
           </div>
-          <RouteLink
-            to="profile"
-            params={{ id: owner.id }}
-            className="group mt-0.5 inline-flex items-center gap-2 self-start text-14 text-muted"
-          >
-            <Avatar user={owner} size={26} />
-            <b className="font-bold text-ink group-hover:underline">
-              {owner.nick}
-            </b>
-            <span className="font-mono text-12">@{owner.handle}</span>
-          </RouteLink>
         </div>
       </div>
       <div className="flex flex-col gap-2" data-component="detail-cta">

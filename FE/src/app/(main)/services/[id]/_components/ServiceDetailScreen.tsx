@@ -48,6 +48,13 @@ export function ServiceDetailScreen({
   const wt = useWt();
   const s = wt.svc(id);
   const [tab, setTab] = useState<Tab>(tabParam ?? "about");
+  // 탭이 오른쪽으로 가면 본문도 오른쪽에서, 왼쪽으로 가면 왼쪽에서 들어온다
+  const [slide, setSlide] = useState<"r" | "l">("r");
+  const changeTab = (next: Tab) => {
+    const order: Tab[] = ["about", "reviews", "comments"];
+    setSlide(order.indexOf(next) >= order.indexOf(tab) ? "r" : "l");
+    setTab(next);
+  };
   const counted = useRef<string>(undefined);
   useEffect(() => {
     if (s && s.pub === "public" && counted.current !== s.id) {
@@ -89,12 +96,20 @@ export function ServiceDetailScreen({
     )
     .sort((a, b) => scoreOf(b, "m") - scoreOf(a, "m"))
     .slice(0, 4);
-  const stats: [string, string][] = [
-    [fmtNum(s.views), "조회수"],
-    [fmtNum(s.clicks), "이용하기 클릭"],
-    [fmtNum(s.likes), "좋아요"],
-    [fmtNum(s.saves), "저장"],
-  ];
+  /** [값, 이름, 아이콘] 조회수·이용하기 클릭 · 리뷰(아래 평가 칸) · 좋아요·저장 순서 */
+  const stats = {
+    views: [fmtNum(s.views), "조회수", "eye"],
+    clicks: [fmtNum(s.clicks), "이용하기 클릭", "click"],
+    likes: [fmtNum(s.likes), "좋아요", "heart"],
+    saves: [fmtNum(s.saves), "저장", "bookmark"],
+  } as const;
+  const cells = [
+    stats.views,
+    stats.clicks,
+    "review",
+    stats.likes,
+    stats.saves,
+  ] as const;
   return (
     <>
       <div className="page-wrap">
@@ -150,9 +165,9 @@ export function ServiceDetailScreen({
           className="mt-8 grid grid-cols-5 border-y border-border @max-[860px]/app:grid-cols-3"
           data-component="detail-stats"
         >
-          {stats.map(([v, k], i) => (
+          {cells.map((c, i) => (
             <div
-              key={k}
+              key={typeof c === "string" ? c : c[1]}
               className={cx(
                 statCell,
                 i > 0 && "border-l",
@@ -160,67 +175,84 @@ export function ServiceDetailScreen({
                 i >= 3 && "@max-[860px]/app:border-t",
               )}
             >
-              <span className={statValue}>{v}</span>
-              <span className={statKey}>{k}</span>
+              {typeof c === "string" ? (
+                <>
+                  <GradeBadge grade={agg.grade} />
+                  <span className={statKey}>
+                    추천 {ratioText(agg.ratio)} · 리뷰 {agg.total}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className={statValue}>{c[0]}</span>
+                  <span
+                    className={cx(statKey, "inline-flex items-center gap-1")}
+                  >
+                    <Icon name={c[2]} size={13} />
+                    {c[1]}
+                  </span>
+                </>
+              )}
             </div>
           ))}
-          <div className={cx(statCell, "border-l @max-[860px]/app:border-t")}>
-            <GradeBadge grade={agg.grade} />
-            <span className={statKey}>
-              추천 {ratioText(agg.ratio)} · 리뷰 {agg.total}
-            </span>
-          </div>
         </div>
         <Gallery s={s} />
         <div className="mt-6 grid grid-cols-[minmax(0,1fr)_var(--spacing-detail-cta)] items-start gap-12 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-6">
           <div className="min-w-0">
             <Tabs
               value={tab}
-              onChange={setTab}
+              onChange={changeTab}
               items={[
                 ["about", "소개"],
                 ["reviews", "리뷰", agg.total],
                 ["comments", "댓글", commentCount],
               ]}
             />
-            {tab === "about" ? (
-              <div className="pt-6">
-                <p
-                  className={cx(
-                    "m-0 mb-4 text-[15.5px] leading-[1.75] text-pretty whitespace-pre-line",
-                    s.desc ? "text-[#3a3a3a]" : "text-muted",
+            <div
+              key={tab}
+              className={
+                slide === "r" ? "animate-slide-in-r" : "animate-slide-in-l"
+              }
+            >
+              {tab === "about" ? (
+                <div className="pt-6">
+                  <p
+                    className={cx(
+                      "m-0 mb-4 text-[15.5px] leading-[1.75] text-pretty whitespace-pre-line",
+                      s.desc ? "text-[#3a3a3a]" : "text-muted",
+                    )}
+                  >
+                    {s.desc || "상세 설명이 아직 없어요."}
+                  </p>
+                  {s.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5" aria-label="태그">
+                      {s.tags.map((t) => (
+                        <RouteLink
+                          key={t}
+                          to="search"
+                          params={{ q: t }}
+                          className={tagClass}
+                        >
+                          #{t}
+                        </RouteLink>
+                      ))}
+                    </div>
                   )}
-                >
-                  {s.desc || "상세 설명이 아직 없어요."}
-                </p>
-                {s.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5" aria-label="태그">
-                    {s.tags.map((t) => (
-                      <RouteLink
-                        key={t}
-                        to="search"
-                        params={{ q: t }}
-                        className={tagClass}
-                      >
-                        #{t}
-                      </RouteLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : tab === "reviews" ? (
-              <ReviewSection s={s} />
-            ) : (
-              <CommentSection s={s} />
-            )}
+                </div>
+              ) : tab === "reviews" ? (
+                <ReviewSection s={s} />
+              ) : (
+                <CommentSection s={s} />
+              )}
+            </div>
             <ServiceVersions s={s} />
           </div>
-          <aside className="flex flex-col gap-3">
+          <aside className="flex flex-col gap-3 pt-[49px] @max-[860px]/app:pt-0">
             <div
               className={`${boxClass} flex flex-col gap-3 p-6`}
               data-component="maker-card"
             >
-              <div className={helpClass}>만든 사람</div>
+              <div className={helpClass}>제작자</div>
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar user={owner} size={48} />
                 <div className="min-w-0">
