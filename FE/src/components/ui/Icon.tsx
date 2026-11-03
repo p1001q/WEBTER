@@ -77,6 +77,12 @@ export const IC = {
     </>
   ),
   check: <path d="M5 12l5 5L20 7" />,
+  bell: (
+    <>
+      <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+    </>
+  ),
   alert: (
     <>
       <circle cx="12" cy="12" r="9" />

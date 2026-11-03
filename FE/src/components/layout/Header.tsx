@@ -9,6 +9,7 @@ import { ScopeBadge } from "@/components/ui/ScopeBadge";
 import { cx } from "@/lib/cx";
 import { usePressHold } from "@/lib/usePressHold";
 import { useWt } from "@/providers/context";
+import { NotificationMenu } from "@/components/notification/NotificationMenu";
 import { Wordmark } from "./Wordmark";
 
 const popItem =
@@ -96,6 +97,7 @@ export function Header() {
           >
             <Icon name="search" size={21} />
           </IconButton>
+          {me && <NotificationMenu />}
           <Button
             variant="outline"
             className={cx(
@@ -136,6 +138,7 @@ export function Header() {
                       : "animate-unfold",
                   )}
                   role="menu"
+                  inert={leaving}
                 >
                   <div className="flex items-center gap-3 px-3 pt-3 pb-3.5">
                     <Avatar user={me} size={44} />
