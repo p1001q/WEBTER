@@ -22,6 +22,7 @@ import { POLICY } from "@/domain/policy";
 import {
   handleCheck,
   imageError,
+  linkCheck,
   msgState,
   nickCheck,
   readAsURL,
@@ -65,7 +66,9 @@ export function SettingsPanel() {
       JSON.stringify(me.links) ||
     JSON.stringify(cats) !== JSON.stringify(me.interests || []) ||
     avatar !== (me.avatarImg || null);
-  const ok = hc.state === "ok" && nc.state === "ok";
+  const linkErrs = links.map(([k, u]) => linkCheck(k, u));
+  const ok =
+    hc.state === "ok" && nc.state === "ok" && linkErrs.every((e) => !e);
   const pickAvatar = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
@@ -215,48 +218,53 @@ export function SettingsPanel() {
               외부 링크 <span className={optionalClass}>선택</span>
             </span>
             {links.map(([k, url], i) => (
-              <div
-                key={i}
-                role="group"
-                aria-label={`외부 링크 ${i + 1}`}
-                className="grid grid-cols-[140px_1fr_auto] gap-2"
-              >
-                <select
-                  className={selectClass}
-                  aria-label="링크 종류"
-                  value={k}
-                  onChange={(e) =>
-                    setLinks(
-                      links.map((l, j) =>
-                        j === i ? [e.target.value as LinkKind, l[1]] : l,
-                      ),
-                    )
-                  }
+              <div key={i} className="flex flex-col gap-1.5">
+                <div
+                  role="group"
+                  aria-label={`외부 링크 ${i + 1}`}
+                  className="grid grid-cols-[140px_1fr_auto] gap-2"
                 >
-                  {Object.entries(LINK_LABEL).map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  className={inputClass}
-                  aria-label="링크 주소"
-                  value={url}
-                  onChange={(e) =>
-                    setLinks(
-                      links.map((l, j) =>
-                        j === i ? [l[0], e.target.value] : l,
-                      ),
-                    )
-                  }
-                />
-                <IconButton
-                  aria-label="링크 삭제"
-                  onClick={() => setLinks(links.filter((_, j) => j !== i))}
-                >
-                  <Icon name="close" size={16} />
-                </IconButton>
+                  <select
+                    className={selectClass}
+                    aria-label="링크 종류"
+                    value={k}
+                    onChange={(e) =>
+                      setLinks(
+                        links.map((l, j) =>
+                          j === i ? [e.target.value as LinkKind, l[1]] : l,
+                        ),
+                      )
+                    }
+                  >
+                    {Object.entries(LINK_LABEL).map(([v, l]) => (
+                      <option key={v} value={v}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className={cx(inputClass, linkErrs[i] && "border-wine!")}
+                    aria-label="링크 주소"
+                    aria-invalid={!!linkErrs[i]}
+                    value={url}
+                    onChange={(e) =>
+                      setLinks(
+                        links.map((l, j) =>
+                          j === i ? [l[0], e.target.value] : l,
+                        ),
+                      )
+                    }
+                  />
+                  <IconButton
+                    aria-label="링크 삭제"
+                    onClick={() => setLinks(links.filter((_, j) => j !== i))}
+                  >
+                    <Icon name="close" size={16} />
+                  </IconButton>
+                </div>
+                {linkErrs[i] && (
+                  <FieldMessage state="err">{linkErrs[i]}</FieldMessage>
+                )}
               </div>
             ))}
             {links.length < 5 && (
@@ -311,6 +319,12 @@ export function SettingsPanel() {
           <span className={helpClass}>
             Google · {me.email || "dawn@example.com"} (비공개)
           </span>
+        </div>
+        <div>
+          <Button variant="ghost" size="sm" onClick={() => wt.logout()}>
+            <Icon name="logout" size={15} />
+            로그아웃
+          </Button>
         </div>
         <div
           className={`${boxClass} flex flex-col gap-2.5 p-5`}

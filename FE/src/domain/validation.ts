@@ -1,3 +1,5 @@
+import type { LinkKind } from "@/api/types";
+import { LINK_LABEL } from "./options";
 import { POLICY } from "./policy";
 
 export type FieldState = "idle" | "format" | "ok" | "taken";
@@ -49,6 +51,48 @@ export function githubCheck(v: string): string | null {
   return /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(t)
     ? null
     : "GitHub 저장소 주소만 입력할 수 있어요. 예: https://github.com/아이디/저장소";
+}
+
+/* 프로필 외부 링크 — 유형마다 주소 형식을 검사한다(포트폴리오는 검사하지 않는다). https:// 는 생략해도 된다 */
+const LINK_RULES: Record<
+  Exclude<LinkKind, "portfolio">,
+  { host?: string; path?: RegExp; example: string }
+> = {
+  github: {
+    host: "github.com",
+    path: /^\/[A-Za-z0-9-]+(\/|$)/,
+    example: "github.com/아이디",
+  },
+  velog: {
+    host: "velog.io",
+    path: /^\/@[\w.-]+(\/|$)/,
+    example: "velog.io/@아이디",
+  },
+  instagram: {
+    host: "instagram.com",
+    path: /^\/[\w.]+(\/|$)/,
+    example: "instagram.com/아이디",
+  },
+  blog: { example: "blog.example.com" },
+};
+export function linkCheck(kind: LinkKind, v: string): string | null {
+  const t = v.trim();
+  if (!t || kind === "portfolio") return null;
+  const rule = LINK_RULES[kind];
+  const format = `올바른 주소 형식이 아니에요. 예: ${rule.example}`;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(t) && !/^https?:\/\//i.test(t)) return format;
+  let u: URL;
+  try {
+    u = new URL(/^https?:\/\//i.test(t) ? t : `https://${t}`);
+  } catch {
+    return format;
+  }
+  const host = u.hostname.replace(/^www\./, "");
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(host)) return format;
+  if (!rule.host) return null;
+  if (host !== rule.host || !rule.path?.test(u.pathname))
+    return `${LINK_LABEL[kind]} 주소만 입력할 수 있어요. 예: ${rule.example}`;
+  return null;
 }
 
 /* 아이디·닉네임 — R-ACCOUNT. takenHandles 는 서버 중복 확인을 대신하는 목록이다 */
