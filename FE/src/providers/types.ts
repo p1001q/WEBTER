@@ -4,7 +4,6 @@ import type {
   Comment,
   CommentInput,
   Notification,
-  OpenSourceItem,
   Rate,
   Review,
   ReviewInput,
@@ -61,7 +60,6 @@ export interface WtStore {
   readAllNotifications: () => void;
   deleteNotification: (id: string) => void;
   clearNotifications: () => void;
-  opensource: OpenSourceItem[];
   likes: Set<string>;
   saves: Set<string>;
   reported: Set<string>;

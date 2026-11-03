@@ -18,7 +18,6 @@ import { mockAiSearch } from "./intents";
 import {
   ME_ID,
   SEED_COMMENTS,
-  SEED_OPENSOURCE,
   SEED_REVIEWS,
   SEED_SERVICES,
   SEED_TAKEN_HANDLES,
@@ -52,7 +51,6 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
   let comments = clone(snap?.comments ?? SEED_COMMENTS);
   const users = clone(snap?.users ?? SEED_USERS);
   const notifications = clone(snap?.notifications ?? SEED_NOTIFICATIONS);
-  const opensource = clone(snap?.opensource ?? SEED_OPENSOURCE);
   const takenHandles = clone(snap?.takenHandles ?? SEED_TAKEN_HANDLES);
   if (!snap && opts.sample === "none") {
     const ids = services.filter((s) => s.owner === ME_ID).map((s) => s.id);
@@ -126,7 +124,6 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
         notifications: notifications.filter((n) =>
           services.some((s) => s.id === n.sid),
         ),
-        opensource,
         takenHandles,
         session,
       }),

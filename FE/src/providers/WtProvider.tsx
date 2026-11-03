@@ -297,7 +297,6 @@ export function WtProvider({
     guestReviewed,
     aiUsed,
     todayCount,
-    opensource: snap.opensource,
     takenHandles: snap.takenHandles,
     publicServices: services.filter((s) => s.pub === "public"),
     view,

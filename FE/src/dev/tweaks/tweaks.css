@@ -6,7 +6,3 @@
     --cols: 3 !important;
   }
 }
-
-:root[data-tw-scope="hide"] [data-component="scope-badge"] {
-  display: none;
-}

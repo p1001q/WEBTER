@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** 목록·검색·오픈소스 화면 위쪽의 제목과 설명 */
+/** 목록·검색 화면 위쪽의 제목과 설명 */
 export function ListHead({
   title,
   desc,

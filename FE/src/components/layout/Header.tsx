@@ -5,7 +5,6 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
-import { ScopeBadge } from "@/components/ui/ScopeBadge";
 import { cx } from "@/lib/cx";
 import { usePressHold } from "@/lib/usePressHold";
 import { useWt } from "@/providers/context";
@@ -180,20 +179,6 @@ export function Header() {
               로그인
             </Button>
           )}
-          <span className="inline-flex items-center gap-1">
-            <IconButton
-              shape="square"
-              className="@max-[385px]/app:size-9"
-              aria-label="오픈소스 영역"
-              title="오픈소스 영역"
-              onClick={() => wt.go("opensource")}
-            >
-              <Icon name="code" size={18} stroke={1.9} />
-            </IconButton>
-            <span className="inline-flex @max-[385px]/app:hidden">
-              <ScopeBadge />
-            </span>
-          </span>
         </div>
       </div>
     </header>

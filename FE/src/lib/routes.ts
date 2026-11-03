@@ -5,7 +5,6 @@ export type RouteName =
   | "popular"
   | "latest"
   | "search"
-  | "opensource"
   | "detail"
   | "profile"
   | "login"
@@ -28,7 +27,6 @@ export const ROUTE_PATHS: [RouteName, string][] = [
   ["popular", "/popular"],
   ["latest", "/latest"],
   ["search", "/search"],
-  ["opensource", "/opensource"],
   ["register", "/services/new"],
   ["edit", "/services/:id/edit"],
   ["registered", "/services/:id/registered"],

@@ -104,20 +104,6 @@ export interface Service {
   thumb: ThumbSpec;
 }
 
-export interface OpenSourceItem {
-  id: string;
-  name: string;
-  tagline: string;
-  owner: string;
-  created: string;
-  cats: CategoryId[];
-  github: string;
-  likes: number;
-  saves: number;
-  sc: ScoreBuckets;
-  thumb: ThumbSpec;
-}
-
 export interface User {
   id: string;
   nick: string;
@@ -232,7 +218,6 @@ export interface Snapshot {
   reviews: Review[];
   comments: Comment[];
   notifications: Notification[];
-  opensource: OpenSourceItem[];
   /** 이미 사용 중인 아이디 목록(실서비스에서는 중복 확인 API로 대체) */
   takenHandles: string[];
   session: SessionState;

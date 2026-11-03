@@ -1,4 +1,4 @@
-import type { OpenSourceItem, Service } from "@/api/types";
+import type { Service } from "@/api/types";
 import { POLICY } from "./policy";
 
 export type ScorePeriod = "d3" | "w" | "m" | "all";
@@ -15,5 +15,3 @@ export const scoreOf = (s: Service, period: ScorePeriod) =>
       : period === "m"
         ? s.sc[2]
         : scoreAll(s);
-export const osScoreAll = (o: OpenSourceItem) =>
-  o.likes * POLICY.osWeights.like + o.saves * POLICY.osWeights.save;

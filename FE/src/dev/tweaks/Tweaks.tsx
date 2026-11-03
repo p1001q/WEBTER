@@ -31,7 +31,6 @@ const JUMPS: [string, string, boolean?][] = [
   ["13 알림", "/notifications", true],
   ["14 제작자 프로필", "/users/u_bori"],
   ["14 프로필 · 없는 사용자", "/users/none"],
-  ["15 오픈소스", "/opensource"],
   ["16 이용약관", "/terms"],
   ["17 개인정보", "/privacy"],
   ["오류 · 없는 주소(404)", "/no-such-page"],
@@ -158,13 +157,6 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
           ["default", "기본 4개"],
           ["none", "없음"],
           ["stopped", "전부 운영 중지"],
-        ]),
-      )}
-      {row(
-        "확장 라벨",
-        seg("scope", [
-          [true, "표시"],
-          [false, "숨김"],
         ]),
       )}
       {row(
