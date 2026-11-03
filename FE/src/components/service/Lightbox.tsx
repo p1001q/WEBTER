@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Service } from "@/api/types";
 import { Icon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { PreviewInner } from "./PreviewInner";
 import { shotClass } from "./previewStyles";
 
@@ -19,6 +20,7 @@ export function Lightbox({
   index?: number;
   onClose: () => void;
 }) {
+  useScrollLock();
   const [i, setI] = useState(index || 0);
   const n = s.previews?.count ?? 0;
   const port = s.previews?.ratio === "port";
@@ -43,6 +45,15 @@ export function Lightbox({
         if (!(e.target as Element).closest("[data-keep-open]")) onClose();
       }}
     >
+      {/* 화면에는 보이지 않지만 키보드·화면 낭독기로 닫을 수 있는 버튼 */}
+      <button
+        type="button"
+        data-keep-open
+        className="sr-only"
+        onClick={onClose}
+      >
+        닫기
+      </button>
       <div className="flex max-h-full w-[min(100%,1100px)] animate-lightbox-in justify-center">
         <div
           data-keep-open

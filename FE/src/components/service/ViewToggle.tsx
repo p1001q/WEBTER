@@ -14,6 +14,7 @@ export function ViewToggle({
   return (
     <SegmentedControl
       compact
+      iconOnlyOnNarrow
       label="보기 방식"
       value={value}
       onChange={onChange}

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 const darkIconButton = "bg-white/10! text-white! hover:bg-white/20!";
 const OPEN_MS = 300;
@@ -34,6 +35,7 @@ export function ImageZoom({
   getOrigin: (i: number) => HTMLElement | null;
   onClose: () => void;
 }) {
+  useScrollLock();
   const [i, setI] = useState(index);
   const frame = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLDivElement>(null);
@@ -162,6 +164,10 @@ export function ImageZoom({
         </div>
       </div>
       <div ref={ctl}>
+        {/* 화면에는 보이지 않지만 키보드·화면 낭독기로 닫을 수 있는 버튼 */}
+        <button type="button" className="sr-only" onClick={close}>
+          닫기
+        </button>
         {n > 1 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-5 flex items-center justify-center gap-4 font-mono text-12 text-white [&>*]:pointer-events-auto">
             <IconButton

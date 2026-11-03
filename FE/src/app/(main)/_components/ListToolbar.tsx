@@ -37,7 +37,7 @@ export function ListToolbar({
         </div>
       )}
       <div className="mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 gap-y-3 border-b border-border py-3 @max-[1100px]/app:grid-cols-[1fr_auto]">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 @max-[560px]/app:order-1">
           <Button
             size="sm"
             variant={st.open ? "ink" : "ghost"}
@@ -62,21 +62,27 @@ export function ListToolbar({
               size="sm"
               on={st.f.cats.includes(c.id)}
               onClick={() =>
-                st.setF({
-                  ...st.f,
-                  cats: st.f.cats.includes(c.id)
-                    ? st.f.cats.filter((x) => x !== c.id)
-                    : [...st.f.cats, c.id],
-                })
+                st.setF((prev) => ({
+                  ...prev,
+                  cats: prev.cats.includes(c.id)
+                    ? prev.cats.filter((x) => x !== c.id)
+                    : [...prev.cats, c.id],
+                }))
               }
             >
               {c.label}
             </Chip>
           ))}
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {right}
-          <ViewToggle value={st.view} onChange={st.setView} />
+        <div className="flex flex-wrap items-center justify-end gap-2 @max-[560px]/app:contents">
+          {right && (
+            <div className="@max-[560px]/app:order-3 @max-[560px]/app:col-span-2">
+              {right}
+            </div>
+          )}
+          <div className="@max-[560px]/app:order-2 @max-[560px]/app:justify-self-end">
+            <ViewToggle value={st.view} onChange={st.setView} />
+          </div>
         </div>
       </div>
       <div

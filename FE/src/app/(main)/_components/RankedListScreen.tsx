@@ -8,7 +8,6 @@ import { ServiceList } from "@/components/service/ServiceList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { FILTER_DEFAULT, applyFilter } from "@/domain/filter";
-import { CAT } from "@/domain/options";
 import { POLICY } from "@/domain/policy";
 import { scoreOf } from "@/domain/score";
 import { inListTransition } from "@/lib/listTransition";
@@ -66,10 +65,7 @@ export function RankedListScreen({
     );
   } else {
     items = [...list].sort((a, b) => b.created.localeCompare(a.created));
-    title =
-      st.f.cats.length === 1
-        ? `최신 · ${CAT[st.f.cats[0] as keyof typeof CAT].label}`
-        : "최신";
+    title = "최신";
     desc = "최근에 등록된 순서예요.";
     ranked = false;
   }

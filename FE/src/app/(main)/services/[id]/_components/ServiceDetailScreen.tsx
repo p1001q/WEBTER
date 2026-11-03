@@ -162,7 +162,7 @@ export function ServiceDetailScreen({
         )}
         <ServiceOverview s={s} isOwner={isOwner} />
         <div
-          className="mt-8 grid grid-cols-5 border-y border-border @max-[860px]/app:grid-cols-3"
+          className="mt-8 grid grid-cols-5 border-y border-border @max-[860px]/app:grid-cols-6"
           data-component="detail-stats"
         >
           {cells.map((c, i) => (
@@ -171,6 +171,10 @@ export function ServiceDetailScreen({
               className={cx(
                 statCell,
                 i > 0 && "border-l",
+                // 좁은 화면: 윗줄 3칸(2씩), 아랫줄 2칸(3씩)으로 빈 칸 없이 채운다
+                i < 3
+                  ? "@max-[860px]/app:col-span-2"
+                  : "@max-[860px]/app:col-span-3",
                 i === 3 && "@max-[860px]/app:border-l-0",
                 i >= 3 && "@max-[860px]/app:border-t",
               )}

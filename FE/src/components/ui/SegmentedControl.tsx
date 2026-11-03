@@ -12,6 +12,8 @@ interface SegmentedControlProps<T extends string> {
   label: string;
   /** 아이콘이 있는 좁은 버튼(좌우 여백 10px) */
   compact?: boolean;
+  /** 좁은 화면(560px 이하)에서는 아이콘만 보인다. 이름은 접근성 라벨로 남는다 */
+  iconOnlyOnNarrow?: boolean;
 }
 
 /**
@@ -24,6 +26,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   label,
   compact,
+  iconOnlyOnNarrow,
 }: SegmentedControlProps<T>) {
   const wrap = useRef<HTMLDivElement>(null);
   const pill = useRef<HTMLSpanElement>(null);
@@ -80,10 +83,16 @@ export function SegmentedControl<T extends string>({
             value === v ? "text-white" : "text-muted",
           )}
           aria-pressed={value === v}
+          aria-label={iconOnlyOnNarrow ? text : undefined}
+          title={iconOnlyOnNarrow ? text : undefined}
           onClick={() => onChange(v)}
         >
           {icon && <Icon name={icon} size={15} />}
-          {text}
+          {iconOnlyOnNarrow ? (
+            <span className="@max-[560px]/app:hidden">{text}</span>
+          ) : (
+            text
+          )}
         </button>
       ))}
     </div>

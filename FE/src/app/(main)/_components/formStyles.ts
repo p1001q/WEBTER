@@ -40,4 +40,4 @@ export const removeImageClass =
 
 /** 큰 화면에서 스크롤을 따라오는 오른쪽 열 */
 export const stickyAsideClass =
-  "sticky top-[88px] -mx-1 flex max-h-[calc(100dvh-112px)] flex-col gap-4 overflow-y-auto overscroll-contain [&>*]:shrink-0 px-1 pt-1 pb-2 [scrollbar-width:thin] @max-[860px]/app:static @max-[860px]/app:mx-0 @max-[860px]/app:max-h-none @max-[860px]/app:overflow-visible @max-[860px]/app:p-0";
+  "sticky top-[88px] -mx-1 flex max-h-[calc(100dvh-112px)] flex-col gap-4 overflow-y-auto [&>*]:shrink-0 px-1 pt-1 pb-2 [scrollbar-width:thin] @max-[860px]/app:static @max-[860px]/app:mx-0 @max-[860px]/app:max-h-none @max-[860px]/app:overflow-visible @max-[860px]/app:p-0";

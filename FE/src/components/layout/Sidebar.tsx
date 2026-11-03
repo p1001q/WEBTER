@@ -7,6 +7,7 @@ import { CategoryGlyph } from "@/components/service/CategoryGlyph";
 import { CATEGORIES } from "@/domain/options";
 import { cx } from "@/lib/cx";
 import { useRoute } from "@/lib/useRoute";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { useWt } from "@/providers/context";
 import { Wordmark } from "./Wordmark";
 
@@ -42,14 +43,15 @@ export function Sidebar() {
     const t = setTimeout(() => setLeaving(false), 200);
     return () => clearTimeout(t);
   }, [leaving]);
+  useScrollLock(wt.side || leaving);
   if (!wt.side && !leaving) return null;
   const close = () => wt.setSide(false);
-  const cat = route.query.cat;
   const onList =
     route.name === "trending" ||
     route.name === "popular" ||
     route.name === "latest";
-  const curCat = cat || (onList ? "all" : null);
+  const picked = wt.listFilter.cats;
+  const curCat = onList ? (picked.length === 1 ? picked[0] : "all") : null;
   const live = wt.publicServices.filter((s) => s.use === "live");
   const counts = Object.fromEntries(
     CATEGORIES.map((c) => [
@@ -59,7 +61,9 @@ export function Sidebar() {
   );
   const goCat = (id: string) => {
     close();
-    wt.go("trending", id === "all" ? {} : { cat: id });
+    // 홈에서 용도를 고른 것과 같다: 필터에 그 용도만 고르고 트렌딩을 보여 준다
+    wt.setListFilter((prev) => ({ ...prev, cats: id === "all" ? [] : [id] }));
+    wt.go("trending");
   };
   const itemClass = (on: boolean) =>
     cx(
@@ -95,7 +99,7 @@ export function Sidebar() {
         <div className="flex-1 overflow-y-auto px-3 pt-2 pb-6">
           <div className={label}>서비스 용도</div>
           <button
-            className={itemClass(curCat === "all" && !cat)}
+            className={itemClass(curCat === "all")}
             onClick={() => goCat("all")}
           >
             전체<span className={cnt}>{live.length}</span>
