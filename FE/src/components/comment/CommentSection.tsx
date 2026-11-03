@@ -7,10 +7,18 @@ import { helpClass, labelClass } from "@/components/ui/field";
 import { Icon } from "@/components/ui/Icon";
 import { useWt } from "@/providers/context";
 import { CommentForm } from "./CommentForm";
+import { CommentListSkeleton } from "./CommentListSkeleton";
 import { CommentItem } from "./CommentItem";
 
 /** 서비스 상세의 댓글 탭: 작성 폼(회원만)과 댓글·답글 목록 */
-export function CommentSection({ s }: { s: Service }) {
+export function CommentSection({
+  s,
+  loading = false,
+}: {
+  s: Service;
+  /** 댓글 목록을 불러오는 중이면 자리 표시를 보인다(API 연동 때 연결) */
+  loading?: boolean;
+}) {
   const wt = useWt();
   const all = wt.comments.filter((c) => c.sid === s.id);
   const tops = all.filter((c) => !c.parent);
@@ -57,7 +65,9 @@ export function CommentSection({ s }: { s: Service }) {
         </div>
       )}
       <div className={`${helpClass} py-2`}>댓글 {total}개</div>
-      {tops.length ? (
+      {loading ? (
+        <CommentListSkeleton />
+      ) : tops.length ? (
         tops.map((c) => (
           <CommentItem key={c.id} c={c} s={s} replies={repliesOf.get(c.id)} />
         ))

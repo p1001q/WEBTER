@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
+import { cx } from "@/lib/cx";
+import { shimmer } from "./Skeleton";
 
 /**
  * 이미지 주소가 깨졌을 때(삭제됨·접근 차단·형식 오류) 브라우저의 깨진 이미지 표시 대신 fallback 을 그린다.
@@ -8,17 +10,22 @@ import { useState, type CSSProperties, type ReactNode } from "react";
  */
 function useBadImage(src: string) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   // 주소가 바뀌면 이전 실패는 버린다(같은 주소로 되돌아와도 다시 불러온다)
   const [seen, setSeen] = useState(src);
   if (seen !== src) {
     setSeen(src);
     setFailed(false);
+    setLoaded(false);
   }
   const onError = () => setFailed(true);
+  const onLoad = () => setLoaded(true);
   const attach = (el: HTMLImageElement | null) => {
-    if (el?.complete && el.naturalWidth === 0) setFailed(true);
+    if (!el?.complete) return;
+    if (el.naturalWidth === 0) setFailed(true);
+    else setLoaded(true);
   };
-  return [failed, onError, attach] as const;
+  return [failed, onError, attach, loaded, onLoad] as const;
 }
 
 interface ImgProps {
@@ -31,7 +38,7 @@ interface ImgProps {
 
 /** 이미지 한 장. 실패하면 이미지 자리에 fallback 을 그린다 */
 export function SafeImg({ src, className, style, fallback }: ImgProps) {
-  const [failed, onError, attach] = useBadImage(src);
+  const [failed, onError, attach, loaded, onLoad] = useBadImage(src);
   if (failed) return <>{fallback}</>;
   return (
     // 사용자가 올린 이미지의 크기·출처를 알 수 없어 next/image 최적화를 쓰지 않는다.
@@ -40,9 +47,14 @@ export function SafeImg({ src, className, style, fallback }: ImgProps) {
       ref={attach}
       src={src}
       alt=""
-      className={className}
+      className={cx(
+        className,
+        "transition-opacity duration-300",
+        !loaded && "opacity-0",
+      )}
       style={style}
       onError={onError}
+      onLoad={onLoad}
     />
   );
 }
@@ -63,18 +75,23 @@ export function ImgFrame({
   imgStyle?: CSSProperties;
   fallback: ReactNode;
 }) {
-  const [failed, onError, attach] = useBadImage(src);
+  const [failed, onError, attach, loaded, onLoad] = useBadImage(src);
   if (failed) return <>{fallback}</>;
   return (
-    <div className={frameClassName} style={frameStyle}>
+    <div className={cx(frameClassName, !loaded && shimmer)} style={frameStyle}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={attach}
         src={src}
         alt=""
-        className={imgClassName}
+        className={cx(
+          imgClassName,
+          "transition-opacity duration-300",
+          !loaded && "opacity-0",
+        )}
         style={imgStyle}
         onError={onError}
+        onLoad={onLoad}
       />
     </div>
   );

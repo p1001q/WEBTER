@@ -12,6 +12,7 @@ import { cx } from "@/lib/cx";
 import { useTween } from "@/lib/useTween";
 import { useWt } from "@/providers/context";
 import { RatingVote } from "./RatingVote";
+import { ReviewListSkeleton } from "./ReviewListSkeleton";
 import { RatioBar } from "./RatioBar";
 import { ReviewForm } from "./ReviewForm";
 import { ReviewItem } from "./ReviewItem";
@@ -31,7 +32,14 @@ const GRADE_TEXT: Record<Grade, string> = {
 const linkClass = "font-bold text-navy underline underline-offset-[3px]";
 
 /** 서비스 상세의 리뷰 탭: 평가 요약, 작성 폼(권한별), 리뷰 목록 */
-export function ReviewSection({ s }: { s: Service }) {
+export function ReviewSection({
+  s,
+  loading = false,
+}: {
+  s: Service;
+  /** 리뷰 목록을 불러오는 중이면 자리 표시를 보인다(API 연동 때 연결) */
+  loading?: boolean;
+}) {
   const wt = useWt();
   const agg = wt.agg(s);
   const ratioShown = useTween(agg.ratio ?? 0, 650);
@@ -168,7 +176,9 @@ export function ReviewSection({ s }: { s: Service }) {
         <RatingVote s={s} />
       </div>
       {form}
-      {list.length || agg.total ? (
+      {loading ? (
+        <ReviewListSkeleton />
+      ) : list.length || agg.total ? (
         <>
           <div className={`${helpClass} py-2`}>
             전체 리뷰 {agg.total}개 중 최근 {list.length}개를 표시하고 있어요.

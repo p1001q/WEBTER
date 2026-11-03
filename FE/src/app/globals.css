@@ -136,6 +136,8 @@
   --animate-fade-out: wtFadeOut 0.2s ease forwards;
   --animate-slide-out: wtSlideOut 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
   --animate-enter: wtEnter 0.25s ease;
+  --animate-toast-in: wtToastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-toast-out: wtToastOut 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
   --animate-unfold: wtUnfold 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-fold: wtFold 0.19s cubic-bezier(0.4, 0, 1, 1) forwards;
   --animate-lightbox-in: wtLightIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -219,6 +221,22 @@
       clip-path: inset(-24px -24px 100% -24px);
       transform: translateY(-8px);
       opacity: 0.4;
+    }
+  }
+  @keyframes wtToastIn {
+    from {
+      opacity: 0;
+      transform: translateY(24px) scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes wtToastOut {
+    to {
+      opacity: 0;
+      transform: translateY(14px) scale(0.96);
     }
   }
   @keyframes wtFadeOut {
