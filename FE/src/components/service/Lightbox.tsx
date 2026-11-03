@@ -35,18 +35,17 @@ export function Lightbox({
     <div
       className="fixed inset-0 z-[65] flex animate-fade flex-col items-center justify-center gap-4 bg-[rgb(20_20_20/0.92)] px-18 py-14"
       role="dialog"
+      data-lightbox
       aria-modal="true"
       aria-label={`${s.name} 미리보기 확대`}
+      onClick={(e) => {
+        // 이미지와 버튼이 아닌 곳을 누르면 닫는다
+        if (!(e.target as Element).closest("[data-keep-open]")) onClose();
+      }}
     >
-      <IconButton
-        className={`absolute top-4 right-4 ${darkIconButton}`}
-        onClick={onClose}
-        aria-label="닫기"
-      >
-        <Icon name="close" size={20} />
-      </IconButton>
-      <div className="flex max-h-full w-[min(100%,1100px)] justify-center">
+      <div className="flex max-h-full w-[min(100%,1100px)] animate-lightbox-in justify-center">
         <div
+          data-keep-open
           className={shotClass(port)}
           style={
             port
@@ -59,6 +58,7 @@ export function Lightbox({
       </div>
       <div className="flex items-center gap-4 font-mono text-12 text-white">
         <IconButton
+          data-keep-open
           className={darkIconButton}
           aria-label="이전 이미지"
           onClick={() => setI((i - 1 + n) % n)}
@@ -69,6 +69,7 @@ export function Lightbox({
           {i + 1} / {n}
         </span>
         <IconButton
+          data-keep-open
           className={darkIconButton}
           aria-label="다음 이미지"
           onClick={() => setI((i + 1) % n)}

@@ -23,7 +23,7 @@ export function Footer() {
             </RouteLink>
           </div>
           <div>
-            문의 <span className="font-mono">tndus10@skuniv.ac.kr</span> (임시)
+            문의 <span className="font-mono">tndus10@skuniv.ac.kr</span>
           </div>
         </div>
         <div className="w-full text-12">

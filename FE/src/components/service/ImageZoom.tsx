@@ -148,9 +148,8 @@ export function ImageZoom({
       <div className="pointer-events-none absolute inset-0 grid place-items-center">
         <div
           ref={frame}
-          className="pointer-events-auto relative cursor-zoom-out overflow-hidden rounded-md bg-light shadow-pop"
+          className="pointer-events-auto relative overflow-hidden rounded-md bg-light shadow-pop"
           style={{ ...size, transformOrigin: "0 0" }}
-          onClick={close}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -163,16 +162,8 @@ export function ImageZoom({
         </div>
       </div>
       <div ref={ctl}>
-        <IconButton
-          className={`absolute top-4 right-4 ${darkIconButton}`}
-          onClick={close}
-          aria-label="닫기"
-          autoFocus
-        >
-          <Icon name="close" size={20} />
-        </IconButton>
         {n > 1 && (
-          <div className="absolute inset-x-0 bottom-5 flex items-center justify-center gap-4 font-mono text-12 text-white">
+          <div className="pointer-events-none absolute inset-x-0 bottom-5 flex items-center justify-center gap-4 font-mono text-12 text-white [&>*]:pointer-events-auto">
             <IconButton
               className={darkIconButton}
               aria-label="이전 이미지"

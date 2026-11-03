@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScopeBadge } from "@/components/ui/ScopeBadge";
 import { cx } from "@/lib/cx";
+import { usePressHold } from "@/lib/usePressHold";
 import { useWt } from "@/providers/context";
 import { Wordmark } from "./Wordmark";
 
@@ -44,9 +45,10 @@ export function Header() {
   }
   useEffect(() => {
     if (!leaving) return;
-    const t = setTimeout(() => setLeaving(false), 140);
+    const t = setTimeout(() => setLeaving(false), 190);
     return () => clearTimeout(t);
   }, [leaving]);
+  const press = usePressHold(340);
   const me = wt.me;
   const register = () =>
     wt.requireLogin(
@@ -96,7 +98,11 @@ export function Header() {
           </IconButton>
           <Button
             variant="outline"
-            className="transition-[color,background-color,scale]! duration-150 active:scale-[.93]! @max-[560px]/app:hidden"
+            className={cx(
+              "transition-[color,background-color,scale]! duration-[380ms]! ease-[cubic-bezier(0.22,1,0.36,1)]! @max-[560px]/app:hidden",
+              press.pressed && "scale-[.88]! bg-black! text-white!",
+            )}
+            {...press.bind}
             onClick={register}
           >
             <Icon name="plus" size={16} stroke={2.2} />
@@ -126,8 +132,8 @@ export function Header() {
                   className={cx(
                     "absolute top-[calc(100%+8px)] right-0 z-40 min-w-[248px] rounded-md border border-border bg-card p-1.5 shadow-pop",
                     leaving
-                      ? "pointer-events-none animate-pop-out"
-                      : "animate-pop-sm",
+                      ? "pointer-events-none animate-fold"
+                      : "animate-unfold",
                   )}
                   role="menu"
                 >
