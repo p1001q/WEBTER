@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type SetStateAction } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip, chipClass } from "@/components/ui/Chip";
 import {
@@ -21,14 +21,16 @@ export function FilterPanel({
   setF,
 }: {
   f: FilterState;
-  setF: (f: FilterState) => void;
+  setF: (next: SetStateAction<FilterState>) => void;
 }) {
   const P = useId();
   const tog = (k: FilterKey, v: string) =>
-    setF({
-      ...f,
-      [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v],
-    });
+    setF((prev) => ({
+      ...prev,
+      [k]: prev[k].includes(v)
+        ? prev[k].filter((x) => x !== v)
+        : [...prev[k], v],
+    }));
   const row = (
     k: FilterKey,
     label: string,
@@ -89,9 +91,11 @@ export function FilterPanel({
           variant="text"
           size="sm"
           className="ml-auto"
-          onClick={() => setF({ ...FILTER_DEFAULT, cats: f.cats })}
+          onClick={() =>
+            setF((prev) => ({ ...FILTER_DEFAULT, cats: prev.cats }))
+          }
         >
-          초기화
+          용도 제외 초기화
         </Button>
       </div>
     </div>

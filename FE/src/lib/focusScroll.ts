@@ -2,6 +2,7 @@ const TARGET =
   "input:not([type=file]), textarea, select, button[aria-pressed], [role=radio], [role=switch], label:has(input[type=file])";
 
 /** 아래쪽 요소가 올라와 놓이는 선: 화면 중앙선(50%)보다 살짝 아래(60%) */
+const CENTER_LINE = 0.5;
 const LOWER_LINE = 0.6;
 /** 위쪽 요소가 내려와 놓이는 선: 중앙선 위쪽 절반의 중앙(25%) */
 const UPPER_LINE = 0.25;
@@ -20,10 +21,12 @@ export function scrollFieldIntoFocus(target: EventTarget) {
   const el = target.closest(TARGET);
   if (!el) return;
   const vh = window.innerHeight;
-  const top = el.getBoundingClientRect().top;
+  const { top, bottom } = el.getBoundingClientRect();
   let delta = 0;
   if (top > vh * LOWER_LINE + SLACK) delta = top - vh * LOWER_LINE;
-  else if (top < vh * UPPER_LINE) delta = top - vh * UPPER_LINE;
+  // 긴 칸(예: 텍스트 영역)은 위쪽 끝만 보고 아래로 내리지 않는다. 칸 전체가 중앙선 위에 있을 때만 내려온다
+  else if (top < vh * UPPER_LINE && bottom <= vh * CENTER_LINE)
+    delta = top - vh * UPPER_LINE;
   if (!delta) return;
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   window.scrollBy({ top: delta, behavior: reduce ? "auto" : "smooth" });

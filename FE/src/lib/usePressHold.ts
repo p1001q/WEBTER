@@ -28,6 +28,10 @@ export function usePressHold(minMs = 320) {
       onPointerDown: down,
       onPointerUp: up,
       onPointerLeave: up,
+      // 누른 채 벗어났다가 다시 들어오면 눌린 상태로 돌아간다
+      onPointerEnter: (e: React.PointerEvent) => {
+        if (e.buttons) down();
+      },
       onPointerCancel: up,
       onKeyDown: (e: React.KeyboardEvent) => {
         if ((e.key === "Enter" || e.key === " ") && !e.repeat) down();

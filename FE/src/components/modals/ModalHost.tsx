@@ -9,6 +9,7 @@ import { Lightbox } from "@/components/service/Lightbox";
 import { LoginPromptModal } from "./LoginPromptModal";
 import { ReportModal } from "./ReportModal";
 import { ReviewEditModal } from "./ReviewEditModal";
+import { ReviewRateConfirmModal } from "./ReviewRateConfirmModal";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 import { StopReasonModal } from "./StopReasonModal";
 import { VersionModal } from "./VersionModal";
@@ -39,7 +40,11 @@ export function ModalHost() {
   const shown = wt.modal ?? (leaving ? last : null);
   if (!shown) return null;
   return (
-    <div className="contents" data-modal-leaving={wt.modal ? undefined : ""}>
+    <div
+      className="contents"
+      data-modal-leaving={wt.modal ? undefined : ""}
+      inert={!wt.modal}
+    >
       <ModalBody m={shown} />
     </div>
   );
@@ -109,6 +114,15 @@ function ModalBody({ m }: { m: ModalState }) {
     case "review":
       return s ? (
         <ReviewEditModal s={s} review={m.review} onClose={close} />
+      ) : null;
+    case "confirm-review-edit":
+      return s ? (
+        <ReviewRateConfirmModal
+          s={s}
+          review={m.review}
+          rate={m.rate}
+          onClose={close}
+        />
       ) : null;
     case "versions":
       return s ? <VersionModal s={s} onClose={close} /> : null;

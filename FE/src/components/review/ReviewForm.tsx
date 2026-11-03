@@ -63,11 +63,20 @@ export function ReviewForm({
         ? "none"
         : (syncRate ?? null),
   );
+  // 위쪽 추천·비추천 버튼으로 바뀐 평가는 이 폼에 따라온다. 이 폼에서 직접 고른 평가가 되돌아온 것은 무시한다
   const [prevSync, setPrevSync] = useState(syncRate);
+  const [own, setOwn] = useState(false);
   if (prevSync !== syncRate) {
     setPrevSync(syncRate);
-    if (role === "member" && !initial) setRate(syncRate ?? null);
+    if (own) setOwn(false);
+    else if (role === "member" && !initial) setRate(syncRate ?? null);
   }
+  const pickRate = (r: Rate) => {
+    setRate(r);
+    if (!onRate) return;
+    if ((syncRate ?? null) !== (r === "none" ? null : r)) setOwn(true);
+    onRate(r);
+  };
   const [text, setText] = useState(initial ? initial.text : "");
   const [anon, setAnon] = useState(initial ? initial.a.kind === "anon" : false);
   const link = hasLink(text);
@@ -94,7 +103,7 @@ export function ReviewForm({
     for (let n = 1; n <= RATES.length; n++) {
       const to = (from + step * n + RATES.length * n) % RATES.length;
       if (rateDisabled(RATES[to][0])) continue;
-      setRate(RATES[to][0]);
+      pickRate(RATES[to][0]);
       (e.currentTarget.parentElement?.children[to] as HTMLElement).focus();
       return;
     }
@@ -124,10 +133,7 @@ export function ReviewForm({
                   rate === r ? cx(on, "scale-105") : "border-border bg-card",
                 )}
                 disabled={rateDisabled(r)}
-                onClick={() => {
-                  setRate(r);
-                  onRate?.(r);
-                }}
+                onClick={() => pickRate(r)}
               >
                 <Icon name={icon} size={15} />
                 {label}

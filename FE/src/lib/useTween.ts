@@ -19,6 +19,12 @@ export function useTween(value: number, ms = 450) {
     const t0 = performance.now();
     let raf = 0;
     const tick = (now: number) => {
+      // 움직이는 도중에 모션 줄이기 설정이 켜지면 바로 목표값으로 맞춘다
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        from.current = value;
+        setShown(value);
+        return;
+      }
       const p = Math.min(1, (now - t0) / ms);
       const eased = 1 - Math.pow(1 - p, 3);
       const cur = start + (value - start) * eased;

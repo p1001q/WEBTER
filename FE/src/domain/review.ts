@@ -74,6 +74,6 @@ export const authorName = (a: Review["a"], users: Record<string, User>) =>
 
 /** 리뷰·답글 링크 입력 제한 */
 export const hasLink = (t: string) =>
-  /(https?:\/\/|www\.|[a-z0-9-]+\.(com|net|kr|io|app|dev|co|org|me|xyz|ly|site)\b)/i.test(
+  /(https?:\/\/|www\.|[a-z0-9-]+\.(com|net|kr|io|app|dev|co|org|me|xyz|ly|site|ai|info|biz|tv|cc)\b)/i.test(
     t,
   );

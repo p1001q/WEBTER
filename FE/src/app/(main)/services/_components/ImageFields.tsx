@@ -107,7 +107,11 @@ export function ImageFields({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-2" data-component="image-upload">
+    <div
+      className="flex min-w-0 flex-col gap-2"
+      data-component="image-upload"
+      inert={zoom !== null}
+    >
       <span className={labelClass}>
         이미지{" "}
         <span className={optionalClass}>
@@ -116,7 +120,7 @@ export function ImageFields({
         </span>
       </span>
       <div className="grid grid-cols-[120px_1fr] gap-4 @max-[560px]/app:grid-cols-1">
-        <div className="relative aspect-square">
+        <div className="relative aspect-square @max-[560px]/app:w-[120px]">
           {f.iconImg ? (
             <>
               <div

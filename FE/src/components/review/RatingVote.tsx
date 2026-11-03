@@ -33,7 +33,18 @@ export function RatingVote({ s }: { s: Service }) {
         aria-label={label}
         title={reason ?? label}
         disabled={!!reason}
-        onClick={() => wt.vote(s.id, rate)}
+        onClick={() => {
+          const mine = wt.myReview(s.id);
+          // 리뷰가 있으면 바로 바꾸지 않고 리뷰를 수정할지 묻는다. 고른 평가를 다시 누르면 미설정으로 바꾸는 수정이다
+          if (mine)
+            wt.setModal({
+              type: "confirm-review-edit",
+              sid: s.id,
+              review: mine,
+              rate: my === rate ? "none" : rate,
+            });
+          else wt.vote(s.id, rate);
+        }}
         className={cx(
           "grid size-12 place-items-center rounded-full transition-[transform,color,opacity] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:cursor-not-allowed disabled:opacity-35",
           sel
