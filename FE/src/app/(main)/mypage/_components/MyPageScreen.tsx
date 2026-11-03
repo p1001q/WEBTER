@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Service } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
 import { ServiceCard } from "@/components/service/ServiceCard";
@@ -18,7 +19,7 @@ import { helpClass } from "@/components/ui/field";
 import { fmtDate } from "@/domain/format";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
-import type { MyPageTab as Tab } from "../tabs";
+import { MYPAGE_TABS, type MyPageTab as Tab } from "../tabs";
 import { SettingsPanel } from "./SettingsPanel";
 
 const reviewText =
@@ -90,8 +91,22 @@ function SavedHiddenCard({ s }: { s: Service }) {
 }
 
 /** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·계정 설정 */
-export function MyPageScreen({ tab }: { tab: Tab }) {
+export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   const wt = useWt();
+  // 탭이 오른쪽으로 가면 본문도 오른쪽에서, 왼쪽으로 가면 왼쪽에서 들어온다
+  const [slide, setSlide] = useState<"r" | "l">("r");
+  // 탭은 바로 바뀌고(주소 갱신을 기다리지 않는다), 주소가 바뀌면 그 값을 따른다
+  const [tab, setTab] = useState<Tab>(tabParam);
+  const goTab = (t: Tab) => {
+    setSlide(MYPAGE_TABS.indexOf(t) >= MYPAGE_TABS.indexOf(tab) ? "r" : "l");
+    setTab(t);
+    wt.go("mypage", { tab: t }, { replace: true });
+  };
+  const [prevParam, setPrevParam] = useState(tabParam);
+  if (prevParam !== tabParam) {
+    setPrevParam(tabParam);
+    setTab(tabParam);
+  }
   const me = wt.me!;
   const mine = wt.services.filter((s) => s.owner === me.id);
   const saved = wt.services.filter((s) => wt.saves.has(s.id));
@@ -112,54 +127,74 @@ export function MyPageScreen({ tab }: { tab: Tab }) {
               <small className="font-mono text-14 font-medium text-muted">
                 @{me.handle}
               </small>
+              <RouteLink
+                to="profile"
+                params={{ id: me.id }}
+                className="text-13 font-medium text-muted underline underline-offset-[3px] hover:text-ink"
+              >
+                내 프로필 보기
+              </RouteLink>
             </h1>
             {me.bio && <p className="m-0 text-text-2">{me.bio}</p>}
-            <div className="flex flex-wrap gap-5 text-14 text-muted [&_b]:mr-0.5 [&_b]:font-extrabold [&_b]:text-ink">
+            <div className="flex flex-wrap gap-5 text-14 text-muted [&_b]:ml-0.5 [&_b]:font-extrabold [&_b]:text-ink">
               <span>
-                <b>{mine.length}</b>내 서비스
+                내 서비스<b>{mine.length}</b>
               </span>
               <span>
-                <b>{saved.length}</b>저장
+                저장<b>{saved.length}</b>
               </span>
               <span>
-                <b>{myReviews.length}</b>리뷰
+                리뷰<b>{myReviews.length}</b>
               </span>
               <span>
-                <b>{myComments.length}</b>댓글
+                댓글<b>{myComments.length}</b>
               </span>
             </div>
           </div>
-          <RouteLink
-            to="profile"
-            params={{ id: me.id }}
-            className={buttonClass({ variant: "ghost" })}
-          >
-            내 프로필 보기
-          </RouteLink>
         </div>
         <Tabs<Tab>
-          value={tab}
-          onChange={(t) => wt.go("mypage", { tab: t }, { replace: true })}
+          // 리뷰와 댓글은 한 탭("리뷰·댓글")으로 묶고, 안에서 하위 탭으로 나눈다
+          value={tab === "comments" ? "reviews" : tab}
+          onChange={goTab}
           items={[
             ["services", "내 서비스", mine.length],
             ["saved", "저장한 서비스", saved.length],
-            ["reviews", "내가 쓴 리뷰", myReviews.length],
-            ["comments", "내가 쓴 댓글", myComments.length],
+            ["reviews", "리뷰·댓글", myReviews.length + myComments.length],
             ["settings", "계정 설정"],
           ]}
         />
-        <div className="pt-6">
+        {(tab === "reviews" || tab === "comments") && (
+          <div className="mt-2">
+            <Tabs<Tab>
+              value={tab}
+              onChange={goTab}
+              items={[
+                ["reviews", "내가 쓴 리뷰", myReviews.length],
+                ["comments", "내가 쓴 댓글", myComments.length],
+              ]}
+            />
+          </div>
+        )}
+        <div
+          key={tab}
+          className={cx(
+            "pt-6",
+            slide === "r" ? "animate-slide-in-r" : "animate-slide-in-l",
+          )}
+        >
+          {tab === "services" && mine.length > 0 && (
+            <div className="mb-4 flex justify-end">
+              <RouteLink
+                to="manage"
+                className={buttonClass({ variant: "ghost", size: "sm" })}
+              >
+                <Icon name="grid" size={14} />내 서비스 관리로 이동
+              </RouteLink>
+            </div>
+          )}
           {tab === "services" &&
             (mine.length ? (
               <>
-                <div className="mb-4 flex justify-end">
-                  <RouteLink
-                    to="manage"
-                    className={buttonClass({ variant: "ghost", size: "sm" })}
-                  >
-                    <Icon name="grid" size={14} />내 서비스 관리로 이동
-                  </RouteLink>
-                </div>
                 <ServiceList
                   items={mine}
                   renderItem={(s) =>

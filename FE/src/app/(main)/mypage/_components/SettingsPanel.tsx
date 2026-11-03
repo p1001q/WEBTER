@@ -18,9 +18,10 @@ import {
   selectClass,
 } from "@/components/ui/field";
 import { CATEGORIES, LINK_LABEL } from "@/domain/options";
-import { POLICY } from "@/domain/policy";
+import { DISPLAY, POLICY } from "@/domain/policy";
 import {
   handleCheck,
+  handleChangeStatus,
   imageError,
   linkCheck,
   msgState,
@@ -56,8 +57,12 @@ export function SettingsPanel() {
   const [avErr, setAvErr] = useState("");
   /** 사진 읽기 순번. 새로 고르거나 되돌리면 올려서 늦게 끝난 이전 읽기를 버린다 */
   const avatarRun = useRef(0);
-  const hc = handleCheck(handle, wt.takenHandles, me.handle);
-  const nc = nickCheck(nick);
+  const hc = handleCheck(handle, wt.takenHandles, me.handle, {
+    required: true,
+  });
+  const nc = nickCheck(nick, { required: true });
+  const hs = handleChangeStatus(me.handleChanges, DISPLAY.demoToday);
+  const handleLocked = hs.left === 0;
   const dirty =
     nick !== me.nick ||
     handle !== me.handle ||
@@ -191,6 +196,7 @@ export function SettingsPanel() {
                 id={P + "set-id"}
                 className={cx(inputClass, "font-mono", errBorder(hc.state))}
                 value={handle}
+                disabled={handleLocked}
                 onChange={(e) => setHandle(e.target.value.toLowerCase())}
               />
               <FieldMessage state={msgState(hc.state)}>
@@ -198,6 +204,11 @@ export function SettingsPanel() {
                   ? "현재 아이디예요. 바꿔도 내 서비스·리뷰 연결은 유지돼요."
                   : hc.msg}
               </FieldMessage>
+              <span className={helpClass}>
+                {handleLocked
+                  ? `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. ${hs.waitDays}일 뒤에 다시 바꿀 수 있어요.`
+                  : `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. (남은 횟수 ${hs.left}번)`}
+              </span>
             </div>
           </div>
           <div className={fieldClass}>

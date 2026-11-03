@@ -33,10 +33,12 @@ export function Tabs<T extends string>({
     r.dataset.ready = "";
     if (!animate) void b.offsetWidth;
   }, []);
+  // 선택이 바뀌거나, 탭의 숫자가 바뀌어 탭 너비가 달라져도 밑줄을 다시 맞춘다
+  const layoutKey = items.map(([, , count]) => count ?? "").join("|");
   useLayoutEffect(() => {
     place(placed.current);
     placed.current = true;
-  }, [value, place]);
+  }, [value, layoutKey, place]);
   useEffect(() => {
     const r = root.current;
     if (!r) return;

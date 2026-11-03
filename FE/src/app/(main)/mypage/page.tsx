@@ -14,7 +14,7 @@ export default async function MyPage({
   const tab = oneOf((await searchParams).tab, MYPAGE_TABS) ?? "services";
   return (
     <AuthGate>
-      <MyPageScreen key={tab} tab={tab} />
+      <MyPageScreen tab={tab} />
     </AuthGate>
   );
 }

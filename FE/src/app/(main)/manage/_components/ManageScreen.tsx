@@ -6,7 +6,6 @@ import { Footer } from "@/components/layout/Footer";
 import { GradeBadge } from "@/components/review/GradeBadge";
 import { ServiceIcon } from "@/components/service/ServiceIcon";
 import { StatusBadge } from "@/components/service/StatusBadge";
-import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -43,12 +42,6 @@ export function ManageScreen() {
           flush
           title="내 서비스 관리"
           desc="내가 등록한 서비스의 운영 상태와 반응을 확인하고 관리해요."
-          action={
-            <Button className="ml-auto" onClick={() => wt.go("register")}>
-              <Icon name="plus" size={16} stroke={2.2} />
-              서비스 등록
-            </Button>
-          }
         />
         {mine.length === 0 ? (
           <div className={`${boxClass} mt-6`}>
