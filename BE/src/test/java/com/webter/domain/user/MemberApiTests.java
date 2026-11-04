@@ -205,6 +205,27 @@ class MemberApiTests extends DomainFixtureTest {
 	}
 
 	@Test
+	void koreanDomainLinksAreAcceptedAsEnteredAndUserInfoIsRejected() throws Exception {
+		User user = createUser("idn_user");
+		mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(profile("idn_user", "닉네임", "\"\"",
+					"[{\"kind\":\"portfolio\",\"url\":\"https://한글.example/포트폴리오\"},{\"kind\":\"blog\",\"url\":\"블로그.한국:8443\"}]",
+					"[]")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.links[?(@.kind=='portfolio')].url").value("https://한글.example/포트폴리오"))
+			.andExpect(jsonPath("$.data.links[?(@.kind=='blog')].url").value("https://블로그.한국:8443"));
+
+		for (String url : List.of("https://user@example.com", "https://user:pw@한글.example", "https://-한글-.example")) {
+			mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(profile("idn_user", "닉네임", "\"\"", "[{\"kind\":\"portfolio\",\"url\":\"" + url + "\"}]", "[]")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("USER_400_03"));
+		}
+	}
+
+	@Test
 	void linkLimitIncludesAddedHttpsScheme() throws Exception {
 		User user = createUser("link_limit");
 		String address = "https://example.com/" + "a".repeat(300 - "https://example.com/".length());
