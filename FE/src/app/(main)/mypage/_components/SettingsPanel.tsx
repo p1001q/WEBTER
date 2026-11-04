@@ -314,6 +314,11 @@ export function SettingsPanel() {
                 )}
               </div>
             ))}
+            {dupKind && (
+              <FieldMessage state="err">
+                같은 종류의 링크는 하나만 저장할 수 있어요.
+              </FieldMessage>
+            )}
             {links.length < 5 && (
               <Button
                 variant="ghost"

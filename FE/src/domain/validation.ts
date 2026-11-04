@@ -84,9 +84,8 @@ export function linkCheck(kind: LinkKind, v: string): string | null {
   if (!t) return null;
   if (normalizeLink(t).length > PROFILE_LINK_MAX)
     return `주소는 https:// 를 포함해 ${PROFILE_LINK_MAX}자까지 입력할 수 있어요.`;
-  if (kind === "portfolio") return null;
-  const rule = LINK_RULES[kind];
-  const format = `올바른 주소 형식이 아니에요. 예: ${rule.example}`;
+  const rule = kind === "portfolio" ? undefined : LINK_RULES[kind];
+  const format = `올바른 주소 형식이 아니에요. 예: ${rule?.example ?? "portfolio.example.com"}`;
   if (/^[a-z][a-z0-9+.-]*:/i.test(t) && !/^https?:\/\//i.test(t)) return format;
   let u: URL;
   try {
@@ -94,6 +93,10 @@ export function linkCheck(kind: LinkKind, v: string): string | null {
   } catch {
     return format;
   }
+  // 서버는 주소에 사용자 정보(user@)가 있으면 거절한다
+  if (u.username || u.password) return format;
+  // 포트폴리오는 호스트 규칙 없이 주소 형식만 검사한다
+  if (!rule) return null;
   const host = u.hostname.replace(/^www\./, "");
   if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(host)) return format;
   if (!rule.host) return null;
