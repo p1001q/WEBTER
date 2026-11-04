@@ -2199,7 +2199,7 @@ function homePage(A) {
     latest: { title: '새로 등록된 서비스', sub: '등록일순', more: '#latest', list: sortBy(base, 'latest'), rank: false },
   };
   const interestLine = interests.length ? `<div class="wt-interest">${I('circleDot', 16)}<span>관심 카테고리: <b>${interests.map((c) => CAT_LABEL[c]).join(', ')}</b></span><a class="wt-more" style="margin-left:4px" href="#mypage?tab=settings">변경</a></div>` : '';
-  return `<div class="wt-wrap"><section class="wt-hero"><h1 class="wt-hero-title">오늘은 어떤 웹을 만나볼까요?</h1><p class="wt-hero-sub">설치 없이 버튼 하나로. 개발자들이 직접 만든 웹들을 만나봐요.</p>
+  return `<div class="wt-wrap"><section class="wt-hero"><h1 class="wt-hero-title">오늘은 어떤 웹을 만나볼까요?</h1><p class="wt-hero-sub">찾던 웹도, 몰랐던 웹도 이곳에서! 설치 없이 버튼 하나로 만나봐요</p>
       <div class="wt-hero-search">${searchBar(A, {})}${exampleChips(A)}</div>${interestLine}</section>
     ${VIEW.homeSections.map((k) => { const c = secs[k]; return `<section class="wt-sec">${secHead(c.title, c.sub, c.more)}${renderServices(A, c.list.slice(0, n).map((s) => ({ s })), { rank: c.rank, cols: A.s.cols, card: true })}</section>`; }).join('')}</div>`;
 }
