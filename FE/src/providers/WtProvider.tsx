@@ -461,7 +461,11 @@ export function WtProvider({
       act("탈퇴 처리하지", async () => {
         // 실제 로그인에서는 서버가 계정을 지운 뒤에 화면의 서비스·리뷰 목업 상태를 정리한다
         if (realAuth) await submitWithdraw();
-        const r = await api.withdraw();
+        const r = await api.withdraw().catch(async (e) => {
+          // 서버 계정은 이미 삭제됐으므로 화면의 로그인 상태도 해제한다
+          if (realAuth) applySession((await api.adoptMember(null)).session);
+          throw e;
+        });
         setServices(r.services);
         setReviews(r.reviews);
         setComments(r.comments);
