@@ -304,7 +304,7 @@ async function provider(t, fetchSession, extra = {}) {
     "@/api": {
       createApi: () => ({
         adoptMember: async (u) => ({
-          users: snap.users,
+          users: u ? { ...snap.users, [u.id]: u } : snap.users,
           session: u ? { ...guest, meId: u.id } : guest,
         }),
       }),
@@ -334,6 +334,20 @@ for (const state of ["ANONYMOUS", "SIGNUP_PENDING", "NETWORK_FAILURE"]) {
     assert.equal(store.saves.size, 0);
   });
 }
+
+test("서버 세션 MEMBER: 서버가 알려 준 회원으로 로그인 상태를 복원한다", async (t) => {
+  const { render } = await provider(
+    t,
+    async () => ({ status: "MEMBER", member: { id: "restored" } }),
+    {
+      memberToUser: (m) => ({ id: m.id, handle: "restored", nick: "복원" }),
+    },
+  );
+  const store = render();
+  assert.equal(store.sessionReady, true);
+  assert.equal(store.me?.id, "restored");
+  assert.equal(store.me?.nick, "복원");
+});
 
 test("가입 store는 약관 변경 오류 코드를 화면으로 전달하고 미동의 버전을 자동 조회하지 않는다", async (t) => {
   let writes = 0,
@@ -411,4 +425,56 @@ test("HTTP 오류에서 약관 변경 코드를 보존한다", async (t) => {
     getJson("/unused"),
     (error) => error.kind === "rule" && error.code === "USER_409_03",
   );
+});
+
+test("상태 변경 요청은 CSRF 헤더와 세션 쿠키를 함께 보낸다", async (t) => {
+  const previous = globalThis.fetch;
+  const calls = [];
+  const ok = (data) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ success: true, code: "OK", message: "", data }),
+  });
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push({ url, init });
+    return url.endsWith("/api/auth/csrf")
+      ? ok({ headerName: "X-CSRF-TOKEN", token: "t" })
+      : ok(null);
+  };
+  t.after(() => {
+    globalThis.fetch = previous;
+  });
+  const h = harness({ "./config": { API_BASE: "http://unused.invalid" } });
+  const { postJson, putJson, deleteJson } = h.load("api/auth/http.ts");
+  await postJson("/api/auth/logout");
+  await putJson("/api/users/me", { nickname: "a" });
+  await deleteJson("/api/users/me");
+  assert.deepEqual(
+    calls
+      .filter((c) => !c.url.endsWith("/api/auth/csrf"))
+      .map((c) => c.init.method),
+    ["POST", "PUT", "DELETE"],
+  );
+  for (const c of calls) assert.equal(c.init.credentials, "include");
+  for (const c of calls.filter((c) => !c.url.endsWith("/api/auth/csrf")))
+    assert.equal(c.init.headers["X-CSRF-TOKEN"], "t");
+});
+
+test("포트폴리오 링크도 형식을 검사한다(호스트 규칙은 없다)", () => {
+  const h = harness();
+  const { linkCheck } = h.load("domain/validation.ts");
+  for (const ok of [
+    "portfolio.example.com/me",
+    "https://한글.example/포트폴리오",
+    "https://localhost:3000",
+  ])
+    assert.equal(linkCheck("portfolio", ok), null, ok);
+  for (const bad of [
+    "user@portfolio.example.com",
+    "https://user:pw@portfolio.example.com",
+    "my site.example.com",
+    "ftp://portfolio.example.com",
+    "javascript:alert(1)",
+  ])
+    assert.match(linkCheck("portfolio", bad), /올바른 주소/, bad);
 });
