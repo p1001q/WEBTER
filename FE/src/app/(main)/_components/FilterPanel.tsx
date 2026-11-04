@@ -19,9 +19,12 @@ const valuesClass = "flex flex-wrap gap-1.5";
 export function FilterPanel({
   f,
   setF,
+  base = FILTER_DEFAULT,
 }: {
   f: FilterState;
   setF: (next: SetStateAction<FilterState>) => void;
+  /** 「초기화」가 돌아갈 기본 상태 */
+  base?: FilterState;
 }) {
   const P = useId();
   const tog = (k: FilterKey, v: string) =>
@@ -91,9 +94,7 @@ export function FilterPanel({
           variant="text"
           size="sm"
           className="ml-auto"
-          onClick={() =>
-            setF((prev) => ({ ...FILTER_DEFAULT, cats: prev.cats }))
-          }
+          onClick={() => setF((prev) => ({ ...base, cats: prev.cats }))}
         >
           용도 제외 초기화
         </Button>

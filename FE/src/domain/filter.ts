@@ -42,8 +42,21 @@ export function applyFilter(
     return true;
   });
 }
-export const filterCount = (f: FilterState) =>
+/** 내 서비스·저장한 서비스는 운영 중지 서비스도 처음부터 보여 준다 */
+export const FILTER_DEFAULT_ALL: FilterState = {
+  ...FILTER_DEFAULT,
+  use: ["live", "stop"],
+};
+
+/** 필터 버튼에 보이는 개수. 운영 상태는 `base`(기본 상태)와 다를 때만 1로 센다 */
+export const filterCount = (
+  f: FilterState,
+  base: FilterState = FILTER_DEFAULT,
+) =>
   (["type", "devices", "price", "owner", "langs"] as const).reduce(
     (a, k) => a + f[k].length,
     0,
-  ) + (f.use.length === 1 && f.use[0] === "live" ? 0 : 1);
+  ) +
+  (f.use.length === base.use.length && f.use.every((u) => base.use.includes(u))
+    ? 0
+    : 1);

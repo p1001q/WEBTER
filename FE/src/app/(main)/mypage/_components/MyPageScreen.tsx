@@ -1,15 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Service } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
-import { ServiceCard } from "@/components/service/ServiceCard";
 import { ServiceIcon } from "@/components/service/ServiceIcon";
-import { ServiceList } from "@/components/service/ServiceList";
-import { ServiceThumb } from "@/components/service/ServiceThumb";
-import { StatusBadge } from "@/components/service/StatusBadge";
 import { Avatar } from "@/components/ui/Avatar";
-import { buttonClass } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -20,75 +14,11 @@ import { fmtDate } from "@/domain/format";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import { MYPAGE_TABS, type MyPageTab as Tab } from "../tabs";
+import { MyServiceList } from "./MyServiceList";
 import { SettingsPanel } from "./SettingsPanel";
 
 const reviewText =
   "m-0 mt-1.5 text-14 leading-[1.7] whitespace-pre-line text-[#3a3a3a] [overflow-wrap:anywhere]";
-
-/** 비공개·임시 비공개 서비스는 본인에게만 이유와 함께 흐리게 보여 준다 */
-function HiddenServiceCard({ s }: { s: Service }) {
-  return (
-    <article
-      className="relative flex min-w-0 flex-col overflow-hidden rounded-sm bg-card shadow-card transition-shadow duration-200 hover:shadow-hover"
-      data-private={s.pub}
-    >
-      <div className="relative block opacity-55">
-        <ServiceThumb s={s} />
-      </div>
-      <div className="flex flex-1 flex-col gap-1.5 px-4 pt-4 pb-3.5">
-        <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
-          <StatusBadge kind={s.pub as "private" | "temp"} />
-        </div>
-        <h2 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em]">
-          {s.name}
-        </h2>
-        <p
-          className={cx(
-            "m-0 flex items-start gap-1.5 text-[12.5px] leading-[1.45]",
-            s.pub === "temp" ? "text-butter-ink" : "text-wine",
-          )}
-        >
-          <Icon name="info" size={14} className="mt-px" />
-          {s.pubReason}
-        </p>
-      </div>
-      <div className="flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
-        <span className={helpClass}>일반 사용자에게 보이지 않아요</span>
-      </div>
-    </article>
-  );
-}
-
-/** 저장했지만 비공개로 바뀐 서비스: 이름과 저장 해제만 보여 준다(이미지·사유는 가린다) */
-function SavedHiddenCard({ s }: { s: Service }) {
-  const wt = useWt();
-  return (
-    <article
-      className="relative flex min-w-0 flex-col overflow-hidden rounded-sm bg-card shadow-card"
-      data-saved-hidden={s.id}
-    >
-      <div className="aspect-[16/10] bg-light" />
-      <div className="flex flex-1 flex-col gap-1.5 px-4 pt-4 pb-3.5">
-        <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
-          <StatusBadge kind={s.pub as "private" | "temp"} />
-        </div>
-        <h2 className="m-0 truncate text-16 leading-[1.35] font-bold tracking-[-0.01em] text-muted">
-          {s.name}
-        </h2>
-        <p className="m-0 flex items-start gap-1.5 text-[12.5px] leading-[1.45] text-muted">
-          <Icon name="info" size={14} className="mt-px" />
-          지금은 볼 수 없는 서비스예요
-        </p>
-      </div>
-      <div className="flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
-        <MiniButton onClick={() => wt.toggleSave(s.id)}>
-          <Icon name="bookmark" size={13} />
-          저장 해제
-        </MiniButton>
-      </div>
-    </article>
-  );
-}
 
 /** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·계정 설정 */
 export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
@@ -109,7 +39,8 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   }
   const me = wt.me!;
   const mine = wt.services.filter((s) => s.owner === me.id);
-  const saved = wt.services.filter((s) => wt.saves.has(s.id));
+  // 담은 순서(먼저 담은 것이 앞)를 그대로 둔다. 저장한 서비스의 정렬이 이 순서를 쓴다
+  const saved = [...wt.saves].flatMap((id) => wt.svc(id) ?? []);
   const myReviews = wt.reviews.filter(
     (r) => r.a.uid === me.id && r.a.kind !== "guest",
   );
@@ -162,6 +93,18 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
             ["reviews", "리뷰·댓글", myReviews.length + myComments.length],
             ["settings", "계정 설정"],
           ]}
+          aside={
+            tab === "services" &&
+            mine.length > 0 && (
+              <RouteLink
+                to="manage"
+                className="text-13 font-medium whitespace-nowrap text-muted underline underline-offset-[3px] hover:text-ink"
+              >
+                <span className="@max-[560px]/app:hidden">내 서비스 </span>
+                관리로 이동
+              </RouteLink>
+            )
+          }
         />
         {(tab === "reviews" || tab === "comments") && (
           <div className="mt-2">
@@ -178,34 +121,13 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
         <div
           key={tab}
           className={cx(
-            "pt-6",
+            tab === "services" || tab === "saved" ? "pt-2" : "pt-6",
             slide === "r" ? "animate-slide-in-r" : "animate-slide-in-l",
           )}
         >
-          {tab === "services" && mine.length > 0 && (
-            <div className="mb-4 flex justify-end">
-              <RouteLink
-                to="manage"
-                className={buttonClass({ variant: "ghost", size: "sm" })}
-              >
-                <Icon name="grid" size={14} />내 서비스 관리로 이동
-              </RouteLink>
-            </div>
-          )}
           {tab === "services" &&
             (mine.length ? (
-              <>
-                <ServiceList
-                  items={mine}
-                  renderItem={(s) =>
-                    s.pub === "public" ? (
-                      <ServiceCard s={s} heading="h2" />
-                    ) : (
-                      <HiddenServiceCard s={s} />
-                    )
-                  }
-                />
-              </>
+              <MyServiceList kind="mine" items={mine} />
             ) : (
               <EmptyState
                 title="아직 등록한 서비스가 없어요"
@@ -217,16 +139,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
             ))}
           {tab === "saved" &&
             (saved.length ? (
-              <ServiceList
-                items={saved}
-                renderItem={(s) =>
-                  s.pub === "public" ? (
-                    <ServiceCard s={s} heading="h2" />
-                  ) : (
-                    <SavedHiddenCard s={s} />
-                  )
-                }
-              />
+              <MyServiceList kind="saved" items={saved} />
             ) : (
               <EmptyState
                 title="저장한 서비스가 없어요"
