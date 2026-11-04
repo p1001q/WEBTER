@@ -9,7 +9,8 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import({TestcontainersConfiguration.class, TestPingController.class, TestErrorController.class})
+@Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class, TestPingController.class,
+		TestErrorController.class})
 public abstract class IntegrationTest {
 
 }
