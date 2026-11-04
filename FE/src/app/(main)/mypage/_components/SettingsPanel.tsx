@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useRef, useState, type ChangeEvent } from "react";
+import { normalizeLink, PROFILE_LINK_MAX } from "@/domain/profileLinks";
+import { realAuth } from "@/api/auth/config";
 import type { CategoryId, LinkKind } from "@/api/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button, buttonClass } from "@/components/ui/Button";
@@ -26,6 +28,7 @@ import {
   linkCheck,
   msgState,
   nickCheck,
+  nickWeight,
   readAsURL,
 } from "@/domain/validation";
 import { cx } from "@/lib/cx";
@@ -62,7 +65,8 @@ export function SettingsPanel() {
   });
   const nc = nickCheck(nick, { required: true });
   const hs = handleChangeStatus(me.handleChanges, DISPLAY.demoToday);
-  const handleLocked = hs.left === 0;
+  // 아이디 변경 횟수 제한은 서버 규칙이 정해지기 전이라 실제 로그인에서는 걸지 않는다
+  const handleLocked = !realAuth && hs.left === 0;
   const dirty =
     nick !== me.nick ||
     handle !== me.handle ||
@@ -72,8 +76,16 @@ export function SettingsPanel() {
     JSON.stringify(cats) !== JSON.stringify(me.interests || []) ||
     avatar !== (me.avatarImg || null);
   const linkErrs = links.map(([k, u]) => linkCheck(k, u));
+  // 서버는 같은 종류의 링크를 하나만 저장한다
+  const dupKind =
+    realAuth &&
+    new Set(links.filter((l) => l[1].trim()).map((l) => l[0])).size <
+      links.filter((l) => l[1].trim()).length;
   const ok =
-    hc.state === "ok" && nc.state === "ok" && linkErrs.every((e) => !e);
+    hc.state === "ok" &&
+    nc.state === "ok" &&
+    linkErrs.every((e) => !e) &&
+    !dupKind;
   const pickAvatar = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
@@ -110,14 +122,29 @@ export function SettingsPanel() {
   const [saving, setSaving] = useState(false);
   const save = async () => {
     setSaving(true);
-    await wt.updateMe({
+    const sent = links
+      .filter((l) => l[1].trim())
+      .map(([k, u]): [LinkKind, string] => [
+        k,
+        realAuth ? normalizeLink(u) : u,
+      ]);
+    const saved = await wt.updateMe({
       nick,
       handle,
       bio,
-      links: links.filter((l) => l[1].trim()),
+      links: sent,
       interests: cats,
       avatarImg: avatar,
     });
+    // 서버가 정리한 주소로 입력칸을 맞춰 저장 직후 "변경 사항 있음"이 남지 않게 한다
+    if (saved && realAuth) {
+      // 저장을 기다리는 동안 새로 편집한 값은 덮어쓰지 않는다.
+      setLinks((current) =>
+        JSON.stringify(current) === JSON.stringify(links)
+          ? saved.links.map((l) => [...l])
+          : current,
+      );
+    }
     setSaving(false);
   };
   const errBorder = (s: Parameters<typeof msgState>[0]) =>
@@ -129,50 +156,56 @@ export function SettingsPanel() {
           <h2 className={sectionTitleClass}>프로필</h2>
           <div className="flex items-center gap-4">
             <Avatar user={{ ...me, avatarImg: avatar }} size={72} />
-            <div className="flex flex-col gap-1.5">
-              <div className="flex gap-2">
-                <label
-                  className={cx(
-                    buttonClass({ variant: "ghost", size: "sm" }),
-                    "cursor-pointer",
-                  )}
-                >
-                  사진 변경
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    onChange={pickAvatar}
-                  />
-                </label>
-                {avatar && (
-                  <Button
-                    variant="text"
-                    size="sm"
-                    onClick={() => {
-                      avatarRun.current++;
-                      setAvatar(null);
-                    }}
+            {realAuth ? (
+              <span className={helpClass}>
+                프로필 사진 변경은 준비 중이에요.
+              </span>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex gap-2">
+                  <label
+                    className={cx(
+                      buttonClass({ variant: "ghost", size: "sm" }),
+                      "cursor-pointer",
+                    )}
                   >
-                    기본 사진으로
-                  </Button>
+                    사진 변경
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={pickAvatar}
+                    />
+                  </label>
+                  {avatar && (
+                    <Button
+                      variant="text"
+                      size="sm"
+                      onClick={() => {
+                        avatarRun.current++;
+                        setAvatar(null);
+                      }}
+                    >
+                      기본 사진으로
+                    </Button>
+                  )}
+                </div>
+                {avErr ? (
+                  <FieldMessage state="err">{avErr}</FieldMessage>
+                ) : (
+                  <span className={helpClass}>
+                    JPG·PNG·WebP, {POLICY.imageMaxMB}MB 이하
+                  </span>
                 )}
               </div>
-              {avErr ? (
-                <FieldMessage state="err">{avErr}</FieldMessage>
-              ) : (
-                <span className={helpClass}>
-                  JPG·PNG·WebP, {POLICY.imageMaxMB}MB 이하
-                </span>
-              )}
-            </div>
+            )}
           </div>
           <div className={twoColumnClass}>
             <div className={fieldClass}>
               <label className={labelClass} htmlFor={P + "set-nick"}>
                 닉네임
                 <span className={counterClass}>
-                  {nick.length}/{POLICY.nickMax}
+                  {nickWeight(nick)}/{POLICY.nickMaxWeight}
                 </span>
               </label>
               <input
@@ -204,11 +237,13 @@ export function SettingsPanel() {
                   ? "현재 아이디예요. 바꿔도 내 서비스·리뷰 연결은 유지돼요."
                   : hc.msg}
               </FieldMessage>
-              <span className={helpClass}>
-                {handleLocked
-                  ? `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. ${hs.waitDays}일 뒤에 다시 바꿀 수 있어요.`
-                  : `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. (남은 횟수 ${hs.left}번)`}
-              </span>
+              {!realAuth && (
+                <span className={helpClass}>
+                  {handleLocked
+                    ? `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. ${hs.waitDays}일 뒤에 다시 바꿀 수 있어요.`
+                    : `아이디는 ${POLICY.handleChangeDays}일 안에 ${POLICY.handleChangeMax}번까지 바꿀 수 있어요. (남은 횟수 ${hs.left}번)`}
+                </span>
+              )}
             </div>
           </div>
           <div className={fieldClass}>
@@ -256,6 +291,7 @@ export function SettingsPanel() {
                   <input
                     className={cx(inputClass, linkErrs[i] && "border-wine!")}
                     aria-label="링크 주소"
+                    maxLength={PROFILE_LINK_MAX}
                     aria-invalid={!!linkErrs[i]}
                     value={url}
                     onChange={(e) =>

@@ -21,8 +21,9 @@ export const POLICY = {
   idMin: 3,
   handleChangeMax: 2, // 인스타그램 방식 따라 하기 — 제안값: 14일 안에 2번까지 바꿀 수 있다
   handleChangeDays: 14,
-  nickMin: 2,
-  nickMax: 20, // 정책서 2.1 길이 — 제안값
+  nickMin: 1, // 정책서 2.1 닉네임 — 확정: 최소 1글자
+  nickMaxWeight: 16, // 가중 길이 합계 최대. 완성형 한글 2칸, 영문·숫자·공백 1칸(바이트 수가 아님) — 확정
+  nickHangulWeight: 2,
   replyPerReview: 1, // 정책서 6.2 — 제안값
 } as const;
 

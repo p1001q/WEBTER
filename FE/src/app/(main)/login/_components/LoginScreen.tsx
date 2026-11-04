@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { realAuth } from "@/api/auth/config";
 import { Wordmark } from "@/components/layout/Wordmark";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
@@ -30,8 +31,22 @@ const GoogleMark = () => (
   </svg>
 );
 
-/** 로그인(데모): 실제 Google 로그인은 호출하지 않고 결과를 골라 이어 간다. 돌아갈 주소는 `back` 쿼리 */
-export function LoginScreen({ back }: { back?: string }) {
+const ERROR_TEXT: Record<string, string> = {
+  cancelled: "구글 로그인이 취소됐어요. 다시 시도해 주세요.",
+  failed: "구글 로그인에 실패했어요. 잠시 뒤에 다시 시도해 주세요.",
+};
+
+/**
+ * 로그인. 백엔드 주소가 설정돼 있으면 구글 로그인으로 이동하고, 없으면(데모) 결과를 골라 이어 간다.
+ * 돌아갈 주소는 `back` 쿼리, 로그인 실패 사유는 `error` 쿼리(cancelled·failed)
+ */
+export function LoginScreen({
+  back,
+  error,
+}: {
+  back?: string;
+  error?: string;
+}) {
   const wt = useWt();
   const [pick, setPick] = useState(false);
   return (
@@ -44,12 +59,17 @@ export function LoginScreen({ back }: { back?: string }) {
       <button
         type="button"
         className="inline-flex h-[52px] w-full whitespace-nowrap items-center justify-center gap-3 rounded-md border border-border bg-card text-15 font-semibold transition-colors duration-150 hover:border-border-strong"
-        onClick={() => setPick(true)}
+        onClick={() => (realAuth ? wt.login(back) : setPick(true))}
       >
         <GoogleMark />
         Google로 계속하기
       </button>
-      {pick && (
+      {error && ERROR_TEXT[error] && (
+        <p className={`${helpClass} mt-1.5 text-center text-wine`} role="alert">
+          {ERROR_TEXT[error]}
+        </p>
+      )}
+      {!realAuth && pick && (
         <div
           className={`${boxClass} mt-1.5 flex flex-col gap-2 bg-[#fbfaf7]! p-3.5`}
           data-component="demo-auth"
