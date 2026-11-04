@@ -42,6 +42,15 @@ export function ManageScreen() {
           flush
           title="내 서비스 관리"
           desc="내가 등록한 서비스의 운영 상태와 반응을 확인하고 관리해요."
+          action={
+            <RouteLink
+              to="mypage"
+              params={{ tab: "services" }}
+              className="mr-4 ml-auto text-13 font-medium whitespace-nowrap text-muted underline underline-offset-[3px] hover:text-ink"
+            >
+              내 서비스로 이동
+            </RouteLink>
+          }
         />
         {mine.length === 0 ? (
           <div className={`${boxClass} mt-6`}>

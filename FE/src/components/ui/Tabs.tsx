@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 import { cx } from "@/lib/cx";
 
 interface TabsProps<T extends string> {
@@ -8,6 +14,8 @@ interface TabsProps<T extends string> {
   /** [값, 라벨, 개수(선택)] */
   items: readonly (readonly [T, string, number?])[];
   onChange: (v: T) => void;
+  /** 탭 줄 오른쪽 끝에 두는 동작(밑줄 링크 등) */
+  aside?: ReactNode;
 }
 
 /**
@@ -18,6 +26,7 @@ export function Tabs<T extends string>({
   value,
   items,
   onChange,
+  aside,
 }: TabsProps<T>) {
   const root = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
@@ -52,10 +61,10 @@ export function Tabs<T extends string>({
     return () => ro.disconnect();
   }, [place]);
   return (
-    <div className="border-b border-border">
+    <div className="flex items-center gap-4 border-b border-border">
       <div
         ref={root}
-        className="group/tabs relative -mb-px flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="group/tabs relative -mb-px flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
       >
         {items.map(([v, label, count]) => {
@@ -91,6 +100,7 @@ export function Tabs<T extends string>({
           style={{ width: 0 }}
         />
       </div>
+      {aside && <div className="ml-auto shrink-0 pr-4">{aside}</div>}
     </div>
   );
 }

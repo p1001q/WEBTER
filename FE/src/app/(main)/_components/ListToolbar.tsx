@@ -18,16 +18,28 @@ export function ListToolbar({
   st,
   count,
   right,
+  sort,
+  mobileSwitch = true,
+  divider = true,
+  showCount = true,
 }: {
   st: ListState;
   count: number;
   right?: ReactNode;
+  /** 필터 버튼 왼쪽에 두는 정렬 선택 */
+  sort?: ReactNode;
+  /** 모바일에서 「모바일 지원 서비스만 보기」 스위치를 보일지(내 서비스·저장한 서비스는 끈다) */
+  mobileSwitch?: boolean;
+  /** 아래 구분선(기본 있음) */
+  divider?: boolean;
+  /** 필터 버튼 옆 결과 개수(기본 보임) */
+  showCount?: boolean;
 }) {
   const wt = useWt();
-  const fc = filterCount(st.f);
+  const fc = filterCount(st.f, st.base);
   return (
     <>
-      {wt.isMobile && (
+      {wt.isMobile && mobileSwitch && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3.5 py-2.5">
           <Switch
             on={st.mobileOnly}
@@ -36,8 +48,14 @@ export function ListToolbar({
           />
         </div>
       )}
-      <div className="mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 gap-y-3 border-b border-border py-3 @max-[1100px]/app:grid-cols-[1fr_auto]">
-        <div className="flex items-center gap-2 @max-[560px]/app:order-1">
+      <div
+        className={cx(
+          "mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 gap-y-3 py-3 @max-[1100px]/app:grid-cols-[1fr_auto]",
+          divider && "border-b border-border",
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-2 @max-[560px]/app:order-1">
+          {sort}
           <Button
             size="sm"
             variant={st.open ? "ink" : "ghost"}
@@ -47,9 +65,11 @@ export function ListToolbar({
             <Icon name="filter" size={15} />
             필터{fc > 0 && <span className="font-mono">{fc}</span>}
           </Button>
-          <span className="text-14 text-muted">
-            <b className="font-bold text-ink">{count}</b>개
-          </span>
+          {showCount && (
+            <span className="text-14 text-muted">
+              <b className="font-bold text-ink">{count}</b>개
+            </span>
+          )}
         </div>
         <div
           className="flex flex-wrap justify-center gap-1.5 @max-[1100px]/app:order-last @max-[1100px]/app:col-span-2 @max-[560px]/app:flex-nowrap @max-[560px]/app:justify-start @max-[560px]/app:overflow-x-auto @max-[560px]/app:[scrollbar-width:none]"
@@ -93,7 +113,7 @@ export function ListToolbar({
         inert={!st.open}
       >
         <div className="min-h-0 overflow-hidden">
-          <FilterPanel f={st.f} setF={st.setF} />
+          <FilterPanel f={st.f} setF={st.setF} base={st.base} />
         </div>
       </div>
     </>

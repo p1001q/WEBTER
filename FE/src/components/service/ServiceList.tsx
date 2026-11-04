@@ -1,4 +1,9 @@
-import { Fragment, type CSSProperties, type ReactNode } from "react";
+import {
+  Fragment,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import type { Service } from "@/api/types";
 import { DISPLAY } from "@/domain/policy";
 import { ListItemTransition } from "./ListItemTransition";
@@ -20,6 +25,8 @@ interface ServiceListProps {
   heading?: "h2" | "h3";
   /** 카드형에서 항목을 직접 그린다(공개 상태에 따라 모양이 다른 목록용) */
   renderItem?: (s: Service) => ReactNode;
+  /** 목록형에서 항목을 직접 그린다. null 이면 기본 행을 쓴다 */
+  renderRow?: (s: Service) => ReactElement | null;
 }
 
 /** 서비스 목록. 카드형(격자)과 목록형(행) */
@@ -32,6 +39,7 @@ export function ServiceList({
   m2,
   heading,
   renderItem,
+  renderRow,
 }: ServiceListProps) {
   const rank = (i: number) => (rankStart != null ? rankStart + i : undefined);
   if (view === "list")
@@ -39,7 +47,9 @@ export function ServiceList({
       <div className={rowsClass}>
         {items.map((s, i) => (
           <ListItemTransition key={s.id}>
-            <ServiceRow s={s} rank={rank(i)} reason={reasons?.[s.id]} />
+            {renderRow?.(s) ?? (
+              <ServiceRow s={s} rank={rank(i)} reason={reasons?.[s.id]} />
+            )}
           </ListItemTransition>
         ))}
       </div>
