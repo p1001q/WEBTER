@@ -14,6 +14,8 @@ interface SegmentedControlProps<T extends string> {
   compact?: boolean;
   /** 좁은 화면(560px 이하)에서는 아이콘만 보인다. 이름은 접근성 라벨로 남는다 */
   iconOnlyOnNarrow?: boolean;
+  /** 선택지가 둘일 때, 어디를 눌러도(이미 선택된 쪽도) 다른 쪽으로 바뀐다 */
+  toggle?: boolean;
 }
 
 /**
@@ -27,7 +29,9 @@ export function SegmentedControl<T extends string>({
   label,
   compact,
   iconOnlyOnNarrow,
+  toggle,
 }: SegmentedControlProps<T>) {
+  const flip = toggle && options.length === 2;
   const wrap = useRef<HTMLDivElement>(null);
   const pill = useRef<HTMLSpanElement>(null);
   const placed = useRef(false);
@@ -63,9 +67,17 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       ref={wrap}
-      className="relative inline-flex gap-0.5 rounded-pill border border-border bg-card p-[3px] [&:not([data-ready])_[aria-pressed=true]]:bg-ink"
+      className={cx(
+        "relative inline-flex gap-0.5 rounded-pill border border-border bg-card p-[3px] [&:not([data-ready])_[aria-pressed=true]]:bg-ink",
+        flip && "cursor-pointer",
+      )}
       role="group"
       aria-label={label}
+      onClick={
+        flip
+          ? () => onChange(options[value === options[0][0] ? 1 : 0][0])
+          : undefined
+      }
     >
       <span
         ref={pill}
@@ -85,7 +97,7 @@ export function SegmentedControl<T extends string>({
           aria-pressed={value === v}
           aria-label={iconOnlyOnNarrow ? text : undefined}
           title={iconOnlyOnNarrow ? text : undefined}
-          onClick={() => onChange(v)}
+          onClick={flip ? undefined : () => onChange(v)}
         >
           {icon && <Icon name={icon} size={15} />}
           {iconOnlyOnNarrow ? (
