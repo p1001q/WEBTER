@@ -5,7 +5,6 @@ import type { Fault } from "./faults";
 // 개발 전용: 데모 컨트롤(Tweaks)이 바꾸는 값과 목업 DB 옵션. 프로덕션 빌드에는 들어가지 않는다.
 
 export interface TweakValues {
-  session: "guest" | "member" | "signup";
   cols: 3 | 4;
   sample: "default" | "none" | "stopped";
   viewport: "desktop" | "mobile";
@@ -18,7 +17,6 @@ export interface TweakValues {
 }
 
 export const DEFAULT_TWEAKS: TweakValues = {
-  session: "guest",
   cols: 4,
   sample: "default",
   viewport: "desktop",
@@ -39,7 +37,6 @@ function sanitize(raw: Partial<Record<keyof TweakValues, unknown>>) {
       ? (raw[k] as TweakValues[K])
       : DEFAULT_TWEAKS[k];
   return {
-    session: pick("session", ["guest", "member", "signup"]),
     cols: pick("cols", [3, 4]),
     sample: pick("sample", ["default", "none", "stopped"]),
     viewport: pick("viewport", ["desktop", "mobile"]),
@@ -67,10 +64,10 @@ export function saveTweaks(t: TweakValues) {
   }
 }
 
-/** 신규 가입은 비회원 상태로 로그인 화면에서 시작한다 */
+/** 목업 데이터는 비회원 상태에서 시작하고, 회원 상태는 로그인 흐름으로만 바꾼다 */
 export function mockOptions(t: TweakValues): MockOptions {
   return {
-    me: t.session === "member" ? ME_ID : null,
+    me: null,
     sample: t.sample === "none" ? "none" : undefined,
     mutate:
       t.sample === "stopped"
