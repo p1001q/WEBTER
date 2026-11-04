@@ -155,7 +155,7 @@ export function Sidebar() {
           </button>
         </div>
         <div className="border-t border-border px-6 pt-4 pb-6 text-13 text-muted">
-          <div className="mb-0.5 font-bold text-ink">웹에서 놀다, 웹터.</div>
+          <div className="mb-0.5 font-bold text-ink">웹이 모이는 터, 웹터.</div>
           개발자가 만든 웹 서비스를 발견하고 바로 이용해 보세요.
         </div>
       </aside>

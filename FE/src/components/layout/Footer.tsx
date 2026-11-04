@@ -10,7 +10,7 @@ export function Footer() {
         <div className="flex-[1_1_260px]">
           <Wordmark size={18} />
           <div className="mt-2.5 font-semibold text-ink">
-            웹에서 놀다, 웹터.
+            웹이 모이는 터, 웹터.
           </div>
         </div>
         <div className="flex flex-col gap-2">

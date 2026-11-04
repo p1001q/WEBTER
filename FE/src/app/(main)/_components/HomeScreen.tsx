@@ -72,10 +72,10 @@ export function HomeScreen() {
       <div className="page-wrap">
         <section className="pt-6 pb-2 text-center @max-[560px]/app:pt-8 @max-[560px]/app:pb-0 @max-[560px]/app:text-left">
           <h1 className="m-0 text-40 leading-[1.2] font-extrabold tracking-[-0.035em] text-balance @max-[860px]/app:text-[32px] @max-[560px]/app:text-[25px]">
-            오늘은 어떤 웹에서 놀아 볼까요?
+            오늘은 어떤 웹을 만나볼까요?
           </h1>
           <p className="mt-3 text-16 text-pretty text-muted @max-[560px]/app:text-14">
-            설치 없이, 링크 하나로. 개발자들이 직접 만든 웹 서비스를 찾아보세요.
+            설치 없이 버튼 하나로. 개발자들이 직접 만든 웹들을 만나봐요.
           </p>
           <div className="mx-auto mt-7 max-w-[720px]">
             <SearchBar />

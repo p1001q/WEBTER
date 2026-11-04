@@ -143,7 +143,7 @@ export function UiGallery() {
               key={s}
               style={{ fontSize: s, lineHeight: 1.4, overflowWrap: "anywhere" }}
             >
-              {s}px 웹에서 놀다, 웹터 Aa 123{" "}
+              {s}px 웹이 모이는 터, 웹터 Aa 123{" "}
               <span style={{ fontFamily: "var(--font-mono, var(--wt-mono))" }}>
                 https://example.com 1,284
               </span>

@@ -8,7 +8,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "WEBTER | 웹에서 놀다, 웹터",
+    default: "WEBTER | 웹이 모이는 터, 웹터",
     template: "%s | WEBTER",
   },
   description:
