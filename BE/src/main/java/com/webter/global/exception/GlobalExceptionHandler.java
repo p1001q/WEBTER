@@ -1,10 +1,13 @@
 package com.webter.global.exception;
 
 import com.webter.global.response.ApiResponse;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +35,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	// 예상하지 못한 예외. 내부 내용은 응답에 담지 않고 로그에만 남긴다.
 	@ExceptionHandler(Exception.class)
 	ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception e) {
-		log.error("처리되지 않은 예외", e);
+		Throwable cause = NestedExceptionUtils.getMostSpecificCause(e);
+		if (e instanceof DataAccessException || cause instanceof SQLException) {
+			// SQL 오류 메시지·스택에는 키 값이 들어간다. 원문 대신 진단 코드만 남긴다.
+			log.error("DB 처리 실패: type={}, sqlState={}", e.getClass().getSimpleName(),
+					cause instanceof SQLException sql ? sql.getSQLState() : "unknown");
+		}
+		else {
+			log.error("처리되지 않은 예외", e);
+		}
 		ErrorCode errorCode = CommonErrorCode.INTERNAL_SERVER_ERROR;
 		return ResponseEntity.status(errorCode.getStatus()).body(ApiResponse.fail(errorCode));
 	}

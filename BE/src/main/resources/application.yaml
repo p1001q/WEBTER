@@ -10,6 +10,10 @@ spring:
       connection-timeout: 5000
   jpa:
     open-in-view: false
+    properties:
+      # PostgreSQL 오류 원문에는 구글 sub·이메일 등이 포함될 수 있다.
+      # 실패는 공통 예외 처리에서 예외 종류·SQLState만 기록한다.
+      hibernate.jdbc.log.errors: false
     hibernate:
       ddl-auto: none
   flyway:
