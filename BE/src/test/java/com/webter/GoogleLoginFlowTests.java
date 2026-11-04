@@ -207,9 +207,14 @@ class GoogleLoginFlowTests {
 	void sameEmailDifferentGoogleAccountIsAnotherUser() throws Exception {
 		Browser first = browser();
 		callback(begin(first, "/"), "subject-a", "shared@example.test", true, "test-client", false, false);
+		String body = "{\"username\":\"webter_user\",\"nickname\":\"웹터\",\"interests\":[\"PLAY\"],\"consents\":" + CONSENTS + "}";
+		assertThat(post(first, "/api/auth/signup", csrf(first), body).statusCode()).isEqualTo(201);
 		Browser second = browser();
 		var response = callback(begin(second, "/"), "subject-b", "shared@example.test", true, "test-client", false, false);
+		// 같은 이메일이어도 구글 식별자가 다르면 기존 회원이 아니라 가입 대기다
 		assertThat(location(response)).startsWith(FRONTEND + "/onboarding");
+		assertThat(status(second)).isEqualTo("SIGNUP_PENDING");
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM users", Integer.class)).isEqualTo(1);
 	}
 
 	@Test
