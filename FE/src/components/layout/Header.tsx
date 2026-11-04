@@ -116,7 +116,10 @@ export function Header() {
           >
             <Icon name="plus" size={21} />
           </IconButton>
-          {me ? (
+          {!wt.sessionReady ? (
+            // 서버 세션을 확인하기 전에는 로그인 상태를 알 수 없으므로, 잘못된 버튼이 번쩍이지 않게 자리만 둔다
+            <span aria-hidden className="h-[42px] w-[66px]" />
+          ) : me ? (
             <div ref={ref} className="relative">
               <button
                 className="flex items-center gap-1 rounded-pill p-1 text-muted"

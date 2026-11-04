@@ -1,13 +1,12 @@
 "use client";
 
-// 개발 전용: provider 를 감싸 세션·샘플·화면 폭·열 수를 바꾸는 데모 컨트롤(Tweaks)을 붙인다.
+// 개발 전용: provider 를 감싸 샘플·화면 폭·열 수를 바꾸는 데모 컨트롤(Tweaks)을 붙인다.
 // AppFrame 이 NODE_ENV 가 development 일 때만 불러오므로 프로덕션 빌드에는 들어가지 않는다(pnpm verify:prod).
 // 배포 전에 지우려면 src/dev/tweaks 폴더와 AppFrame 의 개발 분기만 없애면 된다.
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createApi } from "@/api";
 import type { Snapshot } from "@/api/types";
-import { pathFor } from "@/lib/routes";
 import { WtProvider } from "@/providers/WtProvider";
 import type { WebterApi } from "@/api/webterApi";
 import { DEV_ONLY_MARKER } from "../marker";
@@ -55,7 +54,7 @@ export function DevFrame({
 
   /** 목업 DB 를 새로 만들어야 하는 설정인지 */
   const needsRebuild = (t: Partial<TweakValues>) =>
-    "session" in t || "sample" in t || "data" in t || "images" in t;
+    "sample" in t || "data" in t || "images" in t;
 
   useEffect(() => {
     const stored = loadTweaks();
@@ -66,7 +65,6 @@ export function DevFrame({
     setFrame({ path: here(), n: 0 });
     /* eslint-enable react-hooks/set-state-in-effect */
     if (
-      stored.session !== "guest" ||
       stored.sample !== "default" ||
       stored.data !== "default" ||
       stored.images !== "ok"
@@ -87,7 +85,7 @@ export function DevFrame({
     else router.push(path);
   };
 
-  /** 값을 바꾼다. 세션·샘플이 바뀌면 목업 DB 를 새로 만들고, path 가 있으면 새 상태가 적용된 뒤에 이동한다 */
+  /** 값을 바꾼다. 샘플이 바뀌면 목업 DB 를 새로 만들고, path 가 있으면 새 상태가 적용된 뒤에 이동한다 */
   const change = async (patch: Partial<TweakValues>, path?: string) => {
     const next = { ...latest.current, ...patch };
     latest.current = next;
@@ -139,22 +137,8 @@ export function DevFrame({
       )}
       <Tweaks
         t={t}
-        onChange={(patch) =>
-          void change(
-            patch,
-            patch.session === "signup"
-              ? pathFor("login", { back: pathFor("detail", { id: "s01" }) })
-              : undefined,
-          )
-        }
-        onJump={(path, memberOnly) =>
-          void change(
-            memberOnly && latest.current.session !== "member"
-              ? { session: "member" }
-              : {},
-            path,
-          )
-        }
+        onChange={(patch) => void change(patch)}
+        onJump={(path) => void change({}, path)}
         onReset={() => {
           void rebuild(t);
           go("/", mobile);

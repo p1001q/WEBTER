@@ -1,6 +1,7 @@
 import type { LinkKind } from "@/api/types";
 import { LINK_LABEL } from "./options";
 import { POLICY } from "./policy";
+import { normalizeLink, PROFILE_LINK_MAX } from "./profileLinks";
 
 export type FieldState = "idle" | "format" | "ok" | "taken";
 /** 입력 검증 상태 → 메시지 색상 */
@@ -10,6 +11,9 @@ export interface FieldCheck {
   state: FieldState;
   msg?: string;
 }
+
+/** 닉네임 길이 안내 — 입력칸 도움말과 길이 오류 메시지가 함께 쓴다 */
+export const NICK_RULE_HINT = `한글은 2칸, 영문·숫자·공백은 1칸으로 세어 ${POLICY.nickMaxWeight}칸까지 입력할 수 있어요.`;
 
 /* 서비스 주소 — R-URL. 형식 검사는 클라이언트, 접속·중복 검사는 서버(api.checkServiceUrl) */
 const SOURCE_HOSTS = ["github.com", "gitlab.com", "bitbucket.org"];
@@ -77,9 +81,11 @@ const LINK_RULES: Record<
 };
 export function linkCheck(kind: LinkKind, v: string): string | null {
   const t = v.trim();
-  if (!t || kind === "portfolio") return null;
-  const rule = LINK_RULES[kind];
-  const format = `올바른 주소 형식이 아니에요. 예: ${rule.example}`;
+  if (!t) return null;
+  if (normalizeLink(t).length > PROFILE_LINK_MAX)
+    return `주소는 https:// 를 포함해 ${PROFILE_LINK_MAX}자까지 입력할 수 있어요.`;
+  const rule = kind === "portfolio" ? undefined : LINK_RULES[kind];
+  const format = `올바른 주소 형식이 아니에요. 예: ${rule?.example ?? "portfolio.example.com"}`;
   if (/^[a-z][a-z0-9+.-]*:/i.test(t) && !/^https?:\/\//i.test(t)) return format;
   let u: URL;
   try {
@@ -87,6 +93,10 @@ export function linkCheck(kind: LinkKind, v: string): string | null {
   } catch {
     return format;
   }
+  // 서버는 주소에 사용자 정보(user@)가 있으면 거절한다
+  if (u.username || u.password) return format;
+  // 포트폴리오는 호스트 규칙 없이 주소 형식만 검사한다
+  if (!rule) return null;
   const host = u.hostname.replace(/^www\./, "");
   if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(host)) return format;
   if (!rule.host) return null;
@@ -135,6 +145,15 @@ export function handleCheck(
     return { state: "taken", msg: "이미 사용 중인 아이디예요." };
   return { state: "ok", msg: "사용할 수 있는 아이디예요." };
 }
+/** 닉네임 가중 길이: 완성형 한글(가~힣) 2칸, 그 밖의 문자 1칸. 허용 문자만 들어온 값에 쓴다 */
+export function nickWeight(v: string): number {
+  let w = 0;
+  for (let i = 0; i < v.length; i++) {
+    const c = v.charCodeAt(i);
+    w += c >= 0xac00 && c <= 0xd7a3 ? POLICY.nickHangulWeight : 1;
+  }
+  return w;
+}
 export function nickCheck(
   v: string,
   opts: { required?: boolean } = {},
@@ -148,22 +167,18 @@ export function nickCheck(
     return { state: "format", msg: "공백만으로는 만들 수 없어요." };
   if (v !== v.trim())
     return { state: "format", msg: "앞뒤 공백은 쓸 수 없어요." };
-  if (v.length < POLICY.nickMin || v.length > POLICY.nickMax)
-    return {
-      state: "format",
-      msg: `${POLICY.nickMin}~${POLICY.nickMax}자로 입력하세요.`,
-    };
   if (/\s{2,}/.test(v))
     return { state: "format", msg: "공백은 한 칸씩만 쓸 수 있어요." };
-  if (!/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ]+$/.test(v))
+  if (!/^[가-힣A-Za-z0-9 ]+$/.test(v))
     return {
       state: "format",
-      msg: "한글·영문·숫자·중간 공백만 쓸 수 있어요. 기호나 이모지는 쓸 수 없어요.",
+      msg: "한글·영문·숫자와 중간 공백만 쓸 수 있어요. 자음·모음만 쓴 글자, 기호, 이모지는 쓸 수 없어요.",
     };
-  if (!/[가-힣A-Za-z0-9]/.test(v))
+  const w = nickWeight(v);
+  if (w < POLICY.nickMin || w > POLICY.nickMaxWeight)
     return {
       state: "format",
-      msg: "완성된 글자(한글·영문·숫자)를 한 글자 이상 넣어 주세요.",
+      msg: `너무 길어요(${w}칸). ${NICK_RULE_HINT}`,
     };
   return {
     state: "ok",

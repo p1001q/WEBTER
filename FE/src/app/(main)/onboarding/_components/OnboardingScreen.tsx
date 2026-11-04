@@ -1,7 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
-import type { CategoryId } from "@/api/types";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  checkUsername,
+  fetchCurrentPolicies,
+  fetchSession,
+} from "@/api/auth/authApi";
+import { realAuth } from "@/api/auth/config";
+import type { CategoryId, PolicyVersion } from "@/api/types";
 import { CategoryGlyph } from "@/components/service/CategoryGlyph";
 import { Button } from "@/components/ui/Button";
 import {
@@ -20,12 +26,17 @@ import { POLICY } from "@/domain/policy";
 import {
   handleCheck,
   msgState,
+  NICK_RULE_HINT,
   nickCheck,
+  nickWeight,
   type FieldState,
 } from "@/domain/validation";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import { AuthCard, authSubClass } from "../../_components/AuthCard";
+
+/** 가입 요청에 모두 실려야 하는 필수 약관(없으면 서버가 가입을 거절한다) */
+const REQUIRED_POLICY_TYPES = ["TERMS", "PRIVACY", "AGE_CONFIRMATION"];
 
 const linkClass =
   "text-[12.5px] font-bold text-navy underline underline-offset-[3px]";
@@ -49,15 +60,131 @@ export function OnboardingScreen({
   const [handle, setHandle] = useState("");
   const [nick, setNick] = useState("");
   const [cats, setCats] = useState<CategoryId[]>([]);
+  /** 서버가 이미 사용 중이라고 알려 준 아이디(실제 로그인에서만 쓴다) */
+  const [taken, setTaken] = useState<string[]>([]);
+  /** 가입 요청에 실을, 화면을 연 시점의 약관 버전(실제 로그인에서만 쓴다) */
+  const [policies, setPolicies] = useState<PolicyVersion[] | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const [policyLoading, setPolicyLoading] = useState(realAuth);
+  const [policyError, setPolicyError] = useState("");
+  const [policyNotice, setPolicyNotice] = useState("");
+  const policyRun = useRef(0);
+  const policiesReady =
+    !realAuth ||
+    (policies !== null &&
+      REQUIRED_POLICY_TYPES.every((type) =>
+        policies.some((p) => p.documentType === type),
+      ));
+  const refreshPolicies = useCallback(async () => {
+    const run = ++policyRun.current;
+    setPolicies(null);
+    setPolicyLoading(true);
+    setPolicyError("");
+    try {
+      const current = await fetchCurrentPolicies();
+      if (run === policyRun.current) setPolicies(current);
+    } catch {
+      if (run === policyRun.current)
+        setPolicyError("약관을 불러오지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      if (run === policyRun.current) setPolicyLoading(false);
+    }
+  }, []);
   const all = agree.terms && agree.privacy && agree.age;
-  const hc = handleCheck(handle, wt.takenHandles);
+  const hc = handleCheck(handle, [...wt.takenHandles, ...taken]);
+  // 서버가 사용 중이라고 했던 아이디도 바꿀 때마다 다시 확인한다(그 사이 풀렸을 수 있다)
+  const staleTaken = hc.state === "taken" && taken.includes(handle);
   const nc = nickCheck(nick);
   const canNext2 = hc.state === "ok" && nc.state === "ok";
+
+  // 실제 로그인: 구글 인증을 마친 가입 대기 상태로만 온보딩을 진행할 수 있다
+  const { go } = wt;
+  useEffect(() => {
+    if (!realAuth) return;
+    let live = true;
+    const cancelPolicyLoad = () => {
+      policyRun.current++;
+    };
+    (async () => {
+      try {
+        const s = await fetchSession();
+        if (!live) return;
+        if (s.status === "ANONYMOUS") go("login", { back }, { replace: true });
+        else if (s.status === "MEMBER") go("home", {}, { replace: true });
+        else await refreshPolicies();
+      } catch {
+        if (live) {
+          setPolicyLoading(false);
+          setPolicyError("가입 상태를 확인하지 못했어요. 새로고침해 주세요.");
+        }
+      }
+    })();
+    return () => {
+      live = false;
+      cancelPolicyLoad();
+    };
+  }, [go, back, refreshPolicies]);
+
+  // 아이디 중복은 입력이 멈춘 뒤 서버에 물어본다
+  useEffect(() => {
+    if (!realAuth || (hc.state !== "ok" && !staleTaken)) return;
+    let live = true;
+    const timer = setTimeout(async () => {
+      try {
+        const available = await checkUsername(handle);
+        if (!live) return;
+        setTaken((t) =>
+          available
+            ? t.filter((x) => x !== handle)
+            : t.includes(handle)
+              ? t
+              : [...t, handle],
+        );
+      } catch {
+        // 확인하지 못해도 제출할 때 서버가 다시 검사한다
+      }
+    }, 350);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [handle, hc.state, staleTaken]);
+
   // ?step= 으로 앞 단계를 건너뛰고 들어와도, 가입 전에 빠진 단계로 되돌린다
-  const finish = (skip: boolean) => {
-    if (!all) return setStep(1);
+  const finish = async (skip: boolean) => {
+    if (submittingRef.current) return;
+    if (!all || !policiesReady) return setStep(1);
     if (!canNext2) return setStep(2);
-    wt.signup({ handle, nick, interests: skip ? [] : cats }, back);
+    // 렌더링 전 연속 클릭과 아이디 확인 중의 클릭도 한 번의 제출로 묶는다.
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      if (realAuth && !(await checkUsername(handle).catch(() => true))) {
+        setTaken((t) => [...t, handle]);
+        return setStep(2);
+      }
+      const result = await wt.signup(
+        {
+          handle,
+          nick,
+          interests: skip ? [] : cats,
+          consents: policies ?? undefined,
+        },
+        back,
+      );
+      if (result === "policyChanged") {
+        setAgree({ terms: false, privacy: false, age: false });
+        setPolicyNotice(
+          "약관이 변경됐어요. 최신 약관을 확인하고 다시 동의해 주세요.",
+        );
+        setStep(1);
+        await refreshPolicies();
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   };
   const tog = (c: CategoryId) =>
     setCats(
@@ -102,6 +229,20 @@ export function OnboardingScreen({
           <p className={authSubClass}>
             웹터를 이용하려면 아래 항목에 모두 동의해야 해요.
           </p>
+          {policyNotice && (
+            <FieldMessage state="idle">{policyNotice}</FieldMessage>
+          )}
+          {policyLoading && (
+            <FieldMessage state="wait">약관을 불러오고 있어요.</FieldMessage>
+          )}
+          {policyError && (
+            <>
+              <FieldMessage state="err">{policyError}</FieldMessage>
+              <Button variant="ghost" onClick={() => void refreshPolicies()}>
+                약관 다시 불러오기
+              </Button>
+            </>
+          )}
           <label
             className={cx(
               checkClass,
@@ -110,6 +251,7 @@ export function OnboardingScreen({
           >
             <input
               type="checkbox"
+              disabled={!policiesReady || policyLoading}
               checked={all}
               onChange={(e) =>
                 setAgree({
@@ -127,6 +269,7 @@ export function OnboardingScreen({
                 <label className={cx(checkClass, "flex-1 justify-between")}>
                   <input
                     type="checkbox"
+                    disabled={!policiesReady || policyLoading}
                     checked={agree[k]}
                     onChange={(e) =>
                       setAgree({ ...agree, [k]: e.target.checked })
@@ -143,6 +286,21 @@ export function OnboardingScreen({
                     aria-label={`${l} 보기`}
                   >
                     보기
+                    {policies?.find(
+                      (p) =>
+                        p.documentType ===
+                        (doc === "terms" ? "TERMS" : "PRIVACY"),
+                    )?.version && (
+                      <span className="ml-1 font-mono text-11">
+                        {
+                          policies.find(
+                            (p) =>
+                              p.documentType ===
+                              (doc === "terms" ? "TERMS" : "PRIVACY"),
+                          )?.version
+                        }
+                      </span>
+                    )}
                   </RouteLink>
                 )}
               </div>
@@ -158,7 +316,12 @@ export function OnboardingScreen({
               개에 아직 동의하지 않았어요.
             </FieldMessage>
           )}
-          <Button size="lg" block disabled={!all} onClick={() => setStep(2)}>
+          <Button
+            size="lg"
+            block
+            disabled={!all || !policiesReady || policyLoading}
+            onClick={() => setStep(2)}
+          >
             다음
           </Button>
         </>
@@ -194,7 +357,7 @@ export function OnboardingScreen({
             <label className={labelClass} htmlFor={P + "onb-nick"}>
               닉네임 <span className={requiredMarkClass}>*</span>
               <span className={counterClass}>
-                {nick.length}/{POLICY.nickMax}
+                {nickWeight(nick)}/{POLICY.nickMaxWeight}
               </span>
             </label>
             <input
@@ -206,8 +369,7 @@ export function OnboardingScreen({
               data-validate={nc.state}
             />
             <FieldMessage state={msgState(nc.state)}>
-              {nc.msg ||
-                `${POLICY.nickMin}~${POLICY.nickMax}자, 다른 사람과 같아도 괜찮아요`}
+              {nc.msg || `${NICK_RULE_HINT} 다른 사람과 같아도 괜찮아요.`}
             </FieldMessage>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-12 text-muted">
@@ -272,7 +434,8 @@ export function OnboardingScreen({
                 )}
                 aria-pressed={cats.includes(c.id)}
                 disabled={
-                  !cats.includes(c.id) && cats.length >= POLICY.maxCategories
+                  submitting ||
+                  (!cats.includes(c.id) && cats.length >= POLICY.maxCategories)
                 }
                 onClick={() => tog(c.id)}
               >
@@ -286,14 +449,29 @@ export function OnboardingScreen({
             바꿀 수 있어요.
           </FieldMessage>
           <div className="flex gap-2">
-            <Button variant="ghost" size="lg" onClick={() => setStep(2)}>
+            <Button
+              variant="ghost"
+              size="lg"
+              disabled={submitting}
+              onClick={() => setStep(2)}
+            >
               이전
             </Button>
-            <Button variant="ghost" size="lg" onClick={() => finish(true)}>
+            <Button
+              variant="ghost"
+              size="lg"
+              disabled={submitting}
+              onClick={() => void finish(true)}
+            >
               건너뛰기
             </Button>
-            <Button size="lg" className="flex-1" onClick={() => finish(false)}>
-              시작하기
+            <Button
+              size="lg"
+              className="flex-1"
+              disabled={submitting}
+              onClick={() => void finish(false)}
+            >
+              {submitting ? "가입 중…" : "시작하기"}
             </Button>
           </div>
         </>

@@ -84,4 +84,12 @@ public class User extends BaseTimeEntity {
 		}
 	}
 
+	/** 회원이 직접 고칠 수 있는 프로필 항목을 바꾼다(아이디·닉네임·한 줄 소개·외부 링크). */
+	public void updateProfile(String username, String nickname, String bio, Map<String, String> profileLinks) {
+		this.username = username;
+		this.nickname = nickname;
+		this.bio = bio;
+		this.profileLinks = new HashMap<>(profileLinks);
+	}
+
 }

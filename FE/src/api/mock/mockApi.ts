@@ -163,6 +163,17 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       session.saves = [];
       return sessionCopy();
     },
+    adoptMember: async (user) => {
+      // 같은 회원의 정보만 바뀌는 경우(프로필 저장)에는 좋아요·저장 상태를 그대로 둔다
+      const same = !!user && session.meId === user.id;
+      if (user) users[user.id] = clone(user);
+      session.meId = user ? user.id : null;
+      if (!same) {
+        session.likes = [];
+        session.saves = [];
+      }
+      return clone({ users, session });
+    },
     withdraw: async () => {
       const id = need().id;
       const gone = new Set(

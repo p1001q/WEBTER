@@ -4,6 +4,7 @@ import type {
   Comment,
   CommentInput,
   Notification,
+  PolicyVersion,
   Rate,
   Review,
   ReviewInput,
@@ -65,6 +66,8 @@ export interface WtStore {
   reported: Set<string>;
   guestReviewed: Set<string>;
   takenHandles: string[];
+  /** 실제 로그인을 쓸 때 서버 세션 확인이 끝났는지. 끝나기 전에는 로그인 상태를 알 수 없다 */
+  sessionReady: boolean;
   aiUsed: number;
   todayCount: number;
 
@@ -109,15 +112,22 @@ export interface WtStore {
   myReview: (sid: string) => Review | undefined;
 
   // 쓰기 동작은 실패하면 안내(토스트·연결 배너·로그인 만료 모달)를 직접 띄우고 false 를 돌려준다.
-  // 호출한 쪽은 true 일 때만 모달을 닫거나 입력값을 비운다.
+  // 호출한 쪽은 각 반환형의 성공 결과를 확인한 뒤 모달을 닫거나 입력값을 비운다.
   login: (back?: string) => Promise<boolean>;
+  /** 약관 버전이 바뀌면 policyChanged를 돌려주며, 최신 약관에 다시 동의해야 한다. */
   signup: (
-    data: { handle: string; nick: string; interests: User["interests"] },
+    data: {
+      handle: string;
+      nick: string;
+      interests: User["interests"];
+      consents?: PolicyVersion[];
+    },
     back?: string,
-  ) => Promise<boolean>;
+  ) => Promise<boolean | "policyChanged">;
   logout: () => Promise<boolean>;
   withdraw: () => Promise<boolean>;
-  updateMe: (patch: Partial<User>) => Promise<boolean>;
+  /** 계정 설정은 입력칸을 서버 응답과 맞출 수 있도록 저장된 회원을 돌려준다. */
+  updateMe: (patch: Partial<User>) => Promise<User | false>;
 
   launch: (s: Service) => Promise<void>;
   openSource: (s: Service) => void;

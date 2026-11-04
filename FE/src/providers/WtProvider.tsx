@@ -11,7 +11,17 @@ import {
   type ReactNode,
 } from "react";
 import { createApi } from "@/api";
-import { failureText, toApiError } from "@/api/errors";
+import {
+  fetchSession,
+  googleLoginUrl,
+  memberToUser,
+  submitLogout,
+  submitProfile,
+  submitSignup,
+  submitWithdraw,
+} from "@/api/auth/authApi";
+import { realAuth } from "@/api/auth/config";
+import { ApiError, failureText, toApiError } from "@/api/errors";
 import type {
   Comment,
   Notification,
@@ -259,7 +269,7 @@ export function WtProvider({
     setServices((l) => l.map((x) => (x.id === s.id ? s : x)));
   const applyReview = (r: Review) =>
     setReviews((l) => l.map((x) => (x.id === r.id ? r : x)));
-  const applySession = (s: SessionState) => {
+  const applySession = useCallback((s: SessionState) => {
     setMeId(s.meId);
     setLikes(new Set(s.likes));
     setSaves(new Set(s.saves));
@@ -267,13 +277,55 @@ export function WtProvider({
     setGuestReviewed(new Set(s.guestReviewed));
     setTodayCount(s.todayCount);
     setVotes({});
-  };
+  }, []);
+
+  // 실제 로그인을 쓸 때는 첫 화면을 그린 뒤 서버 세션을 확인해 로그인 상태를 되살린다.
+  // 확인이 끝나기 전에는 로그인이 필요한 화면이 로그인 안내를 띄우지 않도록 sessionReady 로 기다리게 한다.
+  const [sessionReady, setSessionReady] = useState(!realAuth);
+  useEffect(() => {
+    if (!realAuth) return;
+    let live = true;
+    (async () => {
+      try {
+        const s = await fetchSession();
+        if (!live) return;
+        const r = await api.adoptMember(
+          s.status === "MEMBER" ? memberToUser(s.member) : null,
+        );
+        if (!live) return;
+        setUsers(r.users);
+        applySession(r.session);
+      } catch {
+        // 저장된 목업 회원 상태가 서버 확인 실패 뒤에 남지 않도록 비운다
+        if (live) {
+          const r = await api.adoptMember(null);
+          if (live) applySession(r.session);
+        }
+      } finally {
+        if (live) setSessionReady(true);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [api, applySession]);
   const flip = (set: Set<string>, id: string, on: boolean) => {
     const n = new Set(set);
     if (on) n.add(id);
     else n.delete(id);
     return n;
   };
+
+  const loginMock = (backPath?: string) =>
+    act("로그인하지", async () => {
+      const r = await api.login();
+      setUsers(r.users);
+      applySession(r.session);
+      const to = safeBackPath(backPath);
+      if (to) goPath(to);
+      else go("home");
+      toast(to ? "로그인했어요. 보던 페이지로 돌아왔어요." : "로그인했어요.");
+    });
 
   const store: WtStore = {
     me,
@@ -297,7 +349,8 @@ export function WtProvider({
     guestReviewed,
     aiUsed,
     todayCount,
-    takenHandles: snap.takenHandles,
+    takenHandles: realAuth ? [] : snap.takenHandles,
+    sessionReady,
     publicServices: services.filter((s) => s.pub === "public"),
     view,
     setView,
@@ -348,28 +401,44 @@ export function WtProvider({
       else setModal({ type: "login", reason });
     },
 
-    login: (backPath) =>
-      act("로그인하지", async () => {
-        const r = await api.login();
-        setUsers(r.users);
-        applySession(r.session);
-        const to = safeBackPath(backPath);
-        if (to) goPath(to);
-        else go("home");
-        toast(to ? "로그인했어요. 보던 페이지로 돌아왔어요." : "로그인했어요.");
-      }),
+    login: (backPath) => {
+      if (realAuth) {
+        // 구글 로그인은 백엔드를 거쳐 다녀온다. 끝나면 보던 페이지(신규 사용자는 온보딩)로 돌아온다
+        window.location.assign(googleLoginUrl(safeBackPath(backPath) ?? "/"));
+        return Promise.resolve(true);
+      }
+      return loginMock(backPath);
+    },
     signup: async (data, backPath) => {
       if (me) {
         go("home");
         toast("이미 로그인되어 있어요.");
         return true;
       }
-      return act("가입하지", async () => {
-        const r = await api.signup({
-          handle: data.handle,
-          nick: data.nick,
-          interests: data.interests ?? [],
-        });
+      let policyChanged = false;
+      const saved = await act("가입하지", async () => {
+        const signup = async () => {
+          if (!data.consents)
+            throw new ApiError("rule", "약관을 불러온 뒤 다시 동의해 주세요.");
+          try {
+            return await submitSignup({
+              handle: data.handle,
+              nick: data.nick,
+              interests: data.interests ?? [],
+              consents: data.consents,
+            });
+          } catch (e) {
+            policyChanged = toApiError(e).code === "USER_409_03";
+            throw e;
+          }
+        };
+        const r = realAuth
+          ? await api.adoptMember(memberToUser(await signup()))
+          : await api.signup({
+              handle: data.handle,
+              nick: data.nick,
+              interests: data.interests ?? [],
+            });
         setUsers(r.users);
         applySession(r.session);
         const to = safeBackPath(backPath);
@@ -377,29 +446,56 @@ export function WtProvider({
         else go("home");
         toast("가입을 마쳤어요. 보던 페이지로 돌아갑니다.");
       });
+      return policyChanged ? "policyChanged" : saved;
     },
     logout: () =>
       act("로그아웃하지", async () => {
-        applySession(await api.logout());
+        if (realAuth) {
+          await submitLogout();
+          applySession((await api.adoptMember(null)).session);
+        } else applySession(await api.logout());
         go("home");
         toast("로그아웃했어요.");
       }),
     withdraw: () =>
       act("탈퇴 처리하지", async () => {
-        const r = await api.withdraw();
+        // 실제 로그인에서는 서버가 계정을 지운 뒤에 화면의 서비스·리뷰 목업 상태를 정리한다
+        if (realAuth) await submitWithdraw();
+        const r = await api.withdraw().catch(async (e) => {
+          // 서버 계정은 이미 삭제됐으므로 화면의 로그인 상태도 해제한다
+          if (realAuth) applySession((await api.adoptMember(null)).session);
+          throw e;
+        });
         setServices(r.services);
         setReviews(r.reviews);
         setComments(r.comments);
         applySession(r.session);
         go("home");
-        toast("탈퇴 처리했어요. (데모: 실제 계정은 삭제되지 않아요)");
+        toast(
+          realAuth
+            ? "탈퇴 처리했어요."
+            : "탈퇴 처리했어요. (데모: 실제 계정은 삭제되지 않아요)",
+        );
       }),
-    updateMe: (patch) =>
-      act("계정 설정을 저장하지", async () => {
-        const u = await api.updateProfile(patch);
+    updateMe: async (patch) => {
+      let saved: User | undefined;
+      await act("계정 설정을 저장하지", async () => {
+        let u: User;
+        if (realAuth) {
+          // 서버에 저장하고, 서버가 정리한 값(링크 주소 등)을 화면에 반영한다
+          u = memberToUser(await submitProfile({ ...me!, ...patch }));
+          await api.adoptMember(u);
+        } else u = await api.updateProfile(patch);
         setUsers((us) => ({ ...us, [u.id]: u }));
-        toast("계정 설정을 저장했어요. (데모: 이 탭에서만 유지돼요)");
-      }),
+        saved = u;
+        toast(
+          realAuth
+            ? "계정 설정을 저장했어요."
+            : "계정 설정을 저장했어요. (데모: 이 탭에서만 유지돼요)",
+        );
+      });
+      return saved ?? false;
+    },
 
     launch: async (s) => {
       if (s.use !== "live") return;

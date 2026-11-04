@@ -1,5 +1,8 @@
 # 로컬 개발용(BE/compose.yml 의 PostgreSQL 기준). 스키마는 Flyway(db/migration)가 만들고, JPA는 엔티티와 DB가 맞는지 검증만 한다.
 spring:
+  config:
+    # BE/.env 의 값을 환경변수처럼 읽는다(없으면 무시). 로컬 전용이며 파일은 Git에서 제외된다.
+    import: optional:file:.env[.properties]
   datasource:
     username: ${DB_USER:webter}
     password: ${DB_PASSWORD:webter}
@@ -15,6 +18,12 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: ${SESSION_COOKIE_SECURE:false}
 
 app:
   cors:

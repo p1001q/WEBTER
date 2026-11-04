@@ -4,8 +4,8 @@ import { useState, type ReactNode } from "react";
 import { DEV_ONLY_MARKER } from "../marker";
 import type { TweakValues } from "./values";
 
-/** 화면 바로가기: [이름, 경로, 회원 전용 여부] */
-const JUMPS: [string, string, boolean?][] = [
+/** 화면 바로가기: [이름, 경로] */
+const JUMPS: [string, string][] = [
   ["01 홈", "/"],
   ["02 트렌딩", "/trending"],
   ["03 인기", "/popular"],
@@ -18,17 +18,17 @@ const JUMPS: [string, string, boolean?][] = [
   ["07 상세", "/services/s01"],
   ["07 상세 · 댓글 탭", "/services/s01?tab=comments"],
   ["07 상세 · 운영 중지", "/services/s16"],
-  ["07 상세 · 본인 서비스", "/services/s10", true],
+  ["07 상세 · 본인 서비스", "/services/s10"],
   ["07 상세 · 없는 서비스", "/services/none"],
   ["08 로그인", "/login"],
   ["09 가입 온보딩", "/onboarding"],
-  ["10 서비스 등록", "/services/new", true],
-  ["10 등록 완료", "/services/s10/registered", true],
-  ["11 내 서비스 관리", "/manage", true],
-  ["12 수정", "/services/s10/edit", true],
-  ["13 마이페이지", "/mypage", true],
-  ["13 마이페이지 · 리뷰·댓글 · 댓글", "/mypage?tab=comments", true],
-  ["13 알림", "/notifications", true],
+  ["10 서비스 등록", "/services/new"],
+  ["10 등록 완료", "/services/s10/registered"],
+  ["11 내 서비스 관리", "/manage"],
+  ["12 수정", "/services/s10/edit"],
+  ["13 마이페이지", "/mypage"],
+  ["13 마이페이지 · 리뷰·댓글 · 댓글", "/mypage?tab=comments"],
+  ["13 알림", "/notifications"],
   ["14 제작자 프로필", "/users/u_bori"],
   ["14 프로필 · 없는 사용자", "/users/none"],
   ["16 이용약관", "/terms"],
@@ -41,7 +41,7 @@ const JUMPS: [string, string, boolean?][] = [
 interface Props {
   t: TweakValues;
   onChange: (patch: Partial<TweakValues>) => void;
-  onJump: (path: string, memberOnly: boolean) => void;
+  onJump: (path: string) => void;
   onReset: () => void;
 }
 
@@ -52,7 +52,7 @@ const row = (label: string, el: ReactNode) => (
   </div>
 );
 
-/** 개발 서버 전용 데모 컨트롤. 세션·화면 폭·샘플 데이터를 바꿔 상태를 재현한다 */
+/** 개발 서버 전용 데모 컨트롤. 화면 폭·샘플 데이터를 바꿔 상태를 재현한다 */
 export function Tweaks({ t, onChange, onJump, onReset }: Props) {
   const [open, setOpen] = useState(false);
   if (!open)
@@ -118,7 +118,7 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
           value=""
           onChange={(e) => {
             const j = JUMPS[Number(e.target.value)];
-            if (j) onJump(j[1], !!j[2]);
+            if (j) onJump(j[1]);
           }}
         >
           <option value="">화면 선택…</option>
@@ -128,14 +128,6 @@ export function Tweaks({ t, onChange, onJump, onReset }: Props) {
             </option>
           ))}
         </select>,
-      )}
-      {row(
-        "세션",
-        seg("session", [
-          ["guest", "비회원"],
-          ["member", "회원"],
-          ["signup", "신규 가입"],
-        ]),
       )}
       {row(
         "미리보기",

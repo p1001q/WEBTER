@@ -9,6 +9,7 @@ const SILENT_OR_READ = new Set<keyof WebterApi>([
   "login",
   "signup",
   "logout",
+  "adoptMember",
   "bootstrap",
   "recordView",
   "recordClick",
@@ -25,6 +26,8 @@ export function withFaults(api: WebterApi, fault: () => Fault): WebterApi {
     get(target, key: string) {
       const fn = target[key as keyof WebterApi] as unknown;
       if (typeof fn !== "function") return fn;
+      // 실제 서버의 회원 상태를 목업에 반영하는 내부 작업은 오류 재현 대상이 아니다.
+      if (key === "adoptMember") return fn.bind(target);
       return async (...args: unknown[]) => {
         const f = fault();
         if (f === "slow") await wait(SLOW_MS);

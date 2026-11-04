@@ -10,6 +10,10 @@ spring:
       connection-timeout: 5000
   jpa:
     open-in-view: false
+    properties:
+      # PostgreSQL 오류 원문에는 구글 sub·이메일 등이 포함될 수 있다.
+      # 실패는 공통 예외 처리에서 예외 종류·SQLState만 기록한다.
+      hibernate.jdbc.log.errors: false
     hibernate:
       ddl-auto: none
   flyway:
@@ -25,8 +29,25 @@ springdoc:
 
 server:
   port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:30m}
+      tracking-modes: cookie
+      cookie:
+        name: WEBTER_SESSION
+        http-only: true
+        # 운영(HTTPS)은 기본 true. 로컬은 application-local.yaml에서 false
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
 
 app:
+  auth:
+    # 로그인 후 돌아갈 프론트엔드 주소와 이 서버의 외부 주소(구글 리디렉션 URI의 기준). 모두 origin(스킴+호스트+포트)만 쓴다.
+    frontend-origin: ${AUTH_FRONTEND_ORIGIN:http://localhost:3000}
+    backend-origin: ${AUTH_BACKEND_ORIGIN:http://localhost:8080}
+    # 둘 중 하나라도 비어 있으면 구글 로그인은 시작되지 않는다
+    google-client-id: ${GOOGLE_CLIENT_ID:}
+    google-client-secret: ${GOOGLE_CLIENT_SECRET:}
   cors:
     # 프론트엔드 도메인 목록(쉼표로 구분). 비어 있으면 다른 도메인의 호출을 모두 막는다.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}

@@ -8,5 +8,9 @@ spring:
     enabled: true
 
 app:
+  auth:
+    # 개발 PC의 환경변수와 무관하게, 기본은 구글 로그인이 꺼진 상태로 시험한다
+    google-client-id: ""
+    google-client-secret: ""
   cors:
     allowed-origins: http://localhost:3000

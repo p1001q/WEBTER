@@ -12,11 +12,13 @@ export type ApiErrorKind =
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
+  readonly code?: string;
 
-  constructor(kind: ApiErrorKind, message?: string) {
+  constructor(kind: ApiErrorKind, message?: string, code?: string) {
     super(message ?? DEFAULT_MESSAGE[kind]);
     this.name = "ApiError";
     this.kind = kind;
+    this.code = code;
   }
 }
 
