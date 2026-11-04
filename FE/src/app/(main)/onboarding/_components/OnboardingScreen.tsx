@@ -35,6 +35,9 @@ import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import { AuthCard, authSubClass } from "../../_components/AuthCard";
 
+/** 가입 요청에 모두 실려야 하는 필수 약관(없으면 서버가 가입을 거절한다) */
+const REQUIRED_POLICY_TYPES = ["TERMS", "PRIVACY", "AGE_CONFIRMATION"];
+
 const linkClass =
   "text-[12.5px] font-bold text-navy underline underline-offset-[3px]";
 
@@ -67,7 +70,12 @@ export function OnboardingScreen({
   const [policyError, setPolicyError] = useState("");
   const [policyNotice, setPolicyNotice] = useState("");
   const policyRun = useRef(0);
-  const policiesReady = !realAuth || policies !== null;
+  const policiesReady =
+    !realAuth ||
+    (policies !== null &&
+      REQUIRED_POLICY_TYPES.every((type) =>
+        policies.some((p) => p.documentType === type),
+      ));
   const refreshPolicies = useCallback(async () => {
     const run = ++policyRun.current;
     setPolicies(null);
@@ -85,6 +93,8 @@ export function OnboardingScreen({
   }, []);
   const all = agree.terms && agree.privacy && agree.age;
   const hc = handleCheck(handle, [...wt.takenHandles, ...taken]);
+  // 서버가 사용 중이라고 했던 아이디도 바꿀 때마다 다시 확인한다(그 사이 풀렸을 수 있다)
+  const staleTaken = hc.state === "taken" && taken.includes(handle);
   const nc = nickCheck(nick);
   const canNext2 = hc.state === "ok" && nc.state === "ok";
 
@@ -118,12 +128,19 @@ export function OnboardingScreen({
 
   // 아이디 중복은 입력이 멈춘 뒤 서버에 물어본다
   useEffect(() => {
-    if (!realAuth || hc.state !== "ok") return;
+    if (!realAuth || (hc.state !== "ok" && !staleTaken)) return;
     let live = true;
     const timer = setTimeout(async () => {
       try {
-        if (!(await checkUsername(handle)) && live)
-          setTaken((t) => [...t, handle]);
+        const available = await checkUsername(handle);
+        if (!live) return;
+        setTaken((t) =>
+          available
+            ? t.filter((x) => x !== handle)
+            : t.includes(handle)
+              ? t
+              : [...t, handle],
+        );
       } catch {
         // 확인하지 못해도 제출할 때 서버가 다시 검사한다
       }
@@ -132,7 +149,7 @@ export function OnboardingScreen({
       live = false;
       clearTimeout(timer);
     };
-  }, [handle, hc.state]);
+  }, [handle, hc.state, staleTaken]);
 
   // ?step= 으로 앞 단계를 건너뛰고 들어와도, 가입 전에 빠진 단계로 되돌린다
   const finish = async (skip: boolean) => {

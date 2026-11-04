@@ -20,6 +20,9 @@ const kindOf = (status: number): ApiErrorKind =>
           ? "server"
           : "rule";
 
+/** 응답이 이 시간 안에 오지 않으면 네트워크 오류로 본다(세션 확인이 멈춰 화면이 비지 않게) */
+const REQUEST_TIMEOUT_MS = 10_000;
+
 async function send<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
@@ -27,6 +30,7 @@ async function send<T>(path: string, init: RequestInit = {}): Promise<T> {
     res = await fetch(`${API_BASE}${path}`, {
       ...init,
       credentials: "include",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch {
     throw new ApiError("network");
