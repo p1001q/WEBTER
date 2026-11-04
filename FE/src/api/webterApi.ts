@@ -29,6 +29,10 @@ export interface WebterApi {
     input: SignupInput,
   ): Promise<{ users: Record<string, User>; session: SessionState }>;
   logout(): Promise<SessionState>;
+  /** 실제 로그인한 회원(또는 로그아웃 상태 null)을 이 데이터 계층에 알린다. 이후 목업 쓰기 동작이 이 회원 기준으로 처리된다 */
+  adoptMember(
+    user: User | null,
+  ): Promise<{ users: Record<string, User>; session: SessionState }>;
   /** 등록한 서비스 삭제, 작성한 리뷰는 “탈퇴한 사용자”로 남긴다 */
   withdraw(): Promise<
     Pick<Snapshot, "services" | "reviews" | "comments" | "session">

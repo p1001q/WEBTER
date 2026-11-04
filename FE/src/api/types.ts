@@ -223,10 +223,18 @@ export interface Snapshot {
   session: SessionState;
 }
 
+/** 약관·확인 문구의 종류와 버전. 가입 요청에 동의한 버전을 실어 보낸다 */
+export interface PolicyVersion {
+  documentType: string;
+  version: string;
+}
+
 export interface SignupInput {
   handle: string;
   nick: string;
   interests: CategoryId[];
+  /** 실제 가입에서 동의한 문서 버전. 목업은 쓰지 않는다 */
+  consents?: PolicyVersion[];
 }
 
 export interface AiSearchResult {
