@@ -75,7 +75,7 @@ export function HomeScreen() {
             오늘은 어떤 웹을 만나볼까요?
           </h1>
           <p className="mt-3 text-16 text-pretty text-muted @max-[560px]/app:text-14">
-            설치 없이 버튼 하나로. 개발자들이 직접 만든 웹들을 만나봐요.
+            찾던 웹도, 몰랐던 웹도 이곳에서! 설치 없이 버튼 하나로 만나봐요
           </p>
           <div className="mx-auto mt-7 max-w-[720px]">
             <SearchBar />
