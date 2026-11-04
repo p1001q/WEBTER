@@ -2,7 +2,7 @@
 
 ## 구현 범위
 
-사용자가 지정한 EC2 한 대 + 앱·PostgreSQL·Redis Docker Compose + GitHub Actions 이미지 배포를 Terraform으로 구성한다. 실제 리소스 생성이나 배포는 아직 실행하지 않았다. 앱 프레임워크·앱 Dockerfile·업무 API는 포함하지 않는다.
+사용자가 지정한 EC2 한 대 + 앱·PostgreSQL·Redis Docker Compose + GitHub Actions 이미지 배포를 Terraform으로 구성한다. 실제 리소스 생성이나 배포는 아직 실행하지 않았다. 이 폴더는 인프라 초안이며 앱 구현은 `BE/`·`FE/`에서 관리한다. 백엔드 Dockerfile은 `BE/Dockerfile`에 준비돼 있다.
 
 ```mermaid
 flowchart LR
@@ -25,6 +25,13 @@ flowchart LR
 - 외부에는 80/443만 연다. SSH·PostgreSQL·Redis는 외부에 공개하지 않는다. 호스트의 앱 포트는 `127.0.0.1`에서만 준비 상태 점검에 사용한다.
 - PostgreSQL·Redis·TLS·런타임 설정은 독립 EBS에 보관한다. EC2와 루트 디스크를 교체해도 같은 AZ의 데이터 EBS를 재사용한다. 데이터 볼륨 분리 전에 인스턴스를 정지하도록 설정한다. 재부팅 시 Docker 자체도 데이터 볼륨 마운트 이후에 시작하도록 제한한다.
 - 앱 DB 계정은 `webter_app`이며 관리자·DDL 권한을 주지 않는다. 앱은 EC2 역할 자격증명을 IMDS로 받지 않는다.
+
+## 앱·정책과의 관계
+
+- 이 Compose의 단일 앱 이미지는 현재 Spring Boot 백엔드 구성에 맞춰 연결합니다. 프론트 배포처는 미정이며 Vercel 분리 배포는 제안입니다.
+- 구글 인증·WEBTER 가입 완료·계정 권한은 앱에서 구현합니다. Redis 컨테이너를 준비했다고 세션 저장소 선택까지 확정한 것은 아닙니다.
+- 현재 S3 버킷은 DB 백업용입니다. 이미지 저장소와 비공개 이미지 새 요청 제한 방식은 별도 미정이므로 백업 버킷을 이미지 공개 저장소로 사용하지 않습니다.
+- 누적 알림창은 엄격한 실시간 갱신·푸시를 요구하지 않습니다. 이 인프라 초안이 알림·초대·팀원 권한을 구현하지는 않습니다.
 
 ## 적용 전 필요한 값
 
@@ -87,7 +94,7 @@ SSM 값은 배포 시 EC2의 암호화 EBS에 root 전용 파일로 내려받는
 - `EC2_INSTANCE_ID`
 - `DEPLOY_DOCUMENT_NAME`
 
-앱 Dockerfile이 아직 없으므로 배포 workflow는 `workflow_dispatch`로 시작한다. 앱 Dockerfile과 테스트를 준비한 후 GitHub Actions의 **Deploy application to AWS EC2**를 `main`에서 실행하고 빌드 경로를 지정한다. 다른 브랜치에서는 실행되지 않으며 OIDC 신뢰 정책도 해당 저장소의 main만 허용한다. 배포 브랜치를 바꾸면 Terraform과 workflow 조건을 함께 바꾼다.
+백엔드 Dockerfile은 `BE/Dockerfile`에 준비돼 있으며 빌드 컨텍스트는 `BE`다. 배포 workflow는 현재 `workflow_dispatch`이며 실제 배포 세팅은 서버 제공 방식 확인 전까지 보류한다. 재개 후 GitHub Actions의 **Deploy application to AWS EC2**를 `main`에서 실행할 때 해당 경로를 지정한다. 다른 브랜치에서는 실행되지 않으며 OIDC 신뢰 정책도 해당 저장소의 main만 허용한다. 배포 브랜치를 바꾸면 Terraform과 workflow 조건을 함께 바꾼다.
 
 배포 흐름:
 
@@ -132,6 +139,26 @@ sudo df -h / /srv/webter/data
 - 한 EC2의 장애·재부팅·디스크 문제는 앱·DB·Redis 전체에 영향을 준다. 고가용성 구성이 아니다.
 - 데이터 EBS와 백업 버킷에는 `prevent_destroy`를 설정했다. 일반 `terraform destroy`는 보호 자원에서 중단된다. 실제 정리는 데이터 백업·삭제 범위를 확인한 뒤 별도 변경한다.
 - 구글 OAuth 콜백·세션·업무 권한·이미지 접근 제어·AI 검사 작업 실행은 앱 개발 단계의 작업이다. Terraform 배포로 자동 구현되지 않는다.
+
+## 알려진 문제·재개 시 할 일
+
+인프라 작업은 보류 중이다(서버 제공 방식 확인 대기). 재개할 때 아래를 먼저 처리한다.
+
+### infra-check 체크섬 불일치
+
+- 실행 이력은 2026-10-29 `workflow_dispatch` 수동 실행 1건이며 실패했다.
+- `Check Terraform formatting and schema` step에서 `terraform init -lockfile=readonly`는 끝났지만, 바로 뒤에 `hashicorp/aws 6.71.0`의 캐시된 패키지가 잠금 파일에 기록된 체크섬과 하나도 일치하지 않는다는 오류가 나며 실패했다(로그상 `terraform validate` 단계로 추정). init 출력에는 "Provider lock file not updated" 경고(잠금 파일에 기록되지 않은 선택이 감지됨)가 함께 있었다.
+- 원인 후보: `.terraform.lock.hcl`의 `h1:` 해시가 1개뿐이어서 Actions 러너(Linux)의 패키지 해시가 기록돼 있지 않을 수 있다. 확정된 원인은 아니다.
+- 재개 시 검증: `terraform providers lock -platform=linux_amd64 -platform=darwin_arm64`로 잠금 파일을 갱신한 뒤, Linux 환경에서 `terraform init -backend=false -lockfile=readonly`가 통과하는지 확인한다.
+
+### 배포 workflow
+
+- `deploy.yml`의 `actions/checkout`이 v4(Node 20 런타임)로 남아 있다. 다른 workflow는 v7이다.
+- BE를 배포할 때는 `dockerfile=BE/Dockerfile`, `build_context=BE`를 지정해야 한다. 기본값(`Dockerfile`, `.`)은 저장소 루트 기준이다.
+
+### 서버 제공 방식
+
+- 서버를 어떻게 제공받는지 확인되면 IN 구성 자체가 바뀔 수 있다. 확인 전에는 이 폴더의 Terraform·Compose를 확정된 구성으로 보지 않는다.
 
 ## 공식 참고
 
