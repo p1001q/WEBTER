@@ -85,6 +85,8 @@ public class ServiceComment extends BaseTimeEntity {
 	}
 
 	public void leaveTombstone() {
+		this.visibilityStatus = VisibilityStatus.PUBLIC;
+		this.hiddenReason = null;
 		delete();
 		content = "";
 		author = null;

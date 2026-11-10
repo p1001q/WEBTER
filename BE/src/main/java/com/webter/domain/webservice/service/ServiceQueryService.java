@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 서비스 목록·상세 조회. 비공개 서비스는 제작자 본인과 관리자만 상세로 볼 수 있다. */
@@ -38,7 +39,7 @@ public class ServiceQueryService {
 	public record Viewer(UUID userId, boolean admin) {
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public ServicePageResponse list(ServiceSearchCondition condition) {
 		if (condition.sort() == ServiceSort.RELEVANCE && condition.query().isEmpty()) {
 			throw new BusinessException(ServiceErrorCode.INVALID_SORT);
@@ -49,7 +50,7 @@ public class ServiceQueryService {
 				page.total());
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public ServiceResponse detail(long id, Viewer viewer) {
 		WebService service = services.findAllWithOwnerByIdIn(List.of(id))
 			.stream()
@@ -63,7 +64,7 @@ public class ServiceQueryService {
 	}
 
 	/** 내가 등록한 서비스 전체. 비공개·운영 중지도 포함하고 최신순이다. */
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public List<ServiceResponse> mine(Viewer viewer) {
 		return assemble(queries.findOwnedIds(viewer.userId()), Instant.now(), viewer);
 	}
@@ -98,11 +99,12 @@ public class ServiceQueryService {
 		User owner = s.getOwner();
 		return new ServiceResponse(String.valueOf(s.getId()), s.getName(), s.getTagline(), s.getDescriptionMarkdown(),
 				s.getServiceUrl(), s.getGithubUrl(),
-				new ServiceResponse.Owner(owner.getId().toString(), owner.getUsername(), owner.getNickname()),
+				new ServiceResponse.Owner(owner.getId().toString(), owner.getUsername(), owner.getPublicNickname()),
 				s.getCreatedAt(), categories, tags, s.getProjectType(), s.getDeviceCodes(), s.getPriceType(),
 				s.getRegistrantType(), s.getTeamName(), s.getLanguageCodes(), s.getAvailabilityStatus(),
 				s.getUnavailableReason(), s.getVisibilityStatus(),
-				canSeePrivate(s, viewer) ? s.getHiddenReason() : null, s.getIconUrl(), s.getThumbnailUrl(),
+				s.getVisibilityStatus() != VisibilityStatus.PUBLIC && canSeePrivate(s, viewer) ? s.getHiddenReason() : null,
+				s.getIconUrl(), s.getThumbnailUrl(),
 				s.getPreviewRatio(), s.getPreviewFit(), s.getPreviewImages(), s.isAllowGuestReviews(),
 				s.isAllowAnonymousReviews(), s.isAllowAnonymousComments(), c.views(), c.clicks(), c.likes(), c.saves(),
 				new ServiceResponse.ReviewCounts(c.up(), c.down(), c.none()),

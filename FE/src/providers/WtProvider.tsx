@@ -20,6 +20,7 @@ import {
   submitSignup,
   submitWithdraw,
 } from "@/api/auth/authApi";
+import { HIDDEN_NICKNAME, reportKey } from "@/domain/report";
 import { realAuth } from "@/api/auth/config";
 import { ApiError, failureText, toApiError } from "@/api/errors";
 import type {
@@ -383,7 +384,9 @@ export function WtProvider({
 
   const store: WtStore = {
     me,
-    users,
+    users: me?.profileModerated
+      ? { ...users, [me.id]: { ...me, nick: HIDDEN_NICKNAME, bio: "" } }
+      : users,
     services,
     reviews,
     comments,
@@ -507,6 +510,12 @@ export function WtProvider({
         if (realAuth) {
           await submitLogout();
           applySession((await api.adoptMember(null)).session);
+          if (me?.profileModerated) {
+            setUsers((us) => ({
+              ...us,
+              [me.id]: { ...me, nick: HIDDEN_NICKNAME, bio: "" },
+            }));
+          }
           // 내 서비스로 합쳐 둔 비공개 서비스는 비회원 화면에 남지 않게 한다
           setServices((l) => l.filter((s) => s.pub === "public"));
         } else applySession(await api.logout());
@@ -643,11 +652,27 @@ export function WtProvider({
             : {},
         );
       }),
-    report: (key) =>
-      act("신고를 접수하지", async () => {
-        await api.report(key);
-        setReported((r) => new Set([...r, key]));
-      }),
+    report: async (input) => {
+      const epoch = viewerEpoch.current;
+      const key = reportKey(input);
+      const markReported = () => {
+        if (viewerEpoch.current === epoch) {
+          setReported((r) => new Set([...r, key]));
+        }
+      };
+      try {
+        const receipt = await call(() => api.report(input));
+        if (viewerEpoch.current !== epoch) return false;
+        markReported();
+        return receipt;
+      } catch (e) {
+        const err = toApiError(e);
+        if (err.code === "REPORT_409_01") markReported();
+        if (err.kind !== "auth")
+          toast(failureText("신고를 접수하지", err), { err: true });
+        return false;
+      }
+    },
     countView: (s) => {
       // 조회수 집계도 사용자에게 보이지 않는 요청이다
       if (!isOwner(s))

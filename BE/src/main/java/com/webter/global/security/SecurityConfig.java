@@ -65,6 +65,7 @@ public class SecurityConfig {
 						"/api/users/{id:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}", "/oauth2/authorization/google",
 						"/login/oauth2/code/google")
 				.permitAll()
+				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.requestMatchers(HttpMethod.POST, "/api/services/*/reviews/guest").anonymous()
 				.requestMatchers("/api/auth/signup", "/api/auth/username-available")
 				.hasRole(SessionPrincipal.ROLE_SIGNUP_PENDING)

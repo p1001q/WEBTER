@@ -86,12 +86,17 @@ class UserActivityApiTests extends DomainFixtureTest {
 	}
 
 	@Test
-	void unknownInvalidOrHiddenUsersAreNotFoundAndMeIsNotPublic() throws Exception {
+	void profileModerationMasksFieldsAndPrivateRoutesStillRequireLogin() throws Exception {
 		mockMvc.perform(get("/api/users/" + UUID.randomUUID())).andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("USER_404_01"));
 		jdbc.update("UPDATE users SET visibility_status = 'TEMP_HIDDEN' WHERE user_id = ?", fan.getId());
 		em.clear();
-		mockMvc.perform(get("/api/users/" + fan.getId())).andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/users/" + fan.getId())).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.moderated").value(true))
+			.andExpect(jsonPath("$.data.username").value(fan.getUsername()))
+			.andExpect(jsonPath("$.data.nickname").value("비공개 닉네임"))
+			.andExpect(jsonPath("$.data.bio").value(""))
+			.andExpect(jsonPath("$.data.email").doesNotExist());
 		// 유효하지 않은 아이디와 me는 공개 프로필 경로가 아니다
 		mockMvc.perform(get("/api/users/not-a-uuid")).andExpect(status().isUnauthorized());
 		mockMvc.perform(get("/api/users/me/saved")).andExpect(status().isUnauthorized());

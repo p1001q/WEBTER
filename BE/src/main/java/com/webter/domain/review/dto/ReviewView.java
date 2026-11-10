@@ -9,7 +9,7 @@ public record ReviewView(String id, String sid, InteractionAuthor a, ReviewRatin
 		String text, Reply reply, boolean edited, boolean creatorReview, boolean mine,
 		boolean canEdit, boolean canDelete, boolean canReply, boolean canVote, Votes votes) {
 
-	public record Reply(String text, Instant date, boolean edited) {
+	public record Reply(String id, String text, Instant date, boolean edited) {
 	}
 
 	public record Votes(long up, long down, VoteType mine) {

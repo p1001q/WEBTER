@@ -67,8 +67,8 @@ export function ShellDemo() {
               wt.setModal({
                 type: "report",
                 target: {
-                  type: "service",
-                  key: "service:s01",
+                  targetType: "SERVICE",
+                  targetId: "s01",
                   label: first?.name,
                 },
               })

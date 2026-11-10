@@ -12,8 +12,8 @@ import { Gallery } from "@/components/service/Gallery";
 import { ServiceList } from "@/components/service/ServiceList";
 import { StatusBadge } from "@/components/service/StatusBadge";
 import { Avatar } from "@/components/ui/Avatar";
+import { ReportButton } from "@/components/modals/ReportButton";
 import { Icon } from "@/components/ui/Icon";
-import { MiniButton } from "@/components/ui/MiniButton";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { Tabs } from "@/components/ui/Tabs";
 import { tagClass } from "@/components/ui/Tag";
@@ -89,7 +89,6 @@ export function ServiceDetailScreen({
     (c) => c.sid === s.id && !c.deleted,
   ).length;
   const down = s.use === "stop";
-  const reported = wt.reported.has("service:" + s.id);
   const similar = wt.publicServices
     .filter(
       (x) =>
@@ -283,33 +282,12 @@ export function ServiceDetailScreen({
                 프로필 보기
               </RouteLink>
             </div>
-            {!isOwner &&
-              (reported ? (
-                <MiniButton disabled className="self-start">
-                  <Icon name="check" size={13} />
-                  신고 완료
-                </MiniButton>
-              ) : (
-                <MiniButton
-                  className="self-start"
-                  onClick={() =>
-                    wt.requireLogin(
-                      () =>
-                        wt.setModal({
-                          type: "report",
-                          target: {
-                            type: "service",
-                            key: "service:" + s.id,
-                            label: s.name,
-                          },
-                        }),
-                      "신고는 로그인한 회원만 할 수 있어요.",
-                    )
-                  }
-                >
-                  <Icon name="flag" size={13} />이 서비스 신고
-                </MiniButton>
-              ))}
+            <ReportButton
+              className="self-start"
+              target={{ targetType: "SERVICE", targetId: s.id, label: s.name }}
+            >
+              이 서비스 신고
+            </ReportButton>
           </aside>
         </div>
         {firstCategory && similar.length > 0 && (

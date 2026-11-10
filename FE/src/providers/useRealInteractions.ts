@@ -269,13 +269,18 @@ export function useRealInteractions({
   const loadProfile = useCallback(
     async (id: string) => {
       if (!realAuth) return;
+      const epoch = viewerEpoch.current;
       const user = await call(() => profileApi.profile(id));
+      if (viewerEpoch.current !== epoch) return;
       setUsers((previous) => ({
         ...previous,
-        [user.id]: { ...previous[user.id], ...user },
+        [user.id]:
+          user.id === meId && previous[user.id]
+            ? { ...previous[user.id], profileModerated: user.profileModerated }
+            : { ...previous[user.id], ...user },
       }));
     },
-    [call, setUsers],
+    [call, meId, setUsers, viewerEpoch],
   );
 
   const interact = async (

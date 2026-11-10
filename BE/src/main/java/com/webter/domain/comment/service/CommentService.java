@@ -98,7 +98,15 @@ public class CommentService {
 	@Transactional
 	public void delete(long serviceId, long commentId, UUID viewerId) {
 		var context = access.write(serviceId, viewerId);
-		ServiceComment comment = findEditable(context.service(), commentId, viewerId);
+		remove(findEditable(context.service(), commentId, viewerId));
+	}
+
+	/** 운영 조치에서 서비스 행을 잠근 상태로 호출한다. */
+	public void removeForModeration(long commentId) {
+		remove(comments.findById(commentId).orElseThrow());
+	}
+
+	private void remove(ServiceComment comment) {
 		if (comments.existsByParent(comment)) {
 			comment.leaveTombstone();
 			return;
