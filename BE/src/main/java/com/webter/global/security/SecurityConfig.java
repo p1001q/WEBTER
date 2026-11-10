@@ -61,7 +61,8 @@ public class SecurityConfig {
 				.requestMatchers("/health", "/health/**", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
 				.permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/auth/session", "/api/auth/login/google",
-						"/api/policies/current", "/api/categories", "/api/services/**", "/oauth2/authorization/google",
+						"/api/policies/current", "/api/categories", "/api/services/**",
+						"/api/users/{id:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}", "/oauth2/authorization/google",
 						"/login/oauth2/code/google")
 				.permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/services/*/reviews/guest").anonymous()

@@ -16,6 +16,16 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
 	List<Review> findByWebServiceOrderByCreatedAtDesc(WebService webService);
 
+	// 내가 쓴 공개 리뷰(글이 있는 것만). 공개된 서비스의 리뷰만 마이페이지에 보인다.
+	@EntityGraph(attributePaths = { "author", "webService" })
+	@Query("""
+			select r from Review r
+			where r.author.id = :authorId and r.visibilityStatus = PUBLIC and r.content <> ''
+			  and r.webService.visibilityStatus = PUBLIC
+			order by r.createdAt desc, r.id desc
+			""")
+	List<Review> findMine(UUID authorId, org.springframework.data.domain.Pageable pageable);
+
 	Optional<Review> findByWebServiceAndAuthor(WebService webService, User author);
 
 	boolean existsByWebServiceAndGuestIpHmac(WebService webService, String guestIpHmac);

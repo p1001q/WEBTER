@@ -1,5 +1,9 @@
 "use client";
 
+/* eslint-disable react-hooks/preserve-manual-memoization --
+ * 이 훅의 콜백은 요청 시작 때의 viewerEpoch.current 를 읽어 로그인 상태가 바뀐 뒤 늦게 온 응답을 버린다.
+ * ref 값은 호출 시점에 읽어야 하므로 의존성에 넣지 않으며, 자동 최적화(React Compiler)가 이 훅을 건너뛰어도 동작은 같다. */
+
 import {
   useCallback,
   useEffect,
@@ -16,6 +20,7 @@ import {
   type ReactionType,
   type ReviewSort,
 } from "@/api/real/interactionApi";
+import { profileApi } from "@/api/real/profileApi";
 import type { Comment, Review, Service, User } from "@/api/types";
 import { gradeOf } from "@/domain/review";
 import type { WtStore } from "./types";
@@ -26,7 +31,6 @@ interface Props {
   viewerEpoch: RefObject<number>;
   me: User | null;
   meId: string | null;
-  services: Service[];
   reviews: Review[];
   comments: Comment[];
   setServices: Setter<Service[]>;
@@ -64,7 +68,6 @@ export function useRealInteractions({
   viewerEpoch,
   me,
   meId,
-  services,
   reviews,
   comments,
   setServices,
@@ -201,36 +204,79 @@ export function useRealInteractions({
     [setLikes, setSaves, viewerEpoch],
   );
 
-  // 목록과 마이페이지가 같은 반응 상태를 쓰도록 공개 서비스의 내 상태를 제한된 동시 요청으로 읽는다.
-  const reactionIds = services
-    .filter((s) => /^[1-9]\d*$/.test(s.id) && s.pub === "public")
-    .map((s) => s.id)
-    .join(",");
+  // 로그인하면 내 좋아요·저장 상태를 한 번에 채운다(서비스마다 조회하지 않는다). 저장은 저장한 순서를 유지한다.
+  const refreshMyReactions = useCallback(async () => {
+    const epoch = viewerEpoch.current;
+    const [liked, saved] = await Promise.all([
+      profileApi.liked(),
+      profileApi.saved(),
+    ]);
+    if (epoch !== viewerEpoch.current) return;
+    setLikes(new Set(liked));
+    setSaves(new Set(saved.map((s) => s.serviceId)));
+  }, [setLikes, setSaves, viewerEpoch]);
   useEffect(() => {
-    if (!realAuth || !meId || !reactionIds) return;
-    const ids = reactionIds.split(",");
+    if (!realAuth || !meId) return;
     let active = true;
-    let index = 0;
-    const load = async () => {
-      while (active && index < ids.length) {
-        const id = ids[index++];
-        try {
-          await readReaction(id);
-        } catch (error) {
-          if (!active) return;
-          const err = toApiError(error);
-          if (err.kind === "notFound") continue;
-          if (err.kind === "network") setOffline(true);
-          else toast(failureText("내 반응을 불러오지", err), { err: true });
-          active = false;
-        }
-      }
-    };
-    for (let i = 0; i < 6; i++) void load();
+    refreshMyReactions().catch((error: unknown) => {
+      if (!active) return;
+      const err = toApiError(error);
+      if (err.kind === "network") setOffline(true);
+      else toast(failureText("내 반응을 불러오지", err), { err: true });
+    });
     return () => {
       active = false;
     };
-  }, [meId, reactionIds, readReaction, setOffline, toast]);
+  }, [meId, refreshMyReactions, setOffline, toast]);
+
+  // 마이페이지: 서비스를 가리지 않고 내가 쓴 리뷰·댓글과 저장 순서를 모은다
+  const loadMypage = useCallback(async () => {
+    if (!realAuth || !meId) return;
+    const epoch = viewerEpoch.current;
+    const [mineReviews, mineComments] = await call(async () => {
+      const [r, c] = await Promise.all([
+        profileApi.myReviews(),
+        profileApi.myComments(),
+        refreshMyReactions(),
+      ]);
+      return [r, c] as const;
+    });
+    if (epoch !== viewerEpoch.current) return;
+    rememberAuthors([...mineReviews, ...mineComments]);
+    setReviews((old) =>
+      mergeEntries(
+        old,
+        mineReviews.map(({ item }) => item),
+      ),
+    );
+    setComments((old) =>
+      mergeEntries(
+        old,
+        mineComments.map(({ item }) => item),
+      ),
+    );
+  }, [
+    call,
+    meId,
+    refreshMyReactions,
+    rememberAuthors,
+    setComments,
+    setReviews,
+    viewerEpoch,
+  ]);
+
+  // 제작자 프로필: 서버가 가진 소개·외부 링크를 사용자 정보에 합친다
+  const loadProfile = useCallback(
+    async (id: string) => {
+      if (!realAuth) return;
+      const user = await call(() => profileApi.profile(id));
+      setUsers((previous) => ({
+        ...previous,
+        [user.id]: { ...previous[user.id], ...user },
+      }));
+    },
+    [call, setUsers],
+  );
 
   const interact = async (
     key: string,
@@ -347,6 +393,8 @@ export function useRealInteractions({
     | "commentRevision"
     | "loadReviews"
     | "loadComments"
+    | "loadMypage"
+    | "loadProfile"
     | "setVote"
     | "launch"
     | "countView"
@@ -514,6 +562,8 @@ export function useRealInteractions({
     commentRevision: (sid) => commentRevisions[sid] ?? 0,
     loadReviews,
     loadComments,
+    loadMypage,
+    loadProfile,
     setVote: (sid, next) => {
       if (myReviews[sid]?.text) return;
       void interact(`my-review:${sid}`, "평가를 바꾸지", async (current) => {

@@ -86,6 +86,18 @@ public class ReviewService {
 			.orElse(null);
 	}
 
+	/** 내가 쓴 리뷰(최근 순, 공개된 서비스의 글이 있는 리뷰만). 마이페이지에서 서비스를 가리지 않고 모아 본다. */
+	@Transactional(readOnly = true)
+	public List<ReviewView> myReviews(UUID viewerId, int limit) {
+		CursorPage.checkLimit(limit);
+		var mine = reviews.findMine(viewerId, org.springframework.data.domain.PageRequest.of(0, limit));
+		var summaries = summaries(mine.stream().map(Review::getId).toList(), viewerId);
+		boolean canWrite = access.canWrite(viewerId);
+		return mine.stream()
+			.map(review -> view(review, viewerId, false, canWrite, summaries.getOrDefault(review.getId(), Votes.EMPTY)))
+			.toList();
+	}
+
 	@Transactional
 	public ReviewView create(long serviceId, UUID viewerId, ReviewInput input) {
 		var context = access.write(serviceId, viewerId);

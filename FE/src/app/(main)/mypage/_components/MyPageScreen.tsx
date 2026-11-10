@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Footer } from "@/components/layout/Footer";
 import { ServiceIcon } from "@/components/service/ServiceIcon";
 import { Avatar } from "@/components/ui/Avatar";
@@ -38,6 +38,11 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
     setTab(tabParam);
   }
   const me = wt.me!;
+  const { loadMypage } = wt;
+  // 실제 서버 연결에서는 서비스를 가리지 않고 내가 쓴 리뷰·댓글과 저장한 순서를 서버에서 가져온다(실패해도 이미 있는 내용으로 보여 준다)
+  useEffect(() => {
+    loadMypage().catch(() => {});
+  }, [loadMypage]);
   const mine = wt.services.filter((s) => s.owner === me.id);
   // 담은 순서(먼저 담은 것이 앞)를 그대로 둔다. 저장한 서비스의 정렬이 이 순서를 쓴다
   const saved = [...wt.saves].flatMap((id) => wt.svc(id) ?? []);

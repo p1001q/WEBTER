@@ -55,6 +55,17 @@ public class CommentService {
 			rows.size() > limit ? new Position(last.getCreatedAt(), last.getId(), 0).encode(scope) : null);
 	}
 
+	/** 내가 쓴 댓글·답글(최근 순, 공개된 서비스의 삭제하지 않은 글만). 마이페이지에서 서비스를 가리지 않고 모아 본다. */
+	@Transactional(readOnly = true)
+	public List<CommentView> myComments(UUID viewerId, int limit) {
+		CursorPage.checkLimit(limit);
+		boolean canWrite = access.canWrite(viewerId);
+		return comments.findMine(viewerId, PageRequest.ofSize(limit))
+			.stream()
+			.map(comment -> view(comment, viewerId, canWrite, 0))
+			.toList();
+	}
+
 	@Transactional
 	public CommentView create(long serviceId, UUID viewerId, CommentInput input) {
 		var context = access.write(serviceId, viewerId);

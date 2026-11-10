@@ -281,7 +281,6 @@ export function WtProvider({
       viewerEpoch,
       me,
       meId,
-      services,
       reviews,
       comments,
       setServices,
@@ -736,6 +735,8 @@ export function WtProvider({
     commentRevision: realActions.commentRevision,
     loadReviews: realActions.loadReviews,
     loadComments: realActions.loadComments,
+    loadMypage: realActions.loadMypage,
+    loadProfile: realActions.loadProfile,
     voteOnReview: realActions.voteOnReview,
     ...(realAuth ? realActions : {}),
   };

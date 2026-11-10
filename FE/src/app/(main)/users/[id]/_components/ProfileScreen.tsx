@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Footer } from "@/components/layout/Footer";
 import { Restricted } from "@/components/layout/Restricted";
 import { SectionHead } from "@/components/layout/SectionHead";
@@ -16,6 +17,11 @@ import { useWt } from "@/providers/context";
 /** 제작자 프로필: 소개·외부 링크·등록한 서비스 */
 export function ProfileScreen({ id }: { id: string }) {
   const wt = useWt();
+  const { loadProfile } = wt;
+  // 실제 서버 연결에서는 서버가 가진 소개·외부 링크를 가져와 채운다(실패해도 이미 있는 정보로 보여 준다)
+  useEffect(() => {
+    loadProfile(id).catch(() => {});
+  }, [id, loadProfile]);
   const u = Object.hasOwn(wt.users, id) ? wt.users[id] : undefined;
   if (!u)
     return (
