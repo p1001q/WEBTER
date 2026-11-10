@@ -1,3 +1,4 @@
+import type { ReportInput, ReportReceipt, ReportTarget } from "@/domain/report";
 import type { Dispatch, SetStateAction } from "react";
 import type {
   AiSearchResult,
@@ -21,14 +22,6 @@ import type { ReviewAgg } from "@/domain/review";
 import type { RouteName, RouteParams } from "@/lib/routes";
 
 export type ViewMode = "card" | "list";
-
-export interface ReportTarget {
-  type: "service" | "review" | "reply" | "comment" | "profile";
-  /** 'review:r2' 처럼 type:id */
-  key: string;
-  label?: string;
-  preset?: string;
-}
 
 export type ModalState =
   | { type: "login"; reason?: string }
@@ -152,7 +145,7 @@ export interface WtStore {
   copyLink: (s: Service) => Promise<void>;
   toggleLike: (id: string) => Promise<boolean>;
   toggleSave: (id: string) => Promise<boolean>;
-  report: (key: string) => Promise<boolean>;
+  report: (input: ReportInput) => Promise<ReportReceipt | false>;
   countView: (s: Service) => void;
 
   addReview: (s: Service, role: ReviewRole, v: ReviewInput) => Promise<boolean>;

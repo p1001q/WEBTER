@@ -1,3 +1,4 @@
+import type { ReportInput, ReportReceipt } from "@/domain/report";
 import type {
   AiSearchResult,
   Comment,
@@ -44,7 +45,7 @@ export interface WebterApi {
   toggleSave(serviceId: string): Promise<{ service: Service; on: boolean }>;
   recordView(serviceId: string): Promise<Service>;
   recordClick(serviceId: string): Promise<Service>;
-  report(key: string): Promise<void>;
+  report(input: ReportInput): Promise<ReportReceipt>;
 
   /* 리뷰 */
   addReview(

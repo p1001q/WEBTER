@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { textareaClass } from "@/components/ui/field";
 import { FieldMessage } from "@/components/ui/FieldMessage";
+import { ReportButton } from "@/components/modals/ReportButton";
 import { Icon } from "@/components/ui/Icon";
 import { MakerBadge } from "@/components/ui/MakerBadge";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -39,30 +40,10 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
   const [reply, setReply] = useState("");
   const u = r.a.uid ? wt.users[r.a.uid] : undefined;
   const showUser = (r.a.kind === "member" || r.a.kind === "maker") && !!u;
-  const reported = wt.reported.has("review:" + r.id);
   const rate =
     RATE[r.rate === "up" ? "up" : r.rate === "down" ? "down" : "none"];
   const replyLink = hasLink(reply);
   const P = useId();
-  const reportBtn = (key: string, type: "review" | "reply", done: boolean) =>
-    done ? (
-      <MiniButton disabled>
-        <Icon name="check" size={13} />
-        신고 완료
-      </MiniButton>
-    ) : (
-      <MiniButton
-        onClick={() =>
-          wt.requireLogin(
-            () => wt.setModal({ type: "report", target: { type, key } }),
-            "신고는 로그인한 회원만 할 수 있어요.",
-          )
-        }
-      >
-        <Icon name="flag" size={13} />
-        신고
-      </MiniButton>
-    );
   const who = "font-bold";
   return (
     <div
@@ -124,7 +105,7 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
               삭제
             </MiniButton>
           )}
-          {!mine && reportBtn("review:" + r.id, "review", reported)}
+          <ReportButton target={{ targetType: "REVIEW", targetId: r.id }} />
         </span>
       </div>
       <p className={text}>{r.text}</p>
@@ -198,12 +179,12 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
                   </MiniButton>
                 </>
               )}
-              {!canReply &&
-                reportBtn(
-                  "reply:" + r.id,
-                  "reply",
-                  wt.reported.has("reply:" + r.id),
-                )}
+              <ReportButton
+                target={{
+                  targetType: "REVIEW_REPLY",
+                  targetId: r.reply.id ?? r.id,
+                }}
+              />
             </span>
           </div>
           <p className={`${text} text-14!`}>{r.reply.text}</p>

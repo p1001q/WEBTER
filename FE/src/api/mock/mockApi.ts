@@ -1,3 +1,4 @@
+import { reportKey } from "@/domain/report";
 import { DISPLAY, POLICY } from "@/domain/policy";
 import { CAT } from "@/domain/options";
 import { handleChangeStatus, normUrl } from "@/domain/validation";
@@ -228,8 +229,10 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       if (s.owner !== session.meId) bump(s, "clicks", 1);
       return clone(s);
     },
-    report: async (key) => {
+    report: async (input) => {
+      const key = reportKey(input);
       if (!session.reported.includes(key)) session.reported.push(key);
+      return { id: key, temporarilyHidden: false };
     },
 
     addReview: async (sid: string, role: ReviewRole, v: ReviewInput) => {

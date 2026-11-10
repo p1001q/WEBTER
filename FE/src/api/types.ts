@@ -111,6 +111,8 @@ export interface User {
   color: string;
   bio: string;
   email?: string;
+  role?: "USER" | "ADMIN";
+  profileModerated?: boolean;
   links: [LinkKind, string][];
   interests?: CategoryId[];
   avatarImg?: string | null;
@@ -143,7 +145,7 @@ export interface Review {
   rate: Rate | null;
   date: string;
   text: string;
-  reply?: { text: string; date: string; edited?: boolean };
+  reply?: { id?: string; text: string; date: string; edited?: boolean };
   permissions?: InteractionPermissions & { canVote: boolean };
   votes?: ReviewVotes;
   fresh?: boolean;
