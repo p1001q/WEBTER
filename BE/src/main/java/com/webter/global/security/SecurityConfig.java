@@ -64,7 +64,6 @@ public class SecurityConfig {
 						"/api/policies/current", "/api/categories", "/api/services/**", "/oauth2/authorization/google",
 						"/login/oauth2/code/google")
 				.permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/services/**").permitAll()
 				.requestMatchers("/api/auth/signup", "/api/auth/username-available")
 				.hasRole(SessionPrincipal.ROLE_SIGNUP_PENDING)
 				// 그 밖의 API는 가입을 완료한 회원만 쓴다. 가입 대기 상태는 회원 권한이 없다.
