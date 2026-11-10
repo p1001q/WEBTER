@@ -1,5 +1,9 @@
 "use client";
 
+import { useCallback } from "react";
+import { realAuth } from "@/api/auth/config";
+import { CursorListControls } from "@/components/ui/CursorListControls";
+import { useCursorList } from "@/lib/useCursorList";
 import type { Comment, Service } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
@@ -21,7 +25,21 @@ export function CommentSection({
 }) {
   const wt = useWt();
   const all = wt.comments.filter((c) => c.sid === s.id);
-  const tops = all.filter((c) => !c.parent);
+  const loadComments = wt.loadComments;
+  const load = useCallback(
+    (cursor?: string) => loadComments(s.id, undefined, cursor),
+    [loadComments, s.id],
+  );
+  const page = useCursorList(
+    `${s.id}:${wt.me?.id ?? "guest"}`,
+    wt.commentRevision(s.id),
+    realAuth && wt.sessionReady,
+    load,
+  );
+  const byId = new Map(all.map((c) => [c.id, c]));
+  const tops = realAuth
+    ? page.ids.flatMap((id) => byId.get(id) ?? [])
+    : all.filter((c) => !c.parent);
   const repliesOf = new Map<string, Comment[]>();
   for (const c of all)
     if (c.parent)
@@ -64,17 +82,28 @@ export function CommentSection({
           </Button>
         </div>
       )}
-      <div className={`${helpClass} py-2`}>댓글 {total}개</div>
-      {loading ? (
+      {!realAuth && <div className={`${helpClass} py-2`}>댓글 {total}개</div>}
+      {loading ||
+      (realAuth && (!wt.sessionReady || page.loading) && !tops.length) ? (
         <CommentListSkeleton />
       ) : tops.length ? (
         tops.map((c) => (
           <CommentItem key={c.id} c={c} s={s} replies={repliesOf.get(c.id)} />
         ))
-      ) : (
+      ) : !page.error ? (
         <p className="m-0 py-10 text-center text-14 text-muted">
           아직 댓글이 없어요. 첫 댓글을 남겨 보세요.
         </p>
+      ) : null}
+      {realAuth && (
+        <CursorListControls
+          label="댓글 더 보기"
+          error={page.error}
+          hasMore={page.hasMore}
+          pending={page.loading || page.morePending}
+          loadMore={page.loadMore}
+          retry={page.retry}
+        />
       )}
     </div>
   );
