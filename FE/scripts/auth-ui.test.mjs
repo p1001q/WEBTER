@@ -308,6 +308,9 @@ async function provider(t, fetchSession, extra = {}, mine = []) {
           session: u ? { ...guest, meId: u.id } : guest,
         }),
         myServices: async () => mine,
+        withdraw: async () => {
+          throw Error("mock withdraw failure");
+        },
       }),
     },
     "@/api/auth/config": { realAuth: true },
@@ -381,6 +384,35 @@ test("현재 회원의 것이 아닌 서비스 응답은 병합하지 않는다"
   );
   await settle();
   assert.deepEqual(render().services, []);
+});
+
+test("탈퇴 처리 중 목업 정리가 실패해도 비공개 서비스는 화면에 남기지 않는다", async (t) => {
+  const mine = [
+    { id: "7", name: "공개 서비스", pub: "public", owner: "restored" },
+    { id: "8", name: "숨김 서비스", pub: "temp", owner: "restored" },
+  ];
+  const { render } = await provider(
+    t,
+    async () => ({ status: "MEMBER", member: { id: "restored" } }),
+    {
+      memberToUser: (m) => ({ id: m.id, handle: "restored", nick: "복원" }),
+      submitWithdraw: async () => {},
+    },
+    mine,
+  );
+  await settle();
+  assert.deepEqual(
+    render().services.map((s) => s.id),
+    ["7", "8"],
+  );
+  await render().withdraw();
+  await settle();
+  const after = render();
+  assert.equal(after.me, null);
+  assert.deepEqual(
+    after.services.map((s) => s.id),
+    ["7"],
+  );
 });
 
 test("내 서비스를 받지 못해도 로그인 복원은 유지한다", async (t) => {

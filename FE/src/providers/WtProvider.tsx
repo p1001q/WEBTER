@@ -487,7 +487,11 @@ export function WtProvider({
         if (realAuth) await submitWithdraw();
         const r = await api.withdraw().catch(async (e) => {
           // 서버 계정은 이미 삭제됐으므로 화면의 로그인 상태도 해제한다
-          if (realAuth) applySession((await api.adoptMember(null)).session);
+          if (realAuth) {
+            applySession((await api.adoptMember(null)).session);
+            // 내 서비스로 합쳐 둔 비공개 서비스가 비회원 화면에 남지 않게 한다
+            setServices((l) => l.filter((s) => s.pub === "public"));
+          }
           throw e;
         });
         setServices(r.services);
