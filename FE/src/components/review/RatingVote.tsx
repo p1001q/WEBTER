@@ -14,11 +14,13 @@ export function RatingVote({ s }: { s: Service }) {
   const my = wt.myVote(s.id);
   const reason = !wt.me
     ? "로그인하면 평가할 수 있어요"
-    : wt.me.id === s.owner
-      ? "내 서비스는 평가할 수 없어요"
-      : s.use === "stop"
-        ? "운영 중지된 서비스는 평가할 수 없어요"
-        : undefined;
+    : !wt.myReviewReady(s.id)
+      ? "내 평가를 불러오고 있어요"
+      : wt.me.id === s.owner
+        ? "내 서비스는 평가할 수 없어요"
+        : s.use === "stop"
+          ? "운영 중지된 서비스는 평가할 수 없어요"
+          : undefined;
   const item = (
     rate: "up" | "down",
     label: string,

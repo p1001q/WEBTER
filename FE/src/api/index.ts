@@ -21,7 +21,7 @@ export function createApi(opts?: MockOptions): WebterApi {
 
 /**
  * 앱이 시작할 때 쓰는 초기 데이터. 백엔드 주소가 있으면 서비스 목록을 서버에서 받아 오고(서버 렌더링),
- * 없으면 목업 데이터를 쓴다. 리뷰·댓글·알림·반응처럼 아직 연동하지 않은 데이터는 비어 있다.
+ * 없으면 목업 데이터를 쓴다. 리뷰·댓글과 내 반응은 브라우저에서 별도로 조회한다. 알림은 비어 있다.
  */
 export async function loadSnapshot(): Promise<Snapshot> {
   if (!realAuth) return createApi().bootstrap();

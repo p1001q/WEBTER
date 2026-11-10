@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { realAuth } from "@/api/auth/config";
 import { Footer } from "@/components/layout/Footer";
 import { Restricted } from "@/components/layout/Restricted";
 import { SectionHead } from "@/components/layout/SectionHead";
@@ -57,13 +58,14 @@ export function ServiceDetailScreen({
   };
   const counted = useRef<string>(undefined);
   useEffect(() => {
+    if (realAuth && (!wt.sessionReady || !wt.me)) return;
     if (s && s.pub === "public" && counted.current !== s.id) {
       counted.current = s.id;
       wt.countView(s);
     }
     // 서비스가 바뀔 때 한 번만 조회수를 센다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s?.id]);
+  }, [s?.id, wt.sessionReady, wt.me?.id]);
   if (!s)
     return (
       <Restricted
@@ -81,6 +83,7 @@ export function ServiceDetailScreen({
       />
     );
   const owner = wt.users[s.owner];
+  const firstCategory = s.cats[0];
   const agg = wt.agg(s);
   const commentCount = wt.comments.filter(
     (c) => c.sid === s.id && !c.deleted,
@@ -121,14 +124,18 @@ export function ServiceDetailScreen({
             홈
           </RouteLink>
           <Icon name="chevRight" size={13} />
-          <RouteLink
-            to="latest"
-            params={{ cat: s.cats[0] }}
-            className="hover:text-ink"
-          >
-            {CAT[s.cats[0]].label}
-          </RouteLink>
-          <Icon name="chevRight" size={13} />
+          {firstCategory && (
+            <>
+              <RouteLink
+                to="latest"
+                params={{ cat: firstCategory }}
+                className="hover:text-ink"
+              >
+                {CAT[firstCategory].label}
+              </RouteLink>
+              <Icon name="chevRight" size={13} />
+            </>
+          )}
           <span className="font-semibold text-ink">{s.name}</span>
         </nav>
         {down && (
@@ -183,7 +190,8 @@ export function ServiceDetailScreen({
                 <>
                   <GradeBadge grade={agg.grade} />
                   <span className={statKey}>
-                    추천 {ratioText(agg.ratio)} · 리뷰 {agg.total}
+                    추천 {ratioText(agg.ratio)} · {realAuth ? "평가" : "리뷰"}{" "}
+                    {agg.total}
                   </span>
                 </>
               ) : (
@@ -208,8 +216,8 @@ export function ServiceDetailScreen({
               onChange={changeTab}
               items={[
                 ["about", "소개"],
-                ["reviews", "리뷰", agg.total],
-                ["comments", "댓글", commentCount],
+                ["reviews", "리뷰", realAuth ? undefined : agg.total],
+                ["comments", "댓글", realAuth ? undefined : commentCount],
               ]}
             />
             <div
@@ -304,11 +312,11 @@ export function ServiceDetailScreen({
               ))}
           </aside>
         </div>
-        {similar.length > 0 && (
+        {firstCategory && similar.length > 0 && (
           <section className="mt-14 @max-[560px]/app:mt-10">
             <SectionHead
               title="비슷한 서비스"
-              sub={`${CAT[s.cats[0]].label} 용도의 다른 서비스`}
+              sub={`${CAT[firstCategory].label} 용도의 다른 서비스`}
             />
             <ServiceList items={similar} />
           </section>

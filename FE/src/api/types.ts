@@ -121,6 +121,20 @@ export interface User {
 export type ReviewAuthorKind = "member" | "anon" | "guest" | "left" | "maker";
 export type Rate = "up" | "down" | "none";
 
+/** 작성자 ID를 공개하지 않는 경우에도 현재 회원의 권한을 구분한다 */
+export interface InteractionPermissions {
+  mine: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canReply: boolean;
+}
+
+export interface ReviewVotes {
+  up: number;
+  down: number;
+  mine: "up" | "down" | null;
+}
+
 export interface Review {
   id: string;
   sid: string;
@@ -129,7 +143,9 @@ export interface Review {
   rate: Rate | null;
   date: string;
   text: string;
-  reply?: { text: string; date: string };
+  reply?: { text: string; date: string; edited?: boolean };
+  permissions?: InteractionPermissions & { canVote: boolean };
+  votes?: ReviewVotes;
   fresh?: boolean;
   edited?: boolean;
 }
@@ -149,6 +165,8 @@ export interface Comment {
   edited?: boolean;
   /** 답글이 달린 댓글을 지우면 자리만 남긴다 */
   deleted?: boolean;
+  permissions?: InteractionPermissions;
+  replyCount?: number;
   fresh?: boolean;
 }
 export interface CommentInput {

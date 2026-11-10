@@ -42,10 +42,12 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   // 담은 순서(먼저 담은 것이 앞)를 그대로 둔다. 저장한 서비스의 정렬이 이 순서를 쓴다
   const saved = [...wt.saves].flatMap((id) => wt.svc(id) ?? []);
   const myReviews = wt.reviews.filter(
-    (r) => r.a.uid === me.id && r.a.kind !== "guest",
+    (r) => r.permissions?.mine ?? (r.a.uid === me.id && r.a.kind !== "guest"),
   );
   const myComments = wt.comments.filter(
-    (c) => !c.deleted && c.a.uid === me.id && c.a.kind !== "left",
+    (c) =>
+      !c.deleted &&
+      (c.permissions?.mine ?? (c.a.uid === me.id && c.a.kind !== "left")),
   );
   return (
     <>
