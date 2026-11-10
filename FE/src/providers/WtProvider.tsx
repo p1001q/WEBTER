@@ -274,6 +274,8 @@ export function WtProvider({
     setServices((l) => l.map((x) => (x.id === s.id ? s : x)));
   const applyReview = (r: Review) =>
     setReviews((l) => l.map((x) => (x.id === r.id ? r : x)));
+  // 늦게 도착한 응답이 로그아웃·탈퇴 뒤의 화면에 이전 회원의 데이터를 넣지 않도록 현재 회원을 따로 들고 있는다
+  const meIdRef = useRef<string | null>(null);
   const { actions: realActions, reset: resetInteractions } =
     useRealInteractions({
       viewerEpoch,
@@ -297,6 +299,7 @@ export function WtProvider({
     });
   const applySession = useCallback(
     (s: SessionState) => {
+      meIdRef.current = s.meId;
       if (realAuth) {
         viewerEpoch.current++;
         resetInteractions();
@@ -328,6 +331,25 @@ export function WtProvider({
         if (!live) return;
         setUsers(r.users);
         applySession(r.session);
+        if (s.status === "MEMBER") {
+          // 공개 목록에 없는 내 서비스(비공개 상태 등)도 내 서비스 관리·마이페이지에 보이게 한다
+          void (async () => {
+            try {
+              const mine = await api.myServices();
+              // 요청하는 사이 로그아웃·탈퇴했거나 다른 회원으로 바뀌었으면 반영하지 않는다
+              if (
+                !live ||
+                meIdRef.current === null ||
+                !mine.every((m) => m.owner === meIdRef.current)
+              )
+                return;
+              const ids = new Set(mine.map((m) => m.id));
+              setServices((l) => [...mine, ...l.filter((x) => !ids.has(x.id))]);
+            } catch {
+              // 내 서비스를 못 받아도 로그인 복원은 그대로 둔다(공개 서비스는 이미 보인다)
+            }
+          })();
+        }
       } catch {
         // 저장된 목업 회원 상태가 서버 확인 실패 뒤에 남지 않도록 비운다
         if (live) {
@@ -486,6 +508,8 @@ export function WtProvider({
         if (realAuth) {
           await submitLogout();
           applySession((await api.adoptMember(null)).session);
+          // 내 서비스로 합쳐 둔 비공개 서비스는 비회원 화면에 남지 않게 한다
+          setServices((l) => l.filter((s) => s.pub === "public"));
         } else applySession(await api.logout());
         go("home");
         toast("로그아웃했어요.");
@@ -496,7 +520,11 @@ export function WtProvider({
         if (realAuth) await submitWithdraw();
         const r = await api.withdraw().catch(async (e) => {
           // 서버 계정은 이미 삭제됐으므로 화면의 로그인 상태도 해제한다
-          if (realAuth) applySession((await api.adoptMember(null)).session);
+          if (realAuth) {
+            applySession((await api.adoptMember(null)).session);
+            // 내 서비스로 합쳐 둔 비공개 서비스가 비회원 화면에 남지 않게 한다
+            setServices((l) => l.filter((s) => s.pub === "public"));
+          }
           throw e;
         });
         setServices(r.services);
