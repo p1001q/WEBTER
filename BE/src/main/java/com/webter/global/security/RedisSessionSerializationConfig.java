@@ -1,6 +1,8 @@
 package com.webter.global.security;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.Map;
+import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +10,10 @@ import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializ
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.security.jackson.SecurityJacksonModules;
+import org.springframework.session.MapSession;
+import org.springframework.session.config.SessionRepositoryCustomizer;
+import org.springframework.session.data.redis.RedisSessionMapper;
+import org.springframework.session.data.redis.RedisSessionRepository;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -36,6 +42,16 @@ class RedisSessionSerializationConfig {
 		return new ReadFailureTolerantSerializer(new GenericJacksonJsonRedisSerializer(mapper));
 	}
 
+	/**
+	 * 세션 전체를 읽을 수 없으면(생성·마지막 접근 시각, 만료 간격 같은 필수 값이 없거나 손상) 오류가 아니라 "세션 없음"으로
+	 * 처리한다. 저장소가 그 세션을 삭제하고, 요청은 비로그인으로 이어진다.
+	 */
+	@Bean
+	SessionRepositoryCustomizer<RedisSessionRepository> discardUnreadableSessions() {
+		return repository -> repository
+			.setRedisSessionMapper(new UnreadableSessionDiscardingMapper(new RedisSessionMapper()));
+	}
+
 	/** 타입 정보를 JSON에 함께 저장해 SessionPrincipal의 구현 클래스(Member, PendingSignup)를 구분한다. */
 	@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 	abstract static class SessionPrincipalMixin {
@@ -60,6 +76,22 @@ class RedisSessionSerializationConfig {
 			}
 			catch (RuntimeException ex) {
 				log.warn("읽을 수 없는 세션 값을 건너뜁니다: {}", ex.getClass().getSimpleName());
+				return null;
+			}
+		}
+
+	}
+
+	record UnreadableSessionDiscardingMapper(
+			BiFunction<String, Map<String, Object>, MapSession> delegate) implements BiFunction<String, Map<String, Object>, MapSession> {
+
+		@Override
+		public MapSession apply(String sessionId, Map<String, Object> entries) {
+			try {
+				return delegate.apply(sessionId, entries);
+			}
+			catch (RuntimeException ex) {
+				log.warn("읽을 수 없는 세션을 폐기합니다: {}", ex.getClass().getSimpleName());
 				return null;
 			}
 		}

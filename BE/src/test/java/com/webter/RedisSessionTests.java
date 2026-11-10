@@ -1,6 +1,7 @@
 package com.webter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.jayway.jsonpath.JsonPath;
 import java.net.HttpCookie;
@@ -229,7 +230,31 @@ class RedisSessionTests extends GoogleLoginFlowTests {
 		finally {
 			docker.unpauseContainerCmd(redisContainer.getContainerId()).exec();
 		}
-		assertThat(get(browser(), "/health/readiness").statusCode()).isEqualTo(200);
+		// 재개 직후에는 Redis 연결이 복구되는 데 시간이 걸릴 수 있어 잠시 기다린다
+		await().atMost(Duration.ofSeconds(15))
+			.untilAsserted(() -> assertThat(get(browser(), "/health/readiness").statusCode()).isEqualTo(200));
+	}
+
+	@Test
+	void sessionWithUnreadableMetadataIsDiscarded() throws Exception {
+		Browser browser = browser();
+		String id = signup(browser, "redis-meta", "redis_meta");
+		redis.opsForHash().put(key(id), "creationTime", "not-a-number");
+
+		// 필수 값을 읽지 못하면 500이 아니라 비로그인으로 처리하고 Redis에서 세션을 지운다
+		assertThat(get(browser, "/api/auth/session").statusCode()).isEqualTo(200);
+		assertThat(redis.hasKey(key(id))).isFalse();
+		assertThat(status(browser)).isEqualTo("ANONYMOUS");
+	}
+
+	@Test
+	void sessionMissingMetadataIsDiscarded() throws Exception {
+		Browser browser = browser();
+		String id = signup(browser, "redis-nometa", "redis_nometa");
+		redis.opsForHash().delete(key(id), "maxInactiveInterval");
+
+		assertThat(status(browser)).isEqualTo("ANONYMOUS");
+		assertThat(redis.hasKey(key(id))).isFalse();
 	}
 
 }
