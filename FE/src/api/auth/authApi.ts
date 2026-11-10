@@ -1,21 +1,7 @@
 import type { CategoryId, LinkKind, PolicyVersion, User } from "../types";
+import { CODE_BY_ID, ID_BY_CODE } from "../real/codes";
 import { API_BASE } from "./config";
 import { deleteJson, getJson, postJson, putJson } from "./http";
-
-/** 백엔드 카테고리 코드 ↔ 화면의 카테고리 id */
-const CODE_BY_ID: Record<CategoryId, string> = {
-  play: "PLAY",
-  life: "LIFE",
-  learn: "LEARNING",
-  prod: "PRODUCTIVITY",
-  design: "DESIGN",
-  util: "UTILITY",
-  dev: "DEV_TOOLS",
-  etc: "ETC",
-};
-const ID_BY_CODE = Object.fromEntries(
-  Object.entries(CODE_BY_ID).map(([id, code]) => [code, id as CategoryId]),
-) as Record<string, CategoryId>;
 
 export interface BackendMember {
   id: string;
