@@ -5,7 +5,6 @@ import com.webter.domain.user.dto.UserProfileResponse;
 import com.webter.domain.user.entity.User;
 import com.webter.domain.user.exception.UserErrorCode;
 import com.webter.domain.user.repository.UserRepository;
-import com.webter.global.entity.VisibilityStatus;
 import com.webter.global.exception.BusinessException;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -24,11 +23,10 @@ public class UserActivityService {
 
 	private final JdbcClient jdbc;
 
-	/** 공개 프로필. 없거나 공개되지 않은 사용자는 404다. 서비스 수·받은 좋아요는 공개된 서비스만 센다. */
+	/** 공개 프로필. 비공개 조치는 닉네임·소개에만 적용한다. 서비스 수·받은 좋아요는 공개된 서비스만 센다. */
 	@Transactional(readOnly = true)
 	public UserProfileResponse profile(UUID id) {
 		User user = users.findById(id)
-			.filter(u -> u.getVisibilityStatus() == VisibilityStatus.PUBLIC)
 			.orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 		long services = jdbc.sql("SELECT count(*) FROM services WHERE owner_id = :id AND visibility_status = 'PUBLIC'")
 			.param("id", id)

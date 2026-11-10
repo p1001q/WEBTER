@@ -92,4 +92,13 @@ public class User extends BaseTimeEntity {
 		this.profileLinks = new HashMap<>(profileLinks);
 	}
 
+	public String getPublicNickname() {
+		return visibilityStatus == VisibilityStatus.PUBLIC ? nickname : "비공개 닉네임";
+	}
+
+	public void restrict(AccountStatus status, String reason) {
+		this.accountStatus = status;
+		this.restrictionReason = reason;
+	}
+
 }
