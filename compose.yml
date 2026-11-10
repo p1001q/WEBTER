@@ -23,6 +23,13 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:
       - "127.0.0.1:${BE_PORT:-8080}:8080"
+    # FE가 시작할 때 서비스 목록을 받아 가므로 BE가 요청을 받을 수 있을 때까지 기다리게 한다(포트가 열리면 준비된 것으로 본다)
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -31,7 +38,10 @@ services:
     image: node:24.22.2
     working_dir: /app
     environment:
+      # 브라우저가 쓰는 BE 주소
       NEXT_PUBLIC_API_BASE_URL: http://localhost:${BE_PORT:-8080}
+      # FE 서버(컨테이너 안)가 BE에 접속하는 주소
+      API_INTERNAL_BASE_URL: http://be:8080
       # pnpm 저장소를 마운트한 소스 폴더(FE/) 밖에 둔다
       npm_config_store_dir: /pnpm-store
     # 호스트 Node 버전과 무관하게 .nvmrc 와 같은 Node 24.22.2로 실행한다. 설치물은 컨테이너 볼륨에 둔다.
@@ -44,7 +54,7 @@ services:
     ports:
       - "127.0.0.1:${FE_PORT:-3000}:3000"
     depends_on:
-      - be
+      be: {condition: service_healthy}
 
 volumes:
   fe_node_modules:
