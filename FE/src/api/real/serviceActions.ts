@@ -1,5 +1,5 @@
 import { deleteJson, getJson, postJson, putJson } from "../auth/http";
-import type { Service, UrlServerCheck, Version } from "../types";
+import type { ServiceInput, UrlServerCheck, Version } from "../types";
 import type { WebterApi } from "../webterApi";
 import {
   CODE_BY_ID,
@@ -15,7 +15,12 @@ const imageUrl = (v?: string | null) =>
   v && (v.startsWith("https://") || v.startsWith("/uploads/")) ? v : null;
 
 /** 화면의 서비스 값을 서비스 등록·수정 요청으로 바꾼다 */
-export function toServiceRequest(s: Service) {
+type ServiceFields = Omit<ServiceInput, "iconImg" | "thumbImg"> & {
+  iconImg?: string | null;
+  thumbImg?: string | null;
+};
+
+export function toServiceRequest(s: ServiceFields) {
   return {
     name: s.name,
     tagline: s.tagline,
@@ -66,11 +71,10 @@ export function withRealServices(base: WebterApi): WebterApi {
     ...base,
     createService: async (input) =>
       mapService(
-        await postJson<BackendService>("/api/services", {
-          ...toServiceRequest({
-            ...input,
-          } as Service),
-        }),
+        await postJson<BackendService>(
+          "/api/services",
+          toServiceRequest(input),
+        ),
       ),
     updateService: async (id, patch) => {
       if ("use" in patch && patch.use) {

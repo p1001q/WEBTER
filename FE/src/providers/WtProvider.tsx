@@ -269,7 +269,10 @@ export function WtProvider({
     setServices((l) => l.map((x) => (x.id === s.id ? s : x)));
   const applyReview = (r: Review) =>
     setReviews((l) => l.map((x) => (x.id === r.id ? r : x)));
+  // 늦게 도착한 응답이 로그아웃·탈퇴 뒤의 화면에 이전 회원의 데이터를 넣지 않도록 현재 회원을 따로 들고 있는다
+  const meIdRef = useRef<string | null>(null);
   const applySession = useCallback((s: SessionState) => {
+    meIdRef.current = s.meId;
     setMeId(s.meId);
     setLikes(new Set(s.likes));
     setSaves(new Set(s.saves));
@@ -300,7 +303,13 @@ export function WtProvider({
           void (async () => {
             try {
               const mine = await api.myServices();
-              if (!live) return;
+              // 요청하는 사이 로그아웃·탈퇴했거나 다른 회원으로 바뀌었으면 반영하지 않는다
+              if (
+                !live ||
+                meIdRef.current === null ||
+                !mine.every((m) => m.owner === meIdRef.current)
+              )
+                return;
               const ids = new Set(mine.map((m) => m.id));
               setServices((l) => [...mine, ...l.filter((x) => !ids.has(x.id))]);
             } catch {
@@ -466,6 +475,8 @@ export function WtProvider({
         if (realAuth) {
           await submitLogout();
           applySession((await api.adoptMember(null)).session);
+          // 내 서비스로 합쳐 둔 비공개 서비스는 비회원 화면에 남지 않게 한다
+          setServices((l) => l.filter((s) => s.pub === "public"));
         } else applySession(await api.logout());
         go("home");
         toast("로그아웃했어요.");

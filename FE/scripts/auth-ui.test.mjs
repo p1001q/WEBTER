@@ -370,6 +370,19 @@ test("서버 세션 MEMBER: 내 서비스(비공개 포함)를 공개 목록에 
   );
 });
 
+test("현재 회원의 것이 아닌 서비스 응답은 병합하지 않는다", async (t) => {
+  const { render } = await provider(
+    t,
+    async () => ({ status: "MEMBER", member: { id: "restored" } }),
+    {
+      memberToUser: (m) => ({ id: m.id, handle: "restored", nick: "복원" }),
+    },
+    [{ id: "9", name: "다른 회원의 숨김 서비스", pub: "temp", owner: "other" }],
+  );
+  await settle();
+  assert.deepEqual(render().services, []);
+});
+
 test("내 서비스를 받지 못해도 로그인 복원은 유지한다", async (t) => {
   const { render } = await provider(
     t,
