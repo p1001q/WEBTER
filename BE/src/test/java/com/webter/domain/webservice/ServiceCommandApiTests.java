@@ -98,7 +98,8 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 			.andExpect(jsonPath("$.data.owner.username").value("maker_two"))
 			.andExpect(jsonPath("$.data.githubUrl").value("https://github.com/maker/timer"));
 		mockMvc.perform(get("/api/services")).andExpect(jsonPath("$.data.total").value(1));
-		jdbc.queryForObject("SELECT used_count FROM daily_usage WHERE usage_type = 'SERVICE_REGISTRATION'", Integer.class);
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
+				"SELECT used_count FROM daily_usage WHERE usage_type = 'SERVICE_REGISTRATION'", Integer.class)).isEqualTo(1);
 	}
 
 	@Test
@@ -130,8 +131,15 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 		create(maker, body("a", "https://ok.example.test", "[\"PLAY\"]", "[]", "true").replace("\"languages\"", "\"iconUrl\":\"javascript:alert(1)\",\"languages\""))
 			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SERVICE_400_06"));
 		// 실패한 요청은 하루 등록 횟수를 쓰지 않는다
-		jdbc.queryForObject("SELECT count(*) FROM daily_usage", Integer.class);
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT count(*) FROM daily_usage", Integer.class)).isZero();
 		mockMvc.perform(get("/api/services")).andExpect(jsonPath("$.data.items", empty()));
+		// 업로드 경로로 위장한 상위 경로·인코딩된 점·권한이 있는 주소는 거절한다
+		for (String icon : List.of("/uploads/%2e%2e/api/x", "/uploads/../api/x", "/uploads/a b", "//evil.example.test/uploads/x", "/uploads/a\\\\b")) {
+			create(maker, body("a", "https://ok.example.test", "[\"PLAY\"]", "[]", "true").replace("\"languages\"", "\"iconUrl\":\"" + icon.replace("\\", "\\\\") + "\",\"languages\""))
+				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SERVICE_400_06"));
+		}
+		create(maker, body("a", "https://ok1.example.test", "[\"PLAY\"]", "[]", "true").replace("\"languages\"", "\"iconUrl\":\"/uploads/icon.png\",\"languages\""))
+			.andExpect(status().isCreated()).andExpect(jsonPath("$.data.iconUrl").value("/uploads/icon.png"));
 	}
 
 	@Test
@@ -262,6 +270,9 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SERVICE_400_10"));
 		mockMvc.perform(put(path).with(as(maker, "USER")).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("[]"))
 			.andExpect(jsonPath("$.data.versions", empty()));
+		// 비어 있는 항목이 섞여 있어도 500이 아니라 400이다
+		mockMvc.perform(put(path).with(as(maker, "USER")).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("[null]"))
+			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SERVICE_400_10"));
 	}
 
 	@Test

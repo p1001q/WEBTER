@@ -57,8 +57,12 @@ final class ServiceUrlPolicy {
 			return null;
 		}
 		String url = raw.trim();
-		boolean uploaded = url.startsWith("/uploads/") && !url.contains("..");
 		URI uri = parse(url);
+		// 업로드 경로는 같은 서버의 경로만 허용한다(스킴·권한 없음, 상위 경로·인코딩된 점·역슬래시 금지)
+		boolean uploaded = uri != null && uri.getScheme() == null && uri.getRawAuthority() == null
+				&& url.startsWith("/uploads/") && !url.contains("..") && !url.contains("\\")
+				&& !url.toLowerCase().contains("%2e") && !url.toLowerCase().contains("%2f")
+				&& !url.toLowerCase().contains("%5c");
 		boolean remote = uri != null && "https".equals(uri.getScheme()) && uri.getHost() != null;
 		if (url.length() > MAX_LENGTH || !(uploaded || remote)) {
 			throw new BusinessException(ServiceErrorCode.INVALID_IMAGE_URL);

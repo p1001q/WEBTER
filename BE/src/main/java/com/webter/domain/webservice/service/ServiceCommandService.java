@@ -154,7 +154,8 @@ public class ServiceCommandService {
 		Set<Long> existing = Set.copyOf(writes.versionIds(id));
 		List<VersionRow> rows = new ArrayList<>();
 		for (VersionRequest r : requests) {
-			if (r.version().isBlank() || r.title().isBlank() || r.content().isBlank()) {
+			if (r == null || r.version() == null || r.title() == null || r.content() == null
+					|| r.version().isBlank() || r.title().isBlank() || r.content().isBlank()) {
 				throw new BusinessException(ServiceErrorCode.INVALID_VERSION);
 			}
 			Long versionId = parseId(r.id());
@@ -166,8 +167,10 @@ public class ServiceCommandService {
 		writes.replaceVersions(id, rows);
 	}
 
-	/** 주소 형식, 중복, 접속 가능 여부를 차례로 검사한다. 검사 결과는 오류가 아니라 응답의 state로 알린다. */
-	@Transactional(readOnly = true)
+	/**
+	 * 주소 형식, 중복, 접속 가능 여부를 차례로 검사한다. 검사 결과는 오류가 아니라 응답의 state로 알린다.
+	 * 외부 접속을 기다리는 동안 DB 연결을 잡고 있지 않도록 트랜잭션을 걸지 않는다(중복 조회는 저장소의 읽기 트랜잭션).
+	 */
 	public UrlCheckResponse checkUrl(UrlCheckRequest request) {
 		String url;
 		try {
