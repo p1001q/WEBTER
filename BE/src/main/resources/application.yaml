@@ -19,6 +19,24 @@ spring:
   flyway:
     # 운영 스키마 변경은 DDL 권한이 있는 관리자 계정으로 따로 실행한다(BE/README.md 참고)
     enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      # Redis 장애 때 요청이 오래 매달리지 않게 한다(DB 연결 대기 5초와 같은 이유)
+      connect-timeout: 2s
+      timeout: 2s
+      # Redis는 세션 저장에만 쓴다. JPA 리포지토리를 Redis 리포지토리 후보로 검사하는 시작 로그를 없앤다
+      repositories:
+        enabled: false
+  session:
+    # 로그인 세션을 Redis에 저장한다(기본 설정=운영). local·test 프로파일은 아래 문서에서 서버 메모리 세션으로 바꾼다.
+    # 만료 시간은 server.servlet.session.timeout(SESSION_TIMEOUT) 하나로 정하고 Redis 세션도 이 값을 따른다.
+    data:
+      redis:
+        # 이후 Redis를 다른 용도로 쓸 때 키가 섞이지 않게 세션 키의 접두어를 따로 둔다
+        namespace: webter:session
 
 springdoc:
   # API 문서 화면은 운영에 노출하지 않는다. 로컬에서만 켠다(application-local.yaml)
@@ -67,3 +85,31 @@ management:
           include: livenessState
         readiness:
           include: readinessState,db
+
+---
+# local·test 프로파일의 기본은 서버 메모리 세션이다(Redis 없이 실행). Redis 세션으로 확인하려면 redis-session 프로파일을 함께 켠다.
+# 예: SPRING_PROFILES_ACTIVE=local,redis-session
+spring:
+  config:
+    activate:
+      on-profile: "(local | test) & !redis-session"
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.session.data.redis.autoconfigure.SessionDataRedisAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.health.DataRedisHealthContributorAutoConfiguration
+
+---
+# Redis 세션을 쓸 때(기본 설정=운영, local·test는 redis-session 프로파일)는 Redis도 요청 준비 상태에 포함한다.
+# 메모리 세션에는 확인할 Redis가 없어 포함하면 시작이 실패하므로 별도 문서로 나눈다.
+spring:
+  config:
+    activate:
+      on-profile: "redis-session | !(local | test)"
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db,redis

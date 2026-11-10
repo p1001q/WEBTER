@@ -23,6 +23,15 @@ docker compose up -d db
 ./gradlew bootRun
 ```
 
+기본(`local`)은 서버 메모리 세션이라 Redis 없이 실행됩니다. Redis 세션으로 확인하려면 Redis를 함께 띄우고 `redis-session` 프로파일을 추가합니다.
+
+```sh
+docker compose up -d db redis
+SPRING_PROFILES_ACTIVE=local,redis-session ./gradlew bootRun
+```
+
+FE·BE·DB·Redis를 한 번에 띄우려면 저장소 루트의 `compose.yml`을 사용합니다(루트 [README](../README.md) 참고).
+
 `bootRun`은 `local` 프로파일로 실행되고 `BE/.env`를 선택적으로 읽습니다. 비밀값은 이 파일 또는 로컬 환경변수로만 제공하고 커밋하지 않습니다. 기본 접속 정보는 `compose.yml`과 같은 `localhost:5432`, `webter/webter`입니다. 종료는 `docker compose down`이고, 데이터까지 지우려면 `down -v`를 씁니다.
 
 ## 명령어
@@ -30,7 +39,7 @@ docker compose up -d db
 | 명령어 | 용도 |
 |---|---|
 | `./gradlew bootRun` | 로컬 실행(`local` 프로파일) |
-| `./gradlew test` | 테스트. Testcontainers가 운영과 같은 PostgreSQL 17을 컨테이너로 띄우므로 Docker가 필요하다 |
+| `./gradlew test` | 테스트. Testcontainers가 운영과 같은 PostgreSQL 17과 Redis 7.4를 컨테이너로 띄우므로 Docker가 필요하다 |
 | `./gradlew build` | 테스트 + 실행 jar 빌드 (`build/libs/app.jar`) |
 | `docker build -t webter-backend .` | Docker 이미지 빌드 |
 
@@ -42,7 +51,7 @@ Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(
 |---|---|
 | `/health` | 전체 상태 |
 | `/health/liveness` | 프로세스 생존 |
-| `/health/readiness` | 요청을 받을 준비 상태(DB 연결 포함). DB가 내려가면 5초 안에 503 |
+| `/health/readiness` | 요청을 받을 준비 상태(DB 연결 포함, Redis 세션이면 Redis 연결도 포함). DB가 내려가면 5초 안에 503, Redis가 응답하지 않아도 503 |
 
 `IN/`의 배포 설정이 기본으로 기대하는 경로(`/health`)와 같습니다. DB 연결 대기 시간은 기본 30초 대신 5초(`spring.datasource.hikari.connection-timeout`)로 줄여, DB 장애 때 일반 요청도 5초 안에 실패합니다.
 
@@ -56,11 +65,13 @@ Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(
 | `PORT` | `8080` | 수신 포트 |
 | `DB_HOST` / `DB_PORT` / `DB_NAME` | `localhost` / `5432` / `webter` | DB 주소 |
 | `DB_USER` / `DB_PASSWORD` | 없음 (`local`은 `webter`) | DB 계정 |
+| `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | Redis 주소(로그인 세션 저장소). 메모리 세션(`local`·`test` 기본)에서는 쓰지 않는다 |
+| `REDIS_PASSWORD` | 없음 | Redis 비밀번호 |
 | `CORS_ALLOWED_ORIGINS` | 없음 (`local`은 `http://localhost:3000`) | API 호출을 허용할 프론트엔드 origin. 쉼표로 여러 개 지정 |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | 없음 | 웹 OAuth 클라이언트 정보. 미설정이면 로그인 시작은 503이며 테스트용 인증으로 대체하지 않는다 |
 | `AUTH_FRONTEND_ORIGIN` | `http://localhost:3000` | 로그인 후 이동할 프론트 origin. 경로·쿼리 없이 지정 |
 | `AUTH_BACKEND_ORIGIN` | `http://localhost:8080` | 구글 콜백 주소를 조립할 백엔드 origin |
-| `SESSION_TIMEOUT` | `30m` | 비활동 기준 만료 시간. 현재 구현값이며 운영 정책은 미정 |
+| `SESSION_TIMEOUT` | `30m` | 비활동 기준 만료 시간. 메모리·Redis 세션 공통이며 현재 구현값이고 운영 정책은 미정 |
 | `SESSION_COOKIE_SECURE` | `true` (`local`은 `false`) | HTTPS 환경은 Secure 쿠키 사용 |
 
 ## CORS
@@ -87,7 +98,7 @@ BE/
 │  └─ db/migration/                 Flyway 마이그레이션(V1 초기 23개 테이블, V2 기본 데이터, V3 수락 초대 제약)
 ├─ src/test/                        테스트(test 프로파일, Testcontainers PostgreSQL)
 ├─ Dockerfile                       멀티스테이지 이미지(비루트 실행)
-└─ compose.yml                      로컬 개발용 PostgreSQL
+└─ compose.yml                      로컬 개발용 PostgreSQL·Redis
 ```
 
 ## API 공통 규칙
@@ -151,11 +162,23 @@ JSON 응답은 `ApiResponse`를 따릅니다. 로그인 시작·콜백은 리디
 
 실제 Google 브라우저 재검증은 사용자가 완료했다고 보고했습니다. 이는 사용자 수동 검증 결과이며 이번 자동 테스트·문서 수정 중 재수행한 검증과 구분합니다. 닉네임 정책 적용 후의 실제 브라우저 확인은 아직 하지 않았습니다.
 
+## 세션 저장소
+
+로그인 세션은 Redis에 저장합니다(Spring Session). 운영(프로파일 없음)이 기본이고, `local`·`test` 프로파일은 서버 메모리 세션이며 `redis-session` 프로파일을 함께 켜면 Redis를 씁니다. 만료 시간은 `server.servlet.session.timeout`(`SESSION_TIMEOUT`) 하나로 정합니다. 세션 키 접두어는 `webter:session`이며, Redis 연결·명령 대기는 2초입니다.
+
+- **직렬화**: 세션 값은 JSON으로 저장합니다(`RedisSessionSerializationConfig`). 로그인 주체·구글 인증 요청 정보·CSRF 토큰을 변환하며, 허용 목록에 없는 타입은 읽지 않습니다. 세션에 새 타입을 넣으면 이 설정에 허용 타입을 추가하고 Redis 세션 테스트로 확인합니다.
+- **읽기 실패**: 읽을 수 없는 세션 값은 오류가 아니라 값이 없는 것으로 처리해 해당 회원만 로그아웃됩니다. 생성·마지막 접근 시각이나 만료 간격이 손상된 세션은 통째로 폐기하고 Redis에서 지웁니다. 필드가 늘거나 줄어도 기존 세션을 읽도록 설정했습니다.
+- **크기·용량**: 세션 하나는 가입 대기 약 2.2KB, 회원 약 1.7KB, CSRF 토큰만 받은 비로그인 약 1.2KB입니다(로컬 Redis 7.4 실측). 운영 Redis 상한 96MB 기준 가입 대기 세션 약 4만 개, 비로그인 세션 약 8만 개로 추정하며 AOF 재작성 여유분은 반영하지 않았습니다. `GET /api/auth/csrf`만 호출해도 세션이 생겨 비로그인 세션도 용량을 씁니다.
+- **메모리 상한**: 운영 Redis는 상한 도달 시 쓰기를 거절(`noeviction`)합니다. 도달하면 새 세션 생성과 기존 세션의 요청 모두 500이 됩니다(요청마다 세션을 갱신하기 때문). 세션 쿠키가 없는 요청과 `/health`는 영향이 없었습니다. 정책 변경은 `IN/` 범위라 이번에 다루지 않았습니다.
+- **Redis 장애**: Redis를 일시정지한 로컬 측정에서 세션 쿠키가 있는 요청은 약 8초 뒤 500이었고, 쿠키 없는 요청은 정상이었습니다. 연결·명령 대기를 2초로 설정했는데 8초가 걸린 원인은 확인하지 못했습니다. readiness는 503입니다.
+
+위 수치는 로컬 컨테이너 측정이며 운영 환경 검증이 아닙니다.
+
 ## 인증·회원 구현 기준
 
 - 구글 인증과 WEBTER 가입 완료를 분리합니다. 검증된 구글 식별자와 자체 회원 고유 번호를 연결하며 `auth.users`나 Supabase Auth에 의존하지 않습니다.
 - 온보딩 중간 입력·진행 단계는 저장하지 않습니다. 최종 제출에서 회원·계정 연결·필수 동의·관심 카테고리를 검증하고 함께 저장합니다. 가입 완료 전에는 회원 기능을 허용하지 않습니다.
-- OIDC(`openid email`)·서버 세션 쿠키 `WEBTER_SESSION`(HttpOnly·SameSite=Lax)·변경 요청의 CSRF 헤더를 구현했습니다. 구글 토큰·사진은 보관하지 않고 검증된 이메일은 비공개로 저장합니다. 비활동 30분은 구현값이며 운영 유지 기간·재인증·다중 기기·도메인/쿠키 전달·Redis 용도는 미정입니다.
+- OIDC(`openid email`)·서버 세션 쿠키 `WEBTER_SESSION`(HttpOnly·SameSite=Lax)·변경 요청의 CSRF 헤더를 구현했습니다. 구글 토큰·사진은 보관하지 않고 검증된 이메일은 비공개로 저장합니다. 비활동 30분은 구현값이며 세션은 Redis에 저장합니다(로컬·테스트 기본은 서버 메모리). 운영 유지 기간·재인증·다중 기기·도메인/쿠키 전달·Redis의 세션 외 용도는 미정입니다.
 - 수락한 팀원은 등록자와 같은 권한(서비스 관리·수정·삭제, 버전 기록, 팀원 초대·삭제, 등록자 제거)을 가지며 등록자를 제외해 서비스당 최대 5명입니다. 팀원이 남아 있는 서비스는 등록자가 탈퇴해도 삭제하지 않고 가장 먼저 수락한 팀원이 등록자 자리를 잇습니다. 이 권한 판정과 승계 처리(`services.owner_id` 규칙 변경 포함)는 아직 구현하지 않았고, 알림 조회·초대 수락은 수신자 본인만 허용합니다.
 - 정책과 ERD SQL 갱신은 Spring Security·업무 API·마이그레이션 구현 완료를 뜻하지 않습니다. 정책은 `PM/docs/정책서.md`, 테이블 설계는 작업공간의 현행 ERD 검토본을 참고하며 운영 반영 전에 별도 검증합니다.
 
@@ -180,6 +203,6 @@ JSON 응답은 `ApiResponse`를 따릅니다. 로그인 시작·콜백은 리디
 기능별 업무 API와 프론트 연동을 병행하고 저장 유지·소유권·실패를 확인합니다. 완료 후 구현에서 ERD와 API 명세서를 정리합니다. 데이터 관계·중복 제약·요청/응답은 각 기능 구현 전에 맞춥니다. 운영 마이그레이션 실행·배포 연결은 아직 후속입니다.
 
 - 닉네임 최소 1글자를 위한 V4 마이그레이션의 운영 DB 적용(관리자 계정).
-- 운영 세션 기간·저장소·재인증·여러 기기·도메인별 쿠키 전달과 계정 제재 세부 결정.
+- 운영 세션 기간·재인증·여러 기기·도메인별 쿠키 전달과 계정 제재 세부 결정.
 - 서비스·리뷰 등 업무 API 연결, 프로필 사진 업로드(이미지 S3 연동과 함께), 아이디 변경 이력·횟수 제한 적용.
 - 새 마이그레이션이 필요한 변경: 알림 종류 9종, 팀 초대의 거절됨 상태, 서비스 등록자 승계 규칙(`services.owner_id`), 아이디 변경 이력 테이블.
