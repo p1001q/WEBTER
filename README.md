@@ -34,6 +34,7 @@ WEBTER/
 ├─ IN/          인프라·배포 설정 (Terraform, Docker Compose)
 ├─ PM/docs/     기획서, 정책서, 화면설계서, 프로토타입
 ├─ .github/     CI 워크플로
+├─ compose.yml  로컬 통합 실행(DB·Redis·BE·FE)
 └─ README.md
 ```
 
@@ -51,6 +52,20 @@ WEBTER/
 
 ## 시작하기
 
+- 로컬 통합 실행: 아래 "로컬 통합 실행"
 - 프론트엔드: [FE/README.md](FE/README.md)
 - 백엔드: [BE/README.md](BE/README.md)
 - 인프라: [IN/README.md](IN/README.md)
+
+## 로컬 통합 실행
+
+Docker로 DB·Redis·BE·FE를 한 번에 띄웁니다(로컬 개발 전용, 운영 구성은 `IN/`).
+
+```sh
+docker compose up --build
+```
+
+- 기본 접속: FE `http://localhost:3000`, BE `http://localhost:8080`. BE는 `local,redis-session` 프로파일(Flyway 스키마, Redis 세션)로 실행하고 FE는 Node 24.22.2 컨테이너에서 `pnpm dev`로 실행합니다. DB·Redis는 `BE/compose.yml`을 그대로 쓰며 데이터는 BE 폴더에서 띄우던 DB와 같습니다.
+- 설정은 루트 `.env`(Git 제외, 예시는 `.env.example`)로 합니다. 8080 등이 이미 쓰이면 `FE_PORT`, `BE_PORT`를 바꾸며, CORS·로그인 후 이동 주소·FE의 API 주소는 두 값에서 자동으로 맞춰집니다.
+- 구글 로그인은 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`을 `.env`에만 적으면 켜집니다. 구글 콘솔 콜백은 `http://localhost:{BE_PORT}/login/oauth2/code/google`입니다. 값이 없으면 로그인 시작은 503입니다.
+- 종료는 `docker compose down`이고 데이터까지 지우려면 `down -v`를 씁니다.
