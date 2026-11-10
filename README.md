@@ -68,4 +68,4 @@ docker compose up --build
 - 기본 접속: FE `http://localhost:3000`, BE `http://localhost:8080`. BE는 `local,redis-session` 프로파일(Flyway 스키마, Redis 세션)로 실행하고 FE는 Node 24.22.2 컨테이너에서 `pnpm dev`로 실행합니다. DB·Redis는 `BE/compose.yml`을 그대로 쓰며 데이터는 BE 폴더에서 띄우던 DB와 같습니다.
 - 설정은 루트 `.env`(Git 제외, 예시는 `.env.example`)로 합니다. 8080 등이 이미 쓰이면 `FE_PORT`, `BE_PORT`를 바꾸며, CORS·로그인 후 이동 주소·FE의 API 주소는 두 값에서 자동으로 맞춰집니다.
 - 구글 로그인은 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`을 `.env`에만 적으면 켜집니다. 구글 콘솔 콜백은 `http://localhost:{BE_PORT}/login/oauth2/code/google`입니다. 값이 없으면 로그인 시작은 503입니다.
-- 종료는 `docker compose down`이고 데이터까지 지우려면 `down -v`를 씁니다.
+- 종료는 `docker compose down`입니다. Redis는 디스크 보존을 끄고 띄워서 종료하면 Redis의 로그인 세션이 삭제되고, PostgreSQL 데이터는 볼륨에 남습니다. PostgreSQL 데이터까지 지우려면 `down -v`를 씁니다.
