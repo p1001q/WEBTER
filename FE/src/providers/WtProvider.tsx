@@ -295,6 +295,19 @@ export function WtProvider({
         if (!live) return;
         setUsers(r.users);
         applySession(r.session);
+        if (s.status === "MEMBER") {
+          // 공개 목록에 없는 내 서비스(비공개 상태 등)도 내 서비스 관리·마이페이지에 보이게 한다
+          void (async () => {
+            try {
+              const mine = await api.myServices();
+              if (!live) return;
+              const ids = new Set(mine.map((m) => m.id));
+              setServices((l) => [...mine, ...l.filter((x) => !ids.has(x.id))]);
+            } catch {
+              // 내 서비스를 못 받아도 로그인 복원은 그대로 둔다(공개 서비스는 이미 보인다)
+            }
+          })();
+        }
       } catch {
         // 저장된 목업 회원 상태가 서버 확인 실패 뒤에 남지 않도록 비운다
         if (live) {

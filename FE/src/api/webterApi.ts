@@ -67,6 +67,8 @@ export interface WebterApi {
   deleteComment(commentId: string): Promise<Comment[]>;
 
   /* 서비스 */
+  /** 내가 등록한 서비스 전체(비공개·운영 중지 포함) */
+  myServices(): Promise<Service[]>;
   createService(input: ServiceInput): Promise<Service>;
   updateService(serviceId: string, patch: Partial<Service>): Promise<Service>;
   deleteService(serviceId: string): Promise<void>;

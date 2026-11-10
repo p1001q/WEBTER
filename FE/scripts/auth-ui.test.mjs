@@ -269,7 +269,7 @@ test("프로필 링크는 모든 종류에서 보완한 https:// 포함 300자�
   }
 });
 
-async function provider(t, fetchSession, extra = {}) {
+async function provider(t, fetchSession, extra = {}, mine = []) {
   const originalWindow = globalThis.window;
   globalThis.window = {
     addEventListener() {},
@@ -307,6 +307,7 @@ async function provider(t, fetchSession, extra = {}) {
           users: u ? { ...snap.users, [u.id]: u } : snap.users,
           session: u ? { ...guest, meId: u.id } : guest,
         }),
+        myServices: async () => mine,
       }),
     },
     "@/api/auth/config": { realAuth: true },
@@ -347,6 +348,38 @@ test("서버 세션 MEMBER: 서버가 알려 준 회원으로 로그인 상태�
   assert.equal(store.sessionReady, true);
   assert.equal(store.me?.id, "restored");
   assert.equal(store.me?.nick, "복원");
+});
+
+test("서버 세션 MEMBER: 내 서비스(비공개 포함)를 공개 목록에 합친다", async (t) => {
+  const mine = [
+    { id: "7", name: "숨김 서비스", pub: "temp", owner: "restored" },
+  ];
+  const { render } = await provider(
+    t,
+    async () => ({ status: "MEMBER", member: { id: "restored" } }),
+    {
+      memberToUser: (m) => ({ id: m.id, handle: "restored", nick: "복원" }),
+    },
+    mine,
+  );
+  await settle();
+  const store = render();
+  assert.deepEqual(
+    store.services.map((s) => s.id),
+    ["7"],
+  );
+});
+
+test("내 서비스를 받지 못해도 로그인 복원은 유지한다", async (t) => {
+  const { render } = await provider(
+    t,
+    async () => ({ status: "MEMBER", member: { id: "restored" } }),
+    {
+      memberToUser: (m) => ({ id: m.id, handle: "restored", nick: "복원" }),
+    },
+    undefined,
+  );
+  assert.equal(render().me?.id, "restored");
 });
 
 test("가입 store는 약관 변경 오류 코드를 화면으로 전달하고 미동의 버전을 자동 조회하지 않는다", async (t) => {
