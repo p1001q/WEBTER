@@ -30,13 +30,20 @@ public class UserActivityService {
 		User user = users.findById(id)
 			.filter(u -> u.getVisibilityStatus() == VisibilityStatus.PUBLIC)
 			.orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
-		long services = jdbc.sql("SELECT count(*) FROM services WHERE owner_id = :id AND visibility_status = 'PUBLIC'")
+		// 등록한 서비스와 팀원으로 참여한 서비스를 모두 본인 서비스로 센다(정책서 4.11)
+		long services = jdbc.sql("""
+				SELECT count(*) FROM services s
+				WHERE (s.owner_id = :id OR EXISTS (
+				  SELECT 1 FROM service_members m WHERE m.service_id = s.service_id AND m.user_id = :id))
+				  AND s.visibility_status = 'PUBLIC'""")
 			.param("id", id)
 			.query(Long.class)
 			.single();
 		long likes = jdbc.sql("""
 				SELECT count(*) FROM service_reactions r JOIN services s ON s.service_id = r.service_id
-				WHERE s.owner_id = :id AND s.visibility_status = 'PUBLIC' AND r.reaction_type = 'LIKE'""")
+				WHERE (s.owner_id = :id OR EXISTS (
+				  SELECT 1 FROM service_members m WHERE m.service_id = s.service_id AND m.user_id = :id))
+				  AND s.visibility_status = 'PUBLIC' AND r.reaction_type = 'LIKE'""")
 			.param("id", id)
 			.query(Long.class)
 			.single();

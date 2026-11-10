@@ -3,6 +3,7 @@ package com.webter.domain.review.service;
 import static com.webter.domain.reaction.service.InteractionText.requireContent;
 import static com.webter.domain.review.entity.ReviewRating.NONE;
 
+import com.webter.domain.notification.service.NotificationPublisher;
 import com.webter.domain.reaction.dto.CursorPage;
 import com.webter.domain.reaction.dto.CursorPage.Position;
 import com.webter.domain.reaction.dto.InteractionAuthor;
@@ -51,6 +52,7 @@ public class ReviewService {
 	private final ReviewVoteRepository votes;
 	private final EntityManager em;
 	private final ClientIpHmac clientIp;
+	private final NotificationPublisher notifications;
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public CursorPage<ReviewView> list(long serviceId, UUID viewerId, ReviewSort sort, String cursor, int limit) {
@@ -118,6 +120,7 @@ public class ReviewService {
 			reviews.publish(review.getId(), text, rate.name(), anon, context.maker());
 			em.refresh(review);
 		}
+		notifications.reviewCreated(context.service(), review.getId(), context.member(), anon);
 		return view(review, viewerId, context.maker(), true, Votes.EMPTY);
 	}
 
@@ -137,6 +140,7 @@ public class ReviewService {
 		}
 		var review = reviews.save(Review.builder().webService(service).authorKind(AuthorKind.GUEST)
 			.guestIpHmac(address.hash()).guestIpDisplay(address.display()).rating(NONE).content(text).build());
+		notifications.reviewCreated(service, review.getId(), null, false);
 		return view(review, null, false, false, Votes.EMPTY);
 	}
 
@@ -219,6 +223,7 @@ public class ReviewService {
 		if (review.getReply() != null && review.getReply().getVisibilityStatus() != VisibilityStatus.PUBLIC) {
 			throw new BusinessException(CommonErrorCode.NOT_FOUND);
 		}
+		boolean firstReply = review.getReply() == null;
 		if (text == null) {
 			reviews.removeReply(reviewId);
 		}
@@ -226,6 +231,9 @@ public class ReviewService {
 			reviews.saveReply(reviewId, UUID.randomUUID(), viewerId, requireContent(text));
 		}
 		em.refresh(review);
+		if (text != null && firstReply) {
+			notifications.reviewReply(context.service(), review.getId(), review.getAuthor(), context.member());
+		}
 		return view(review, viewerId, true, true, summary(review, viewerId));
 	}
 

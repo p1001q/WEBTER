@@ -113,10 +113,11 @@ public class ServiceQueryRepository {
 		return new IdPage(ids, total == null ? 0 : total);
 	}
 
-	/** 한 회원이 등록한 서비스의 id(공개 여부와 무관, 최신순). */
+	/** 한 회원이 등록했거나 팀원으로 참여한 서비스의 id(공개 여부와 무관, 최신순). */
 	public List<Long> findOwnedIds(java.util.UUID ownerId) {
-		return jdbc.queryForList("SELECT service_id FROM services WHERE owner_id = :owner "
-				+ "ORDER BY created_at DESC, service_id DESC", new MapSqlParameterSource("owner", ownerId), Long.class);
+		return jdbc.queryForList("SELECT s.service_id FROM services s WHERE s.owner_id = :owner "
+				+ "OR EXISTS (SELECT 1 FROM service_members m WHERE m.service_id = s.service_id AND m.user_id = :owner) "
+				+ "ORDER BY s.created_at DESC, s.service_id DESC", new MapSqlParameterSource("owner", ownerId), Long.class);
 	}
 
 	// 검색어의 어절마다 이름 3점, 태그 2점, 한 줄 소개·설명 1점을 더한다(어절 중 하나라도 맞으면 결과에 든다)

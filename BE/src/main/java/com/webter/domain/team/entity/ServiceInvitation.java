@@ -36,8 +36,9 @@ public class ServiceInvitation extends BaseCreatedEntity {
 	@JoinColumn(name = "service_id", nullable = false)
 	private WebService webService;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "inviter_id", nullable = false)
+	// 초대한 회원. 탈퇴하면 비어 있다(수락한 팀원 관계는 남긴다).
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "inviter_id")
 	private User inviter;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -62,6 +63,11 @@ public class ServiceInvitation extends BaseCreatedEntity {
 	public void accept() {
 		this.status = InvitationStatus.ACCEPTED;
 		this.acceptedAt = Instant.now();
+	}
+
+	/** 초대를 거절 상태로 바꾼다. */
+	public void decline() {
+		this.status = InvitationStatus.DECLINED;
 	}
 
 }

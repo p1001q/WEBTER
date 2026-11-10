@@ -1,5 +1,6 @@
 package com.webter.domain.webservice.service;
 
+import com.webter.domain.team.repository.ServiceMemberRepository;
 import com.webter.domain.user.entity.User;
 import com.webter.domain.webservice.dto.ServicePageResponse;
 import com.webter.domain.webservice.dto.ServiceResponse;
@@ -16,7 +17,9 @@ import com.webter.global.entity.VisibilityStatus;
 import com.webter.global.exception.BusinessException;
 import java.time.Instant;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,8 @@ public class ServiceQueryService {
 	private final ServiceVersionRepository versions;
 
 	private final ServiceQueryRepository queries;
+
+	private final ServiceMemberRepository members;
 
 	/** 조회하는 사람. 비로그인이면 null이다. */
 	public record Viewer(UUID userId, boolean admin) {
@@ -56,20 +61,27 @@ public class ServiceQueryService {
 			.findFirst()
 			.orElseThrow(() -> new BusinessException(ServiceErrorCode.SERVICE_NOT_FOUND));
 		// 공개되지 않은 서비스는 있는지 여부도 알리지 않는다
-		if (service.getVisibilityStatus() != VisibilityStatus.PUBLIC && !canSeePrivate(service, viewer)) {
+		if (service.getVisibilityStatus() != VisibilityStatus.PUBLIC
+				&& !canSeePrivate(service, viewer, memberServiceIds(viewer))) {
 			throw new BusinessException(ServiceErrorCode.SERVICE_NOT_FOUND);
 		}
 		return assemble(List.of(id), Instant.now(), viewer).getFirst();
 	}
 
-	/** 내가 등록한 서비스 전체. 비공개·운영 중지도 포함하고 최신순이다. */
+	/** 내가 등록했거나 팀원으로 참여한 서비스 전체. 비공개·운영 중지도 포함하고 최신순이다. */
 	@Transactional(readOnly = true)
 	public List<ServiceResponse> mine(Viewer viewer) {
 		return assemble(queries.findOwnedIds(viewer.userId()), Instant.now(), viewer);
 	}
 
-	private static boolean canSeePrivate(WebService service, Viewer viewer) {
-		return viewer != null && (viewer.admin() || service.getOwner().getId().equals(viewer.userId()));
+	// 비공개 정보를 볼 수 있는 사람: 관리자, 등록자, 수락한 팀원
+	private static boolean canSeePrivate(WebService service, Viewer viewer, Set<Long> memberOf) {
+		return viewer != null && (viewer.admin() || service.getOwner().getId().equals(viewer.userId())
+				|| memberOf.contains(service.getId()));
+	}
+
+	private Set<Long> memberServiceIds(Viewer viewer) {
+		return viewer == null ? Set.of() : new HashSet<>(members.findServiceIdsByUserId(viewer.userId()));
 	}
 
 	// 정렬된 id 순서를 유지해 응답으로 만든다
@@ -86,15 +98,17 @@ public class ServiceQueryService {
 		Map<Long, List<ServiceVersion>> versionsById = versions.findByWebServiceIdInOrderByCreatedAtDesc(ids)
 			.stream()
 			.collect(Collectors.groupingBy(v -> v.getWebService().getId()));
+		Set<Long> memberOf = memberServiceIds(viewer);
 		return ids.stream()
 			.map(byId::get)
 			.map(s -> toResponse(s, counts.getOrDefault(s.getId(), Counts.EMPTY), categories.getOrDefault(s.getId(), List.of()),
-					tags.getOrDefault(s.getId(), List.of()), versionsById.getOrDefault(s.getId(), List.of()), viewer))
+					tags.getOrDefault(s.getId(), List.of()), versionsById.getOrDefault(s.getId(), List.of()),
+					canSeePrivate(s, viewer, memberOf)))
 			.toList();
 	}
 
 	private static ServiceResponse toResponse(WebService s, Counts c, List<String> categories, List<String> tags,
-			List<ServiceVersion> versions, Viewer viewer) {
+			List<ServiceVersion> versions, boolean privileged) {
 		User owner = s.getOwner();
 		return new ServiceResponse(String.valueOf(s.getId()), s.getName(), s.getTagline(), s.getDescriptionMarkdown(),
 				s.getServiceUrl(), s.getGithubUrl(),
@@ -102,7 +116,7 @@ public class ServiceQueryService {
 				s.getCreatedAt(), categories, tags, s.getProjectType(), s.getDeviceCodes(), s.getPriceType(),
 				s.getRegistrantType(), s.getTeamName(), s.getLanguageCodes(), s.getAvailabilityStatus(),
 				s.getUnavailableReason(), s.getVisibilityStatus(),
-				canSeePrivate(s, viewer) ? s.getHiddenReason() : null, s.getIconUrl(), s.getThumbnailUrl(),
+				privileged ? s.getHiddenReason() : null, s.getIconUrl(), s.getThumbnailUrl(),
 				s.getPreviewRatio(), s.getPreviewFit(), s.getPreviewImages(), s.isAllowGuestReviews(),
 				s.isAllowAnonymousReviews(), s.isAllowAnonymousComments(), c.views(), c.clicks(), c.likes(), c.saves(),
 				new ServiceResponse.ReviewCounts(c.up(), c.down(), c.none()),

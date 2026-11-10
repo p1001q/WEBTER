@@ -7,6 +7,7 @@ import com.webter.domain.comment.dto.CommentView;
 import com.webter.domain.comment.entity.ServiceComment;
 import com.webter.domain.comment.repository.ServiceCommentRepository;
 import com.webter.domain.comment.repository.ServiceCommentRepository.ReplyCount;
+import com.webter.domain.notification.service.NotificationPublisher;
 import com.webter.domain.reaction.dto.CursorPage;
 import com.webter.domain.reaction.dto.CursorPage.Position;
 import com.webter.domain.reaction.dto.InteractionAuthor;
@@ -33,6 +34,7 @@ public class CommentService {
 
 	private final ServiceInteractionAccess access;
 	private final ServiceCommentRepository comments;
+	private final NotificationPublisher notifications;
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public CursorPage<CommentView> list(long serviceId, UUID viewerId, Long parentId, String cursor, int limit) {
@@ -83,6 +85,12 @@ public class CommentService {
 		}
 		ServiceComment comment = comments.save(ServiceComment.builder().webService(context.service())
 			.parent(parent).author(context.member()).content(text).anonymous(anon).build());
+		if (parent == null) {
+			notifications.commentCreated(context.service(), comment.getId(), context.member(), anon);
+		}
+		else {
+			notifications.commentReply(context.service(), comment.getId(), parent.getAuthor(), context.member(), anon);
+		}
 		return view(comment, viewerId, true, 0);
 	}
 
