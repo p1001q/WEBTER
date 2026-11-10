@@ -124,6 +124,10 @@ export interface WtStore {
     parentId?: string,
     cursor?: string,
   ) => Promise<CursorPage<string>>;
+  /** 마이페이지가 열릴 때 서비스를 가리지 않고 내 리뷰·댓글과 저장 순서를 모은다(실제 서버 연결일 때만) */
+  loadMypage: () => Promise<void>;
+  /** 제작자 프로필이 열릴 때 서버가 가진 소개·외부 링크를 가져온다(실제 서버 연결일 때만) */
+  loadProfile: (id: string) => Promise<void>;
 
   // 쓰기 동작은 실패하면 안내(토스트·연결 배너·로그인 만료 모달)를 직접 띄우고 false 를 돌려준다.
   // 호출한 쪽은 각 반환형의 성공 결과를 확인한 뒤 모달을 닫거나 입력값을 비운다.
