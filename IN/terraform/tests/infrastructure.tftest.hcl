@@ -32,6 +32,15 @@ mock_provider "aws" {
   mock_resource "aws_ssm_document" {
     defaults = { arn = "arn:aws:ssm:ap-northeast-2:123456789012:document/webter-prod-deploy" }
   }
+  mock_resource "aws_cloudfront_distribution" {
+    defaults = {
+      arn         = "arn:aws:cloudfront::123456789012:distribution/E1EXAMPLE"
+      domain_name = "d111111abcdef8.cloudfront.net"
+    }
+  }
+  mock_resource "aws_iam_user" {
+    defaults = { arn = "arn:aws:iam::123456789012:user/webter-prod-app-images" }
+  }
   mock_resource "aws_instance" {
     defaults = { arn = "arn:aws:ec2:ap-northeast-2:123456789012:instance/i-0123456789abcdef0" }
   }
@@ -104,3 +113,70 @@ run "reject_unplanned_postgresql_major_upgrade" {
   }
   expect_failures = [var.postgres_image]
 }
+
+run "image_bucket_is_private_and_served_through_cloudfront" {
+  command = apply
+
+  assert {
+    condition = (
+      aws_s3_bucket_public_access_block.images.block_public_acls &&
+      aws_s3_bucket_public_access_block.images.block_public_policy &&
+      aws_s3_bucket_public_access_block.images.ignore_public_acls &&
+      aws_s3_bucket_public_access_block.images.restrict_public_buckets
+    )
+    error_message = "이미지 버킷은 직접 공개하지 않는다."
+  }
+
+  assert {
+    condition = (
+      aws_cloudfront_distribution.images.default_cache_behavior[0].viewer_protocol_policy == "redirect-to-https" &&
+      toset(aws_cloudfront_distribution.images.default_cache_behavior[0].allowed_methods) == toset(["GET", "HEAD"]) &&
+      aws_cloudfront_origin_access_control.images.signing_behavior == "always"
+    )
+    error_message = "이미지는 HTTPS CloudFront에서 읽기 전용으로, 버킷에는 원본 접근 제어(OAC)로만 접근한다."
+  }
+
+  assert {
+    condition     = length(aws_s3_bucket_cors_configuration.images) == 0
+    error_message = "허용할 프론트엔드 origin을 정하기 전에는 CORS를 열지 않는다."
+  }
+
+  assert {
+    condition = (
+      toset(jsondecode(aws_iam_user_policy.app_images.policy).Statement[0].Action) == toset(["s3:PutObject", "s3:GetObject"]) &&
+      endswith(jsondecode(aws_iam_user_policy.app_images.policy).Statement[0].Resource, "/uploads/*")
+    )
+    error_message = "앱 이미지 사용자는 uploads/ 경로의 PutObject·GetObject만 가진다."
+  }
+}
+
+run "image_cors_allows_only_the_given_origins_to_put" {
+  command = apply
+
+  variables {
+    image_upload_origins = ["https://webter.example.com"]
+  }
+
+  assert {
+    condition = (
+      length(aws_s3_bucket_cors_configuration.images) == 1 &&
+      length(aws_s3_bucket_cors_configuration.images[0].cors_rule) == 1 &&
+      alltrue([
+        for rule in aws_s3_bucket_cors_configuration.images[0].cors_rule :
+        rule.allowed_origins == toset(["https://webter.example.com"]) && rule.allowed_methods == toset(["PUT"])
+      ])
+    )
+    error_message = "직접 업로드는 지정한 origin에서 PUT만 허용한다."
+  }
+}
+
+run "image_upload_origin_must_be_https" {
+  command = plan
+
+  variables {
+    image_upload_origins = ["http://webter.example.com", "*"]
+  }
+
+  expect_failures = [var.image_upload_origins]
+}
+

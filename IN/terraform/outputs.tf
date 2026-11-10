@@ -33,3 +33,19 @@ output "github_actions_variables" {
     DEPLOY_DOCUMENT_NAME = aws_ssm_document.deploy.name
   }
 }
+
+output "image_bucket" {
+  description = "앱의 IMAGE_BUCKET 값."
+  value       = aws_s3_bucket.images.id
+}
+
+output "image_public_base_url" {
+  description = "앱의 IMAGE_PUBLIC_BASE_URL 값(이미지 주소의 앞부분)."
+  value       = "https://${aws_cloudfront_distribution.images.domain_name}"
+}
+
+output "image_app_user" {
+  description = "이미지 업로드 전용 IAM 사용자. 접근 키는 IN/README.md의 절차로 직접 만든다."
+  value       = aws_iam_user.app_images.name
+}
+

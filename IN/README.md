@@ -19,7 +19,7 @@ flowchart LR
     P -->|매일 pg_dump| S3[비공개 S3 백업]
 ```
 
-- Terraform: VPC·퍼블릭 서브넷·인터넷 게이트웨이·보안 그룹·EC2·EIP·EBS·ECR·IAM/OIDC·SSM 문서·백업 버킷을 관리한다.
+- Terraform: VPC·퍼블릭 서브넷·인터넷 게이트웨이·보안 그룹·EC2·EIP·EBS·ECR·IAM/OIDC·SSM 문서·백업 버킷·이미지 버킷(CloudFront·앱 전용 IAM 사용자 포함)을 관리한다.
 - Docker Compose: 앱·DB·Redis·Caddy의 실행과 연결을 관리한다. Caddy는 같은 EC2의 HTTPS 프록시이며 별도 서버가 아니다.
 - GitHub Actions: 앱 이미지를 `linux/amd64`로 빌드해 ECR에 등록하고 digest로 배포한다. AWS 키·SSH 키를 GitHub에 저장하지 않는다.
 - 외부에는 80/443만 연다. SSH·PostgreSQL·Redis는 외부에 공개하지 않는다. 호스트의 앱 포트는 `127.0.0.1`에서만 준비 상태 점검에 사용한다.
@@ -30,7 +30,7 @@ flowchart LR
 
 - 이 Compose의 단일 앱 이미지는 현재 Spring Boot 백엔드 구성에 맞춰 연결합니다. 프론트 배포처는 미정이며 Vercel 분리 배포는 제안입니다.
 - 구글 인증·WEBTER 가입 완료·계정 권한은 앱에서 구현합니다. 세션 저장소는 Redis를 쓰며 앱이 `REDIS_HOST`·`REDIS_PORT`·`REDIS_PASSWORD`로 연결합니다.
-- 현재 S3 버킷은 DB 백업용입니다. 이미지 저장소와 비공개 이미지 새 요청 제한 방식은 별도 미정이므로 백업 버킷을 이미지 공개 저장소로 사용하지 않습니다.
+- DB 백업 버킷과 서비스 이미지 버킷은 분리합니다. 이미지는 비공개 S3 버킷에 CloudFront를 앞에 둡니다(아래 "이미지 저장소"). 비공개 서비스 이미지의 새 요청 제한과 캐시 정책의 세부는 미정입니다.
 - 누적 알림창은 엄격한 실시간 갱신·푸시를 요구하지 않습니다. 이 인프라 초안이 알림·초대·팀원 권한을 구현하지는 않습니다.
 
 ## 적용 전 필요한 값
@@ -62,6 +62,23 @@ terraform plan -out=review.tfplan
 이 초안은 로컬 state로 시작한다. state·계획 파일·tfvars는 Git에서 제외한다. 운영 적용 전에 state의 보관·접근·복구 위치를 정하고, 팀에서 공유하면 암호화·버전 관리·잠금을 갖춘 S3 backend로 이전한다. state를 분실하면 리소스를 다시 생성하지 말고 먼저 state 복구/import를 검토한다.
 
 기존 GitHub OIDC 공급자가 계정에 있으면 `github_oidc_provider_arn`에 해당 ARN을 입력한다. 기존 인프라를 Terraform이 임의로 인수하지 않는다.
+
+## 이미지 저장소(S3·CloudFront)
+
+`images.tf`가 서비스 이미지용 비공개 S3 버킷, 읽기용 CloudFront, 앱 전용 IAM 사용자를 만든다. 업로드는 앱이 발급한 일회용 주소로 브라우저가 버킷에 직접 올린다(정책서 4.4). 실제 리소스 생성은 아직 하지 않았다.
+
+- 읽기는 CloudFront(OAC)로만 하고 버킷은 공개하지 않는다. `output`의 `image_public_base_url`이 앱의 `IMAGE_PUBLIC_BASE_URL`, `image_bucket`이 `IMAGE_BUCKET`이다.
+- 브라우저 직접 업로드를 위한 CORS는 `image_upload_origins`에 프론트엔드 origin(https)을 넣어야 만들어진다. 비어 있으면 업로드는 브라우저에서 동작하지 않는다.
+- 앱 자격증명은 전용 IAM 사용자(`image_app_user`)의 접근 키로 준다. 이 사용자는 `uploads/` 경로의 `PutObject`·`GetObject`만 가진다. 컨테이너의 EC2 역할 접근 제한(IMDS 홉 제한 1)은 그대로 둔다.
+- 접근 키는 Terraform 상태에 비밀값이 남지 않도록 Terraform으로 만들지 않는다. apply 뒤에 직접 만든다.
+
+```sh
+aws iam create-access-key --user-name <image_app_user 출력값>
+```
+
+출력의 `SecretAccessKey`는 이때만 볼 수 있다. 값을 `runtime.env`의 `IMAGE_S3_ACCESS_KEY`·`IMAGE_S3_SECRET_KEY`와 `IMAGE_BUCKET`·`IMAGE_PUBLIC_BASE_URL`에 넣고 `put-parameter --overwrite`로 SSM 값을 갱신한 뒤 배포한다. 키를 교체할 때는 새 키를 만들어 SSM에 반영하고 배포한 다음 옛 키를 삭제한다.
+
+한계·미정: 올리기만 하고 서비스에 연결하지 않은 파일의 정리(수명주기), 이미지 유해성 검사, 도메인 구매 뒤 CloudFront 도메인 연결, 고객 관리형 KMS 사용은 정하지 않았다.
 
 ## 런타임 비밀값 등록
 

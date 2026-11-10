@@ -144,3 +144,14 @@ variable "proxy_image" {
     error_message = "이미지 참조에는 공백·따옴표·셸 문자를 허용하지 않는다."
   }
 }
+
+variable "image_upload_origins" {
+  description = "브라우저가 이미지 저장소에 직접 올릴 수 있는 프론트엔드 origin 목록(예: https://webter.vercel.app). 비어 있으면 CORS 설정을 만들지 않는다."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = alltrue([for o in var.image_upload_origins : can(regex("^https://[a-z0-9.-]+(:[0-9]+)?$", o))])
+    error_message = "https origin(스킴+호스트[+포트])만 입력한다. 경로·와일드카드는 허용하지 않는다."
+  }
+}
+
