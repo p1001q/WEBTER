@@ -23,6 +23,7 @@ import com.webter.domain.review.entity.VoteType;
 import com.webter.domain.review.repository.ReviewPageRepository;
 import com.webter.domain.review.repository.ReviewRepository;
 import com.webter.domain.review.repository.ReviewVoteRepository;
+import com.webter.domain.stats.service.ClientIpHmac;
 import com.webter.domain.webservice.entity.AvailabilityStatus;
 import com.webter.domain.webservice.entity.WebService;
 import com.webter.global.entity.VisibilityStatus;
@@ -49,6 +50,7 @@ public class ReviewService {
 	private final ReviewPageRepository pages;
 	private final ReviewVoteRepository votes;
 	private final EntityManager em;
+	private final ClientIpHmac clientIp;
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public CursorPage<ReviewView> list(long serviceId, UUID viewerId, ReviewSort sort, String cursor, int limit) {
@@ -105,6 +107,25 @@ public class ReviewService {
 			em.refresh(review);
 		}
 		return view(review, viewerId, context.maker(), true, Votes.EMPTY);
+	}
+
+	@Transactional
+	public ReviewView createGuest(long serviceId, String remoteAddress, ReviewInput input) {
+		WebService service = access.lockPublic(serviceId);
+		if (!service.isAllowGuestReviews()) {
+			throw new BusinessException(InteractionErrorCode.GUEST_REVIEW_NOT_ALLOWED);
+		}
+		if ((input.rate() != null && input.rate() != NONE) || Boolean.TRUE.equals(input.anon())) {
+			throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+		}
+		String text = requireContent(input.text());
+		var address = clientIp.guestReview(remoteAddress);
+		if (reviews.existsByWebServiceAndGuestIpHmac(service, address.hash())) {
+			throw new BusinessException(InteractionErrorCode.GUEST_REVIEW_ALREADY_EXISTS);
+		}
+		var review = reviews.save(Review.builder().webService(service).authorKind(AuthorKind.GUEST)
+			.guestIpHmac(address.hash()).guestIpDisplay(address.display()).rating(NONE).content(text).build());
+		return view(review, null, false, false, Votes.EMPTY);
 	}
 
 	@Transactional

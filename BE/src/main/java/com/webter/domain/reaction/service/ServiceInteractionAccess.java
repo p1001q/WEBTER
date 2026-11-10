@@ -28,7 +28,7 @@ public class ServiceInteractionAccess {
 		if (viewerId == null) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
 		}
-		WebService service = requirePublic(em.find(WebService.class, serviceId, LockModeType.PESSIMISTIC_WRITE));
+		WebService service = lockPublic(serviceId);
 		User member = em.find(User.class, viewerId);
 		if (member == null || member.getOnboardingCompletedAt() == null) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
@@ -37,6 +37,10 @@ public class ServiceInteractionAccess {
 			throw new BusinessException(CommonErrorCode.FORBIDDEN);
 		}
 		return new WriteAccess(service, member, isMaker(service, viewerId));
+	}
+
+	public WebService lockPublic(long serviceId) {
+		return requirePublic(em.find(WebService.class, serviceId, LockModeType.PESSIMISTIC_WRITE));
 	}
 
 	public boolean canWrite(UUID viewerId) {

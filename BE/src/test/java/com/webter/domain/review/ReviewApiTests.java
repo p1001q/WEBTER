@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 class ReviewApiTests extends DomainFixtureTest {
@@ -168,6 +169,90 @@ class ReviewApiTests extends DomainFixtureTest {
 			.isEqualTo(replyId);
 		mvc.perform(delete(base + suffix).with(as(owner)).with(csrf())).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.reply").doesNotExist());
+	}
+
+	@Test
+	void guestReviewRequiresServiceOptInAndCsrfWithoutOpeningOtherWrites() throws Exception {
+		var owner = createUser("rv_guest_owner");
+		long sid = createService(owner, "https://example.com/rv-guest-permissions").getId();
+		String base = "/api/services/" + sid;
+		String body = "{\"text\":\"비회원 리뷰\"}";
+		mvc.perform(post(base + "/reviews/guest").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("INTERACTION_403_03"));
+		allowGuestReviews(sid);
+		mvc.perform(post(base + "/reviews").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isUnauthorized());
+		mvc.perform(post(base + "/reviews/guest").with(as(owner)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+		mvc.perform(post(base + "/reviews/guest").contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isForbidden());
+		var pending = new SessionPrincipal.PendingSignup("pending", "pending@example.test");
+		mvc.perform(post(base + "/reviews/guest").with(csrf()).with(authentication(new UsernamePasswordAuthenticationToken(
+			pending, null, AuthorityUtils.createAuthorityList("ROLE_SIGNUP_PENDING"))))
+			.contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+		mvc.perform(post(base + "/comments").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isUnauthorized());
+		mvc.perform(put(base + "/rating").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"rate\":\"RECOMMEND\"}")).andExpect(status().isUnauthorized());
+		mvc.perform(post(base + "/reviews/guest").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"text\":\"평가 요청\",\"rate\":\"RECOMMEND\"}")).andExpect(status().isBadRequest());
+		mvc.perform(post(base + "/reviews/guest").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"text\":\"https://example.com/\"}")).andExpect(status().isBadRequest());
+		assertThat(countReviews(sid)).isZero();
+	}
+
+	@Test
+	void guestReviewStoresHashAndAllowsOnePerServiceForTheSameAddress() throws Exception {
+		var owner = createUser("rv_guest_owner");
+		var member = createUser("rv_guest_member");
+		long sid = createService(owner, "https://example.com/rv-guest-create").getId();
+		long other = createService(owner, "https://example.com/rv-guest-other").getId();
+		allowGuestReviews(sid);
+		allowGuestReviews(other);
+		String base = "/api/services/" + sid;
+		var response = mvc.perform(guestReview(sid, "203.0.113.42", "198.51.100.1"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.a.kind").value("GUEST"))
+			.andExpect(jsonPath("$.data.a.ip").value("203.0"))
+			.andExpect(jsonPath("$.data.a.uid").doesNotExist())
+			.andExpect(jsonPath("$.data.rate").value("NONE"))
+			.andExpect(jsonPath("$.data.canEdit").value(false))
+			.andExpect(jsonPath("$.data.canDelete").value(false))
+			.andReturn().getResponse().getContentAsString();
+		String reviewId = JsonPath.read(response, "$.data.id");
+		assertThat(response).doesNotContain("203.0.113.42", "guestIpHmac");
+		String hash = jdbc.queryForObject("select guest_ip_hmac from reviews where review_id = ?", String.class,
+			Long.parseLong(reviewId));
+		assertThat(hash).matches("[a-f0-9]{64}");
+		mvc.perform(guestReview(sid, "203.0.113.42", "198.51.100.2"))
+			.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INTERACTION_409_05"));
+		mvc.perform(guestReview(other, "203.0.113.42", "198.51.100.2")).andExpect(status().isOk());
+		mvc.perform(guestReview(sid, "2001:db8::42", "198.51.100.2")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.a.ip").doesNotExist());
+		mvc.perform(guestReview(sid, "2001:0db8:0:0:0:0:0:42", "198.51.100.3")).andExpect(status().isConflict());
+		assertThat(countReviews(sid)).isEqualTo(2);
+
+		String path = base + "/reviews/" + reviewId;
+		mvc.perform(patch(path).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"text\":\"비회원 수정\"}")).andExpect(status().isUnauthorized());
+		mvc.perform(delete(path).with(csrf())).andExpect(status().isUnauthorized());
+		mvc.perform(delete(path).with(as(member)).with(csrf())).andExpect(status().isForbidden());
+		mvc.perform(get(base + "/reviews")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.items.length()").value(2));
+	}
+
+	private void allowGuestReviews(long sid) {
+		jdbc.update("update services set allow_guest_reviews = true where service_id = ?", sid);
+		em.clear();
+	}
+
+	private static MockHttpServletRequestBuilder guestReview(
+			long sid, String address, String forwarded) {
+		return post("/api/services/{sid}/reviews/guest", sid).with(csrf()).with(request -> {
+			request.setRemoteAddr(address);
+			return request;
+		}).header("X-Forwarded-For", forwarded).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"text\":\"비회원 리뷰\",\"rate\":\"NONE\"}");
 	}
 
 	private String write(String base, User member, String text) throws Exception {

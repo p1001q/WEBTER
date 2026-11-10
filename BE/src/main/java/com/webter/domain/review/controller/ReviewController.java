@@ -12,6 +12,7 @@ import com.webter.domain.review.entity.VoteType;
 import com.webter.domain.review.service.ReviewService;
 import com.webter.global.response.ApiResponse;
 import com.webter.global.security.SessionPrincipal;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,12 @@ public class ReviewController {
 	public ApiResponse<ReviewView> create(@PathVariable long serviceId, @RequestBody ReviewInput input,
 			@AuthenticationPrincipal SessionPrincipal.Member member) {
 		return ApiResponse.ok(reviews.create(serviceId, viewerId(member), input));
+	}
+
+	@PostMapping("/reviews/guest")
+	public ApiResponse<ReviewView> createGuest(@PathVariable long serviceId, @RequestBody ReviewInput input,
+			HttpServletRequest request) {
+		return ApiResponse.ok(reviews.createGuest(serviceId, request.getRemoteAddr(), input));
 	}
 
 	@PatchMapping("/reviews/{reviewId}")
