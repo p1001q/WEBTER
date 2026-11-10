@@ -62,6 +62,12 @@ public class ServiceQueryService {
 		return assemble(List.of(id), Instant.now(), viewer).getFirst();
 	}
 
+	/** 내가 등록한 서비스 전체. 비공개·운영 중지도 포함하고 최신순이다. */
+	@Transactional(readOnly = true)
+	public List<ServiceResponse> mine(Viewer viewer) {
+		return assemble(queries.findOwnedIds(viewer.userId()), Instant.now(), viewer);
+	}
+
 	private static boolean canSeePrivate(WebService service, Viewer viewer) {
 		return viewer != null && (viewer.admin() || service.getOwner().getId().equals(viewer.userId()));
 	}

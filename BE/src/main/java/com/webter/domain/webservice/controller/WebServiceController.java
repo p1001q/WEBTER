@@ -1,6 +1,5 @@
 package com.webter.domain.webservice.controller;
 
-import com.webter.domain.user.entity.UserRole;
 import com.webter.domain.webservice.dto.ScorePeriod;
 import com.webter.domain.webservice.dto.ServicePageResponse;
 import com.webter.domain.webservice.dto.ServiceResponse;
@@ -13,9 +12,7 @@ import com.webter.domain.webservice.entity.PriceType;
 import com.webter.domain.webservice.entity.ProjectType;
 import com.webter.domain.webservice.entity.RegistrantType;
 import com.webter.domain.webservice.service.ServiceQueryService;
-import com.webter.domain.webservice.service.ServiceQueryService.Viewer;
 import com.webter.global.response.ApiResponse;
-import com.webter.global.security.SessionPrincipal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -54,17 +51,7 @@ public class WebServiceController {
 
 	@GetMapping("/{id}")
 	public ApiResponse<ServiceResponse> detail(@PathVariable long id, Authentication authentication) {
-		return ApiResponse.ok(queries.detail(id, viewer(authentication)));
-	}
-
-	private static Viewer viewer(Authentication authentication) {
-		if (authentication != null && authentication.getPrincipal() instanceof SessionPrincipal.Member member) {
-			boolean admin = authentication.getAuthorities()
-				.stream()
-				.anyMatch(a -> a.getAuthority().equals("ROLE_" + UserRole.ADMIN.name()));
-			return new Viewer(member.userId(), admin);
-		}
-		return null;
+		return ApiResponse.ok(queries.detail(id, Viewers.of(authentication)));
 	}
 
 }
