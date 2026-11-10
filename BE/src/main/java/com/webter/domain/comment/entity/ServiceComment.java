@@ -80,4 +80,15 @@ public class ServiceComment extends BaseTimeEntity {
 		this.deletedAt = Instant.now();
 	}
 
+	public void edit(String content) {
+		this.content = content;
+	}
+
+	public void leaveTombstone() {
+		delete();
+		content = "";
+		author = null;
+		anonymous = false;
+	}
+
 }

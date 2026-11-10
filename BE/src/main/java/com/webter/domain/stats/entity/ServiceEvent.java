@@ -14,13 +14,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
  * 서비스 조회·실행 기록. 모든 발생을 남기고, 집계에 넣을지는 counted로 구분한다.
- * 집계에서 뺀 기록은 excludedReason에 이유를 적는다(짝이 어긋나지 않도록 counted, excluded 생성 메서드로만 만든다).
+ * 집계에서 뺀 기록은 excludedReason에 이유를 적는다(제외 사유로부터 counted를 결정한다).
  */
 @Getter
 @Entity
@@ -60,27 +61,33 @@ public class ServiceEvent {
 	private String excludedReason;
 
 	@Column(name = "occurred_at", nullable = false)
-	private Instant occurredAt = Instant.now();
+	private Instant occurredAt;
 
 	private ServiceEvent(WebService webService, User user, String actorKey, String ipKey, EventType eventType,
-			boolean counted, String excludedReason) {
+			Instant occurredAt, String excludedReason) {
 		this.webService = webService;
 		this.user = user;
 		this.actorKey = actorKey;
 		this.ipKey = ipKey;
 		this.eventType = eventType;
-		this.counted = counted;
+		this.occurredAt = occurredAt;
+		this.counted = excludedReason == null;
 		this.excludedReason = excludedReason;
 	}
 
 	public static ServiceEvent counted(WebService webService, User user, String actorKey, String ipKey,
 			EventType eventType) {
-		return new ServiceEvent(webService, user, actorKey, ipKey, eventType, true, null);
+		return new ServiceEvent(webService, user, actorKey, ipKey, eventType, Instant.now(), null);
 	}
 
 	public static ServiceEvent excluded(WebService webService, User user, String actorKey, String ipKey,
 			EventType eventType, String excludedReason) {
-		return new ServiceEvent(webService, user, actorKey, ipKey, eventType, false, excludedReason);
+		return new ServiceEvent(webService, user, actorKey, ipKey, eventType, Instant.now(), Objects.requireNonNull(excludedReason));
+	}
+
+	public static ServiceEvent record(WebService webService, User user, String actorKey, String ipKey,
+			EventType eventType, Instant occurredAt, String excludedReason) {
+		return new ServiceEvent(webService, user, actorKey, ipKey, eventType, occurredAt, excludedReason);
 	}
 
 }
