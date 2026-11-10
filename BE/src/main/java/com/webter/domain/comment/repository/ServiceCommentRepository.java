@@ -14,6 +14,16 @@ public interface ServiceCommentRepository extends JpaRepository<ServiceComment, 
 
 	List<ServiceComment> findByWebServiceOrderByCreatedAtAsc(WebService webService);
 
+	// 내가 쓴 공개 댓글·답글(삭제하지 않은 것). 공개된 서비스의 댓글만 마이페이지에 보인다.
+	@Query("""
+			select c from ServiceComment c join fetch c.author join fetch c.webService w
+			left join fetch c.parent
+			where c.author.id = :authorId and c.visibilityStatus = PUBLIC and c.deletedAt is null
+			  and w.visibilityStatus = PUBLIC
+			order by c.createdAt desc, c.id desc
+			""")
+	List<ServiceComment> findMine(java.util.UUID authorId, Pageable pageable);
+
 	Optional<ServiceComment> findByIdAndWebService(long id, WebService webService);
 
 	boolean existsByParent(ServiceComment parent);
