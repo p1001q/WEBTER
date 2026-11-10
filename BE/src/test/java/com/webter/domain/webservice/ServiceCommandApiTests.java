@@ -4,6 +4,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -15,8 +18,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.webter.DomainFixtureTest;
+import com.webter.domain.upload.exception.UploadErrorCode;
+import com.webter.domain.upload.service.ImageVerifier;
 import com.webter.domain.user.entity.User;
 import com.webter.domain.webservice.service.UrlProbe;
+import com.webter.global.exception.BusinessException;
 import com.webter.global.security.SessionPrincipal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +49,14 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 	// 외부 접속 없이 접속 가능 여부를 정한다
 	@MockitoBean
 	UrlProbe probe;
+
+	// 저장소 없이 "우리가 올린 이미지"인지와 실제 이미지인지를 정한다(기본은 우리가 올린 이미지가 아님)
+	@MockitoBean
+	ImageVerifier images;
+
+	static final String OWN_ICON = "https://img.example.test/uploads/2026/11/icon.png";
+
+	static final String OWN_PREVIEW = "https://img.example.test/uploads/2026/11/preview.webp";
 
 	User maker;
 
@@ -138,8 +152,53 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 			create(maker, body("a", "https://ok.example.test", "[\"PLAY\"]", "[]", "true").replace("\"languages\"", "\"iconUrl\":\"" + icon.replace("\\", "\\\\") + "\",\"languages\""))
 				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SERVICE_400_06"));
 		}
-		create(maker, body("a", "https://ok1.example.test", "[\"PLAY\"]", "[]", "true").replace("\"languages\"", "\"iconUrl\":\"/uploads/icon.png\",\"languages\""))
-			.andExpect(status().isCreated()).andExpect(jsonPath("$.data.iconUrl").value("/uploads/icon.png"));
+	}
+
+	String withImages(String json, String icon, String preview) {
+		return json.replace("\"languages\"", "\"iconUrl\":\"" + icon + "\",\"previewImages\":[\"" + preview
+				+ "\"],\"languages\"");
+	}
+
+	@Test
+	void onlyImagesUploadedToThisServerCanBeLinked() throws Exception {
+		String base = body("a", "https://img1.example.test", "[\"PLAY\"]", "[]", "true");
+		// 남의 서버 이미지(우리가 올리지 않은 주소)는 거절한다
+		create(maker, withImages(base, "https://evil.example.test/tracker.png", OWN_PREVIEW)).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("SERVICE_400_06"));
+		// 우리가 올린 이미지여도 저장소에서 실제 이미지가 아니면 거절한다
+		when(images.isOwnUrl(OWN_ICON)).thenReturn(true);
+		when(images.isOwnUrl(OWN_PREVIEW)).thenReturn(true);
+		doThrow(new BusinessException(UploadErrorCode.UPLOAD_NOT_AN_IMAGE)).when(images).verify(OWN_PREVIEW);
+		create(maker, withImages(base, OWN_ICON, OWN_PREVIEW)).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("UPLOAD_400_03"));
+		// 거절된 요청은 서비스도 등록 횟수도 남기지 않는다
+		mockMvc.perform(get("/api/services")).andExpect(jsonPath("$.data.items", empty()));
+	}
+
+	@Test
+	void ownImagesAreLinkedAndOnlyNewOnesAreVerifiedAgainOnUpdate() throws Exception {
+		when(images.isOwnUrl(OWN_ICON)).thenReturn(true);
+		when(images.isOwnUrl(OWN_PREVIEW)).thenReturn(true);
+		String base = body("a", "https://img2.example.test", "[\"PLAY\"]", "[]", "true");
+		String response = create(maker, withImages(base, OWN_ICON, OWN_PREVIEW)).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.iconUrl").value(OWN_ICON))
+			.andExpect(jsonPath("$.data.previewImages", contains(OWN_PREVIEW)))
+			.andReturn().getResponse().getContentAsString();
+		long id = Long.parseLong(com.jayway.jsonpath.JsonPath.<String>read(response, "$.data.id"));
+		verify(images, times(1)).verify(OWN_ICON);
+		verify(images, times(1)).verify(OWN_PREVIEW);
+		// 같은 이미지를 그대로 두고 수정하면 저장소를 다시 확인하지 않는다
+		mockMvc.perform(put("/api/services/" + id).with(as(maker, "USER")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content(withImages(body("바뀐 이름", "https://img2.example.test", "[\"PLAY\"]", "[]", "true"), OWN_ICON, OWN_PREVIEW)))
+			.andExpect(status().isOk());
+		verify(images, times(1)).verify(OWN_ICON);
+		// 새 이미지로 바꾸면 그 이미지는 확인한다
+		String newPreview = "https://img.example.test/uploads/2026/11/new.png";
+		when(images.isOwnUrl(newPreview)).thenReturn(true);
+		mockMvc.perform(put("/api/services/" + id).with(as(maker, "USER")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content(withImages(body("바뀐 이름", "https://img2.example.test", "[\"PLAY\"]", "[]", "true"), OWN_ICON, newPreview)))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.previewImages", contains(newPreview)));
+		verify(images, times(1)).verify(newPreview);
 	}
 
 	@Test

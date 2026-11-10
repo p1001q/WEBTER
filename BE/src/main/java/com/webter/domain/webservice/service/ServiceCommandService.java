@@ -6,6 +6,7 @@ import com.webter.domain.policy.entity.DocumentType;
 import com.webter.domain.policy.repository.PolicyDocumentRepository;
 import com.webter.domain.user.entity.AccountStatus;
 import com.webter.domain.user.entity.User;
+import com.webter.domain.upload.service.ImageVerifier;
 import com.webter.domain.user.repository.UserRepository;
 import com.webter.domain.webservice.dto.AvailabilityRequest;
 import com.webter.domain.webservice.dto.ServiceRequest;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 서비스 등록·수정·삭제, 운영 상태와 버전 기록 관리. 관리 권한은 등록자와 관리자에게 있다
@@ -63,8 +65,21 @@ public class ServiceCommandService {
 
 	private final UrlProbe probe;
 
-	@Transactional
+	private final ImageVerifier images;
+
+	private final TransactionTemplate tx;
+
+	/**
+	 * 서비스를 등록한다. 이미지는 저장소에서 확인해야 하므로(외부 호출) 트랜잭션 밖에서 먼저 확인한 뒤 저장한다.
+	 */
 	public long create(UUID userId, ServiceRequest request) {
+		Fields f = Fields.of(request);
+		verifyImages(f, Set.of());
+		Long id = tx.execute(status -> doCreate(userId, request, f));
+		return id;
+	}
+
+	private long doCreate(UUID userId, ServiceRequest request, Fields f) {
 		User user = users.findById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
 		if (user.getAccountStatus() != AccountStatus.ACTIVE) {
 			throw new BusinessException(ServiceErrorCode.REGISTRATION_RESTRICTED);
@@ -72,7 +87,6 @@ public class ServiceCommandService {
 		if (!request.agreed()) {
 			throw new BusinessException(ServiceErrorCode.REGISTRATION_AGREEMENT_REQUIRED);
 		}
-		Fields f = Fields.of(request);
 		ensureCategoriesExist(f.categories());
 		if (services.existsByCanonicalUrl(f.canonicalUrl())) {
 			throw new BusinessException(ServiceErrorCode.URL_DUPLICATED);
@@ -111,10 +125,15 @@ public class ServiceCommandService {
 		return saved.getId();
 	}
 
-	@Transactional
+	/** 서비스를 수정한다. 새로 연결하는 이미지만 저장소에서 확인한다(트랜잭션 밖). */
 	public void update(long id, Viewer viewer, ServiceRequest request) {
-		WebService service = manageable(id, viewer);
 		Fields f = Fields.of(request);
+		verifyImages(f, currentImages(id, viewer));
+		tx.executeWithoutResult(status -> doUpdate(id, viewer, request, f));
+	}
+
+	private void doUpdate(long id, Viewer viewer, ServiceRequest request, Fields f) {
+		WebService service = manageable(id, viewer);
 		ensureCategoriesExist(f.categories());
 		if (!service.getCanonicalUrl().equals(f.canonicalUrl()) && services.existsByCanonicalUrl(f.canonicalUrl())) {
 			throw new BusinessException(ServiceErrorCode.URL_DUPLICATED);
@@ -165,6 +184,42 @@ public class ServiceCommandService {
 			rows.add(new VersionRow(versionId, r.version().trim(), r.title().trim(), r.content().trim()));
 		}
 		writes.replaceVersions(id, rows);
+	}
+
+	// 이미 서비스에 연결된 이미지(수정 때 다시 확인하지 않는다). 관리 권한이 없으면 서비스가 없는 것처럼 404로 답한다.
+	private Set<String> currentImages(long id, Viewer viewer) {
+		return java.util.Objects.requireNonNull(tx.execute(status -> {
+			WebService service = manageable(id, viewer);
+			Set<String> urls = new java.util.HashSet<>(service.getPreviewImages());
+			if (service.getIconUrl() != null) {
+				urls.add(service.getIconUrl());
+			}
+			if (service.getThumbnailUrl() != null) {
+				urls.add(service.getThumbnailUrl());
+			}
+			return urls;
+		}));
+	}
+
+	// 새로 연결하는 이미지는 이 서버가 올린 이미지이고 저장소에 실제로 있는 이미지여야 한다
+	private void verifyImages(Fields f, Set<String> alreadyLinked) {
+		List<String> urls = new ArrayList<>();
+		if (f.iconUrl() != null) {
+			urls.add(f.iconUrl());
+		}
+		if (f.thumbnailUrl() != null) {
+			urls.add(f.thumbnailUrl());
+		}
+		urls.addAll(f.previewImages());
+		for (String url : urls) {
+			if (alreadyLinked.contains(url)) {
+				continue;
+			}
+			if (!images.isOwnUrl(url)) {
+				throw new BusinessException(ServiceErrorCode.INVALID_IMAGE_URL);
+			}
+			images.verify(url);
+		}
 	}
 
 	/**
