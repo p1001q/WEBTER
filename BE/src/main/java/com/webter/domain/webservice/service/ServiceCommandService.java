@@ -169,7 +169,8 @@ public class ServiceCommandService {
 
 	/**
 	 * 주소 형식, 중복, 접속 가능 여부를 차례로 검사한다. 검사 결과는 오류가 아니라 응답의 state로 알린다.
-	 * 외부 접속을 기다리는 동안 DB 연결을 잡고 있지 않도록 트랜잭션을 걸지 않는다(중복 조회는 저장소의 읽기 트랜잭션).
+	 * 외부 접속을 기다리는 동안 DB 연결을 잡고 있지 않도록 트랜잭션을 걸지 않는다. 중복 조회는 트랜잭션 없이 한 번의
+	 * 조회로 처리되고(선언한 조회 메서드에는 기본 트랜잭션이 없다) open-in-view가 꺼져 있어 연결은 곧바로 반환된다.
 	 */
 	public UrlCheckResponse checkUrl(UrlCheckRequest request) {
 		String url;
