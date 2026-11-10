@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createApi } from "@/api";
+import { loadSnapshot } from "@/api";
 import { WtProvider } from "@/providers/WtProvider";
 import { AppShell } from "./AppShell";
 
@@ -9,7 +9,7 @@ import { AppShell } from "./AppShell";
  * 개발 서버에서는 데모 컨트롤(Tweaks)이 provider 를 감싼다. 프로덕션 빌드에서는 이 분기가 통째로 빠진다.
  */
 export async function AppFrame({ children }: { children: ReactNode }) {
-  const snapshot = await createApi().bootstrap();
+  const snapshot = await loadSnapshot();
   const shell = <AppShell>{children}</AppShell>;
   if (process.env.NODE_ENV === "development") {
     const { DevFrame } = await import("@/dev/tweaks/DevFrame");

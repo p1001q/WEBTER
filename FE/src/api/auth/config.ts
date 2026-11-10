@@ -9,3 +9,11 @@ export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
 
 /** 실제 구글 로그인·서버 세션을 쓰는지 */
 export const realAuth = API_BASE !== "";
+
+/**
+ * 서버 렌더링이 백엔드에 접속하는 주소. 브라우저가 쓰는 주소(API_BASE)와 다를 때(컨테이너 안 등)
+ * API_INTERNAL_BASE_URL 로 지정한다. 없으면 API_BASE 를 쓴다.
+ */
+export const API_SERVER_BASE = (
+  process.env.API_INTERNAL_BASE_URL || API_BASE
+).replace(/\/+$/, "");
