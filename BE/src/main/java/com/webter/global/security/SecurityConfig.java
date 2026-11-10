@@ -61,7 +61,8 @@ public class SecurityConfig {
 				.requestMatchers("/health", "/health/**", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
 				.permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/auth/session", "/api/auth/login/google",
-						"/api/policies/current", "/oauth2/authorization/google", "/login/oauth2/code/google")
+						"/api/policies/current", "/api/categories", "/api/services/**", "/oauth2/authorization/google",
+						"/login/oauth2/code/google")
 				.permitAll()
 				.requestMatchers("/api/auth/signup", "/api/auth/username-available")
 				.hasRole(SessionPrincipal.ROLE_SIGNUP_PENDING)
