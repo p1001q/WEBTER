@@ -14,6 +14,7 @@ interface BackendProfile {
   links: { kind: string; url: string }[];
   serviceCount: number;
   receivedLikes: number;
+  moderated: boolean;
 }
 
 export const profileToUser = (p: BackendProfile): User => ({
@@ -22,6 +23,7 @@ export const profileToUser = (p: BackendProfile): User => ({
   handle: p.username,
   color: "#E3E8F0",
   bio: p.bio ?? "",
+  profileModerated: p.moderated,
   links: p.links.map((l): [LinkKind, string] => [l.kind as LinkKind, l.url]),
 });
 

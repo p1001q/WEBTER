@@ -34,7 +34,7 @@ public class AccountService {
 
 	@Transactional
 	public MemberResponse updateProfile(UUID userId, UpdateProfileRequest request) {
-		User user = users.findById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+		User user = users.findLockedById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
 		var links = ProfileLinks.toMap(request.links());
 		List<Category> selected = categories.resolveActive(request.interests());
 		// 대소문자만 바꾸는 경우는 본인 아이디라 중복이 아니다

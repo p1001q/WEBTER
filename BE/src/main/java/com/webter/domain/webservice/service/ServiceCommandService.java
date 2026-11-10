@@ -84,7 +84,7 @@ public class ServiceCommandService {
 	}
 
 	private long doCreate(UUID userId, ServiceRequest request, Fields f) {
-		User user = users.findById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+		User user = users.findLockedById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
 		if (user.getAccountStatus() != AccountStatus.ACTIVE) {
 			throw new BusinessException(ServiceErrorCode.REGISTRATION_RESTRICTED);
 		}
@@ -255,7 +255,12 @@ public class ServiceCommandService {
 
 	// 관리 권한(등록자·관리자)이 없으면 서비스가 있는지 여부를 알리지 않고 404로 답한다
 	private WebService manageable(long id, Viewer viewer) {
-		WebService service = services.findById(id)
+		User member = users.findById(viewer.userId())
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+		if (member.getAccountStatus() == AccountStatus.SUSPENDED) {
+			throw new BusinessException(CommonErrorCode.FORBIDDEN);
+		}
+		WebService service = services.findLockedById(id)
 			.orElseThrow(() -> new BusinessException(ServiceErrorCode.SERVICE_NOT_FOUND));
 		if (viewer.admin() || service.getOwner().getId().equals(viewer.userId())
 				|| members.existsById(new ServiceMemberId(service.getId(), viewer.userId()))) {

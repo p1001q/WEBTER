@@ -7,8 +7,8 @@ import { SectionHead } from "@/components/layout/SectionHead";
 import { ServiceList } from "@/components/service/ServiceList";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ReportButton } from "@/components/modals/ReportButton";
 import { Icon } from "@/components/ui/Icon";
-import { MiniButton } from "@/components/ui/MiniButton";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { fmtNum } from "@/domain/format";
 import { LINK_ICON, LINK_LABEL } from "@/domain/options";
@@ -33,7 +33,6 @@ export function ProfileScreen({ id }: { id: string }) {
   const list = wt.publicServices.filter((s) => s.owner === u.id);
   const likes = list.reduce((a, s) => a + s.likes, 0);
   const isMe = !!wt.me && wt.me.id === u.id;
-  const reported = wt.reported.has("profile:" + u.id);
   return (
     <>
       <div className="page-wrap">
@@ -93,31 +92,16 @@ export function ProfileScreen({ id }: { id: string }) {
             )}
           </div>
           <div className="flex gap-2">
-            {isMe ? null : reported ? (
-              <MiniButton disabled>
-                <Icon name="check" size={13} />
-                신고 완료
-              </MiniButton>
-            ) : (
-              <MiniButton
-                onClick={() =>
-                  wt.requireLogin(
-                    () =>
-                      wt.setModal({
-                        type: "report",
-                        target: {
-                          type: "profile",
-                          key: "profile:" + u.id,
-                          label: u.nick,
-                        },
-                      }),
-                    "신고는 로그인한 회원만 할 수 있어요.",
-                  )
-                }
+            {!u.profileModerated && (
+              <ReportButton
+                target={{
+                  targetType: "PROFILE",
+                  targetId: u.id,
+                  label: u.nick,
+                }}
               >
-                <Icon name="flag" size={13} />
                 프로필 신고
-              </MiniButton>
+              </ReportButton>
             )}
           </div>
         </div>

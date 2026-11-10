@@ -12,6 +12,7 @@ export interface BackendMember {
   links: { kind: string; url: string }[];
   role: "USER" | "ADMIN";
   accountStatus: string;
+  profileModerated: boolean;
   interests: string[];
 }
 
@@ -29,6 +30,8 @@ export function memberToUser(m: BackendMember): User {
     color: "#E3E8F0",
     bio: m.bio ?? "",
     email: m.email ?? undefined,
+    role: m.role,
+    profileModerated: m.profileModerated,
     links: m.links.map((l): [LinkKind, string] => [l.kind as LinkKind, l.url]),
     interests: m.interests.flatMap((c) =>
       ID_BY_CODE[c] ? [ID_BY_CODE[c]] : [],

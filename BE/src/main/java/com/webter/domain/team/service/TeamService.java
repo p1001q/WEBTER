@@ -99,7 +99,7 @@ public class TeamService {
 			.setMaxResults(CANDIDATE_LIMIT)
 			.getResultList()
 			.stream()
-			.map(u -> new CandidateView(u.getId().toString(), u.getUsername(), u.getNickname()))
+			.map(u -> new CandidateView(u.getId().toString(), u.getUsername(), u.getPublicNickname()))
 			.toList();
 	}
 
@@ -268,7 +268,7 @@ public class TeamService {
 	}
 
 	private static UserBrief brief(User user) {
-		return new UserBrief(user.getId().toString(), user.getUsername(), user.getNickname());
+		return new UserBrief(user.getId().toString(), user.getUsername(), user.getPublicNickname());
 	}
 
 	private static InvitationResponse response(ServiceInvitation invitation) {

@@ -18,6 +18,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
 /**
  * 콘텐츠 신고. 대상 종류마다 대상 ID 컬럼이 따로 있고, 신고 한 건은 그중 하나만 채운다(나머지는 비어 있다).
@@ -26,6 +27,7 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @Entity
+@DynamicUpdate // 처리 중에는 reviewed_*와 상태만 갱신해 DB의 외래키 삭제 동작을 보존한다.
 @Table(name = "reports")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Report extends BaseCreatedEntity {

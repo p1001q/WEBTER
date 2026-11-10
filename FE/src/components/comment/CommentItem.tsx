@@ -6,6 +6,7 @@ import { CursorListControls } from "@/components/ui/CursorListControls";
 import { useCursorList } from "@/lib/useCursorList";
 import type { Comment, Service } from "@/api/types";
 import { Avatar } from "@/components/ui/Avatar";
+import { ReportButton } from "@/components/modals/ReportButton";
 import { Icon } from "@/components/ui/Icon";
 import { MakerBadge } from "@/components/ui/MakerBadge";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -68,7 +69,6 @@ export function CommentItem({
   const u = c.a.uid ? wt.users[c.a.uid] : undefined;
   const showUser = c.a.kind === "member" && !!u;
   const isMaker = c.a.kind === "member" && c.a.uid === s.owner;
-  const reported = wt.reported.has("comment:" + c.id);
   return (
     <div
       ref={revealRef}
@@ -135,29 +135,9 @@ export function CommentItem({
                   삭제
                 </MiniButton>
               )}
-              {!mine &&
-                (reported ? (
-                  <MiniButton disabled>
-                    <Icon name="check" size={13} />
-                    신고 완료
-                  </MiniButton>
-                ) : (
-                  <MiniButton
-                    onClick={() =>
-                      wt.requireLogin(
-                        () =>
-                          wt.setModal({
-                            type: "report",
-                            target: { type: "comment", key: "comment:" + c.id },
-                          }),
-                        "신고는 로그인한 회원만 할 수 있어요.",
-                      )
-                    }
-                  >
-                    <Icon name="flag" size={13} />
-                    신고
-                  </MiniButton>
-                ))}
+              <ReportButton
+                target={{ targetType: "COMMENT", targetId: c.id }}
+              />
             </span>
           </div>
           <p className={text}>{c.text}</p>

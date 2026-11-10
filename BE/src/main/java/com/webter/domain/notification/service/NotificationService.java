@@ -151,7 +151,7 @@ public class NotificationService {
 		if (actor == null || actor.getVisibilityStatus() != VisibilityStatus.PUBLIC) {
 			return null;
 		}
-		return new NotificationView.Actor(actor.getId().toString(), actor.getUsername(), actor.getNickname());
+		return new NotificationView.Actor(actor.getId().toString(), actor.getUsername(), actor.getPublicNickname());
 	}
 
 	private static void add(Set<Long> ids, Long id) {
