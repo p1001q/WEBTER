@@ -71,6 +71,11 @@ Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | 없음 | 웹 OAuth 클라이언트 정보. 미설정이면 로그인 시작은 503이며 테스트용 인증으로 대체하지 않는다 |
 | `AUTH_FRONTEND_ORIGIN` | `http://localhost:3000` | 로그인 후 이동할 프론트 origin. 경로·쿼리 없이 지정 |
 | `AUTH_BACKEND_ORIGIN` | `http://localhost:8080` | 구글 콜백 주소를 조립할 백엔드 origin |
+| `IMAGE_BUCKET` | 없음 | 이미지 저장 버킷. 비어 있으면 이미지 업로드는 꺼진다(업로드 API 503) |
+| `IMAGE_REGION` | `ap-northeast-2` | 버킷 리전 |
+| `IMAGE_S3_ENDPOINT` / `IMAGE_S3_PUBLIC_ENDPOINT` | 없음 | AWS가 아닌 S3 호환 저장소(로컬)를 쓸 때만 지정. 앞은 서버가, 뒤는 브라우저가 접속하는 주소 |
+| `IMAGE_PUBLIC_BASE_URL` | 없음 | 저장한 이미지 주소의 앞부분(CloudFront 주소 등). 이 주소로 시작하는 이미지만 서비스에 연결할 수 있다 |
+| `IMAGE_S3_ACCESS_KEY` / `IMAGE_S3_SECRET_KEY` | 없음 | 저장소 접근 키. 로컬은 S3 호환 저장소용 임의 값, 운영은 전용 IAM 사용자 키. 비우면 AWS 기본 자격증명 체인을 쓴다 |
 | `SESSION_TIMEOUT` | `30m` | 비활동 기준 만료 시간. 메모리·Redis 세션 공통이며 현재 구현값이고 운영 정책은 미정 |
 | `SESSION_COOKIE_SECURE` | `true` (`local`은 `false`) | HTTPS 환경은 Secure 쿠키 사용 |
 
@@ -196,7 +201,22 @@ JSON 응답은 `ApiResponse`를 따릅니다. 로그인 시작·콜백은 리디
 - **하루 등록 한도**: 한 계정당 하루 5개(한국 시간 기준). 중복·검증 실패처럼 저장에 실패한 요청은 횟수를 쓰지 않습니다. 등록 제한(`REGISTRATION_RESTRICTED`) 계정은 등록할 수 없습니다.
 - **주소 중복**: 앞뒤 공백·끝의 `/`·대소문자를 무시하고 같은 주소는 등록할 수 없습니다. 수정 때 주소를 바꾸면 다시 검사합니다.
 - **주소 검사의 접속 확인**: 서버가 주소로 GET 요청을 보내 상태 코드가 500 미만이면 접속 가능으로 봅니다. 사설·루프백·링크 로컬 주소는 접속하지 않고 리디렉션은 따라가지 않습니다. 확인한 주소와 실제 접속 주소가 달라질 수 있는 한계(DNS 재조회)가 있고, 정책서가 정한 최종 검사 방식은 아닙니다. 등록·수정 API는 접속 가능 여부를 다시 확인하지 않습니다.
-- **이미지 주소**: `https` 주소 또는 서버 업로드 경로(`/uploads/…`)만 받습니다. 이미지 파일 업로드 API는 아직 없습니다.
+- **이미지 주소**: 아이콘·썸네일·미리보기는 "이미지 업로드 API"로 올린 이 서버의 이미지 주소(`imageUrl`)만 받습니다. 외부 주소나 다른 경로는 `SERVICE_400_06`, 저장소에 없거나 실제 이미지가 아니면 `UPLOAD_400_03`·`UPLOAD_400_04`로 거절합니다. 수정할 때는 새로 연결하는 이미지만 저장소에서 확인하며, 확인은 DB 트랜잭션 밖에서 합니다. 이미지 저장소 설정(`IMAGE_BUCKET`)이 없으면 이미지를 연결할 수 없습니다(이미지 없는 서비스는 등록됩니다).
+
+## 이미지 업로드 API
+
+이미지는 브라우저가 S3에 직접 올립니다(서버를 거치지 않음). 서버는 일회용 업로드 주소를 발급하고, 올린 파일이 실제 이미지인지 확인합니다.
+
+| 메서드 | 경로 | 용도 |
+|---|---|---|
+| POST | `/api/uploads/images` | 업로드 주소 발급. 요청 `contentType`(`image/jpeg`·`image/png`·`image/webp`), `size`(byte, 5MB 이하). 응답 `uploadUrl`, `method`(PUT), `headers`, `imageUrl`, `expiresAt` |
+
+- **올리는 방법**: 응답의 `uploadUrl`로 `method` 요청을 `headers`와 함께 보내며 본문에 파일을 싣습니다. 유효 시간은 5분이고 형식·크기는 주소 발급 때 서명에 들어갑니다. 올린 뒤 서비스 등록·수정에는 `imageUrl`을 보냅니다.
+- **발급 조건**: 가입을 완료한 회원만, CSRF 토큰 필요. 형식·크기를 어기면 400, 저장소 설정(`IMAGE_BUCKET`)이 없으면 503입니다.
+- **저장 경로**: `uploads/{연}/{월}/{무작위 UUID}.{확장자}`. 추측할 수 없는 이름을 씁니다.
+- **검증**(`ImageVerifier`): 설정한 이미지 주소(`IMAGE_PUBLIC_BASE_URL`)로 시작하는 주소만 이 서버가 올린 이미지로 보고, 저장소에 있는지·5MB 이하인지·파일 앞부분(JPEG·PNG·WebP 서명)이 이미지인지 확인합니다. 유해성 검사는 하지 않습니다.
+- **로컬**: `BE/compose.yml`의 `images`(S3Mock, S3 호환)를 씁니다. 서명·인증을 검사하지 않아 실제 AWS S3에서 적용되는 서명 제한(형식·크기 불일치 거절)은 로컬 테스트로 확인하지 못했습니다.
+- **운영**: AWS S3(비공개 버킷)와 CloudFront를 씁니다(`IN/terraform/images.tf`). 앱 컨테이너는 EC2 역할 자격증명을 받지 못하므로, `uploads/` 경로의 `PutObject`·`GetObject`만 가진 전용 IAM 사용자의 접근 키를 `IMAGE_S3_ACCESS_KEY`·`IMAGE_S3_SECRET_KEY`로 받습니다(SSM 런타임 값, 발급 절차는 `IN/README.md`).
 
 ## 세션 저장소
 

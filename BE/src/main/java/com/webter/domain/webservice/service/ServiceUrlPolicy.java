@@ -51,20 +51,19 @@ final class ServiceUrlPolicy {
 		return url;
 	}
 
-	/** 이미지 주소는 https 주소이거나 이 서버가 보관하는 업로드 경로(/uploads/…)여야 한다. 비면 null이다. */
+	/**
+	 * 이미지 주소의 기본 형식(http·https 절대 주소)을 확인하고 공백을 정리해 돌려준다. 비면 null이다.
+	 * 이 서버가 올린 이미지인지는 {@code ImageVerifier}가 따로 확인한다.
+	 */
 	static String validateImageUrl(String raw) {
 		if (raw == null || raw.isBlank()) {
 			return null;
 		}
 		String url = raw.trim();
 		URI uri = parse(url);
-		// 업로드 경로는 같은 서버의 경로만 허용한다(스킴·권한 없음, 상위 경로·인코딩된 점·역슬래시 금지)
-		boolean uploaded = uri != null && uri.getScheme() == null && uri.getRawAuthority() == null
-				&& url.startsWith("/uploads/") && !url.contains("..") && !url.contains("\\")
-				&& !url.toLowerCase().contains("%2e") && !url.toLowerCase().contains("%2f")
-				&& !url.toLowerCase().contains("%5c");
-		boolean remote = uri != null && "https".equals(uri.getScheme()) && uri.getHost() != null;
-		if (url.length() > MAX_LENGTH || !(uploaded || remote)) {
+		boolean absolute = uri != null && ("https".equals(uri.getScheme()) || "http".equals(uri.getScheme()))
+				&& uri.getHost() != null && uri.getRawUserInfo() == null;
+		if (url.length() > MAX_LENGTH || !absolute) {
 			throw new BusinessException(ServiceErrorCode.INVALID_IMAGE_URL);
 		}
 		return url;

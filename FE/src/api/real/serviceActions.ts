@@ -8,11 +8,12 @@ import {
   PRICE_CODE,
   PROJECT_TYPE_CODE,
 } from "./codes";
+import { resolveImages } from "./imageUpload";
 import { mapService, type BackendService } from "./serviceApi";
 
-/** 서버가 받는 이미지 주소: https 주소이거나 서버 업로드 경로. 그 밖(브라우저에서 고른 파일의 임시 주소 등)은 보내지 않는다 */
+/** 이미지 주소(올리기를 마친 서버 주소). 올리지 못한 임시 주소(data·blob)는 보내지 않는다 */
 const imageUrl = (v?: string | null) =>
-  v && (v.startsWith("https://") || v.startsWith("/uploads/")) ? v : null;
+  v && /^https?:\/\//.test(v) ? v : null;
 
 /** 화면의 서비스 값을 서비스 등록·수정 요청으로 바꾼다 */
 type ServiceFields = Omit<ServiceInput, "iconImg" | "thumbImg"> & {
@@ -73,7 +74,7 @@ export function withRealServices(base: WebterApi): WebterApi {
       mapService(
         await postJson<BackendService>(
           "/api/services",
-          toServiceRequest(input),
+          toServiceRequest(await resolveImages(input)),
         ),
       ),
     updateService: async (id, patch) => {
@@ -98,7 +99,7 @@ export function withRealServices(base: WebterApi): WebterApi {
       return mapService(
         await putJson<BackendService>(
           `/api/services/${id}`,
-          toServiceRequest({ ...current, ...patch }),
+          toServiceRequest(await resolveImages({ ...current, ...patch })),
         ),
       );
     },

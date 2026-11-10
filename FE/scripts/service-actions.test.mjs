@@ -5,6 +5,8 @@ import { harness } from "./helpers/uiHarness.mjs";
 const calls = [];
 const respond = { value: {} };
 const h = harness({
+  // 이미지 올리기는 image-upload.test.mjs에서 확인한다. 여기서는 그대로 통과시킨다
+  "./imageUpload": { resolveImages: async (s) => s },
   "../auth/http": {
     getJson: async (path) => {
       calls.push(["GET", path]);

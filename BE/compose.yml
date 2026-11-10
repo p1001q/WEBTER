@@ -1,4 +1,4 @@
-# 로컬 개발 전용 PostgreSQL·Redis. 운영 구성은 IN/ 을 따른다.
+# 로컬 개발 전용 PostgreSQL·Redis·이미지 저장소(S3 호환). 운영 구성은 IN/ 을 따른다.
 # Redis는 Redis 세션(SPRING_PROFILES_ACTIVE=local,redis-session)으로 확인할 때만 띄운다.
 name: webter-local
 
@@ -31,5 +31,20 @@ services:
       timeout: 3s
       retries: 20
 
+  # 이미지 업로드 확인용 S3 호환 저장소(S3Mock). 인증·서명을 검사하지 않는 로컬 전용이며 운영은 AWS S3를 쓴다.
+  images:
+    image: adobe/s3mock:5.2.3
+    # 이미지가 DB처럼 컨테이너를 다시 만들어도 남도록 볼륨에 저장한다(볼륨 폴더 쓰기 권한 때문에 root로 실행하는 로컬 전용 설정)
+    user: "0:0"
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: webter-images
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /data
+      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
+    ports:
+      - "127.0.0.1:${IMAGE_PORT:-9090}:9090"
+    volumes:
+      - imagedata:/data
+
 volumes:
   pgdata:
+  imagedata:
