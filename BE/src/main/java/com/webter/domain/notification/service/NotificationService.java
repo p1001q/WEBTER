@@ -127,7 +127,8 @@ public class NotificationService {
 					: invitationById.get(n.getTargetInvitationId());
 			return new NotificationView(String.valueOf(n.getId()), n.getType(), actor(n.getActor()),
 					text(n.getTargetServiceId()), serviceNames.get(n.getTargetServiceId()),
-					text(n.getTargetReviewId()), text(n.getTargetCommentId()), shorten(quote),
+					text(n.getTargetReviewId()), text(n.getTargetCommentId()), shorten(quote), n.getTargetKind(),
+					n.getReason(),
 					invitation == null ? null
 							: new NotificationView.Invitation(String.valueOf(invitation.getId()), invitation.getStatus()),
 					n.getReadAt() != null, n.getCreatedAt());

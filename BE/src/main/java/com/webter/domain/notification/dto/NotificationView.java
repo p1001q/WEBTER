@@ -9,7 +9,8 @@ import java.time.Instant;
  * 운영 처리 알림(임시 비공개 등)은 actor 없이 serviceId만 채운다.
  */
 public record NotificationView(String id, NotificationType type, Actor actor, String serviceId, String serviceName,
-		String reviewId, String commentId, String quote, Invitation invitation, boolean read, Instant createdAt) {
+		String reviewId, String commentId, String quote, String targetKind, String reason, Invitation invitation,
+		boolean read, Instant createdAt) {
 
 	public record Actor(String id, String username, String nickname) {
 	}

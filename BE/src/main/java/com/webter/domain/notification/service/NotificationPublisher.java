@@ -1,6 +1,7 @@
 package com.webter.domain.notification.service;
 
 import com.webter.domain.notification.entity.Notification;
+import com.webter.domain.notification.entity.NotificationType;
 import com.webter.domain.team.entity.ServiceMember;
 import com.webter.domain.team.repository.ServiceMemberRepository;
 import com.webter.domain.user.entity.User;
@@ -8,6 +9,7 @@ import com.webter.domain.webservice.entity.WebService;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -57,6 +59,30 @@ public class NotificationPublisher {
 			return;
 		}
 		em.persist(Notification.reviewReply(reviewAuthor, replier, service.getId(), reviewId, null));
+	}
+
+	/** 서비스가 임시 비공개되거나 해제·최종 비공개될 때 등록자와 팀원에게 알린다. */
+	public void serviceModerated(NotificationType type, long serviceId, String reason) {
+		WebService service = em.find(WebService.class, serviceId);
+		if (service == null) {
+			return;
+		}
+		for (User maker : makers(service)) {
+			em.persist(Notification.serviceModeration(type, maker, serviceId, reason));
+		}
+	}
+
+	/** 리뷰·제작자 답글·댓글·프로필이 임시 비공개될 때 작성자에게 알린다. 작성자가 탈퇴했으면 알리지 않는다. */
+	public void contentHidden(UUID authorId, String kind, Long serviceId, Long reviewId, Long commentId) {
+		User author = authorId == null ? null : em.find(User.class, authorId);
+		if (author != null) {
+			em.persist(Notification.contentHidden(author, kind, serviceId, reviewId, commentId));
+		}
+	}
+
+	/** 서비스 등록 제한을 알린다. */
+	public void registrationRestricted(User member, String reason) {
+		em.persist(Notification.registrationRestricted(member, reason));
 	}
 
 	private List<User> makers(WebService service) {
