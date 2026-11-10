@@ -162,6 +162,22 @@ JSON 응답은 `ApiResponse`를 따릅니다. 로그인 시작·콜백은 리디
 
 실제 Google 브라우저 재검증은 사용자가 완료했다고 보고했습니다. 이는 사용자 수동 검증 결과이며 이번 자동 테스트·문서 수정 중 재수행한 검증과 구분합니다. 닉네임 정책 적용 후의 실제 브라우저 확인은 아직 하지 않았습니다.
 
+## 서비스 조회 API
+
+로그인 없이 쓸 수 있고 공개 서비스만 돌려줍니다. 비공개(임시 비공개·최종 비공개) 서비스는 목록에 나오지 않고, 상세는 제작자 본인과 관리자만 볼 수 있으며 그 밖에는 404입니다.
+
+| 메서드 | 경로 | 용도 |
+|---|---|---|
+| GET | `/api/categories` | 서비스 용도 카테고리(`code`, `name`, `sortOrder`) |
+| GET | `/api/services` | 공개 서비스 목록(필터·정렬·검색·페이지) |
+| GET | `/api/services/{id}` | 서비스 상세 |
+
+- **목록 조건**: `q`(이름·한 줄 소개·설명·태그 검색), `category`, `type`, `device`, `price`, `registrant`, `language`, `availability`. 여러 값은 쉼표로 보내며 같은 항목 안은 OR, 항목 사이는 AND입니다. 값은 DB 코드값(예: `PLAY`, `SIDE`, `MOBILE`, `FREE`)입니다.
+- **정렬**: `sort`는 `LATEST`(기본), `TRENDING`(최근 3일 점수), `POPULAR`(`period`로 `WEEK`·`MONTH`·`ALL`, 기본 전체), `RELEVANCE`(검색어 필요, 이름 3점·태그 2점·소개·설명 1점). 점수는 이용하기 ×1 + 좋아요 ×3 + 저장 ×5이고 주간·월간은 7일·30일입니다(제안값).
+- **페이지**: `page`(0부터), `size`(기본 20, 최대 100). 응답은 `items`, `page`, `size`, `total`입니다.
+- **응답의 집계**: `views`, `clicks`, `likes`, `saves`, `reviews`(`up`·`down`·`none`), `scores`(`threeDays`·`week`·`month`)는 저장된 기록에서 계산합니다. 집계에서 제외된 클릭, 제작자 리뷰, 숨겨진 리뷰는 세지 않습니다.
+- **제작자 정보**: `id`, `username`, `nickname`만 공개하고 이메일은 담지 않습니다.
+
 ## 세션 저장소
 
 로그인 세션은 Redis에 저장합니다(Spring Session). 운영(프로파일 없음)이 기본이고, `local`·`test` 프로파일은 서버 메모리 세션이며 `redis-session` 프로파일을 함께 켜면 Redis를 씁니다. 만료 시간은 `server.servlet.session.timeout`(`SESSION_TIMEOUT`) 하나로 정합니다. 세션 키 접두어는 `webter:session`이며, Redis 연결·명령 대기는 2초입니다.
