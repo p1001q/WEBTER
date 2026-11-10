@@ -63,7 +63,9 @@ export const ratioText = (r: number | null) =>
 
 export const authorName = (a: Review["a"], users: Record<string, User>) =>
   a.kind === "guest"
-    ? `비회원 ${a.ip}`
+    ? a.ip
+      ? `비회원 ${a.ip}`
+      : "비회원"
     : a.kind === "anon"
       ? "익명"
       : a.kind === "left"

@@ -99,4 +99,14 @@ public class Review extends BaseTimeEntity {
 		this.reply = ReviewReply.create(replyAuthor, replyContent);
 	}
 
+	public void update(ReviewRating rating, String content, boolean creatorReview) {
+		this.rating = rating;
+		this.content = content;
+		this.creatorReview = creatorReview;
+	}
+
+	public boolean hasContent() {
+		return !content.isBlank();
+	}
+
 }

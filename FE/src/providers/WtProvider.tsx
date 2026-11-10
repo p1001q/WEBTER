@@ -43,6 +43,7 @@ import {
 } from "@/lib/routes";
 import { WtCtx } from "./context";
 import { RouteWatcher } from "./RouteWatcher";
+import { useRealInteractions } from "./useRealInteractions";
 import type { ModalState, ToastOptions, ViewMode, WtStore } from "./types";
 
 const MOBILE_MAX = 560;
@@ -89,6 +90,7 @@ export function WtProvider({
   );
   /** 의견 없이 추천·비추천만 누른 평가(서비스 id → 평가). 리뷰 목록에는 오르지 않고 집계에만 들어간다 */
   const [votes, setVotes] = useState<Record<string, "up" | "down">>({});
+  const viewerEpoch = useRef(0);
   const [aiUsed, setAiUsed] = useState(snap.session.aiUsed);
   const [todayCount, setTodayCount] = useState(snap.session.todayCount);
 
@@ -172,19 +174,22 @@ export function WtProvider({
   }, []);
 
   /** API 호출을 감싼다. 성공하면 연결 문제 표시를 걷고, 실패하면 공통 처리(연결 배너·로그인 만료 모달)를 한 뒤 다시 던진다 */
-  const call = async <T,>(run: () => Promise<T>): Promise<T> => {
+  const call = useCallback(async <T,>(run: () => Promise<T>): Promise<T> => {
+    const epoch = viewerEpoch.current;
     try {
       const r = await run();
-      setOffline(false);
+      if (epoch === viewerEpoch.current) setOffline(false);
       return r;
     } catch (e) {
       const err = toApiError(e);
       // 서버가 응답했다면(오류 응답이라도) 연결은 되어 있는 것이다
-      setOffline(err.kind === "network");
-      if (err.kind === "auth") setModal({ type: "session" });
+      if (epoch === viewerEpoch.current) {
+        setOffline(err.kind === "network");
+        if (err.kind === "auth") setModal({ type: "session" });
+      }
       throw err;
     }
-  };
+  }, []);
   /** 쓰기 동작. 실패하면 이유에 맞는 안내를 띄우고 false 를 돌려준다. 호출한 쪽은 false 면 모달·입력값을 그대로 둔다 */
   const act = async (
     what: string,
@@ -269,15 +274,46 @@ export function WtProvider({
     setServices((l) => l.map((x) => (x.id === s.id ? s : x)));
   const applyReview = (r: Review) =>
     setReviews((l) => l.map((x) => (x.id === r.id ? r : x)));
-  const applySession = useCallback((s: SessionState) => {
-    setMeId(s.meId);
-    setLikes(new Set(s.likes));
-    setSaves(new Set(s.saves));
-    setReported(new Set(s.reported));
-    setGuestReviewed(new Set(s.guestReviewed));
-    setTodayCount(s.todayCount);
-    setVotes({});
-  }, []);
+  // 늦게 도착한 응답이 로그아웃·탈퇴 뒤의 화면에 이전 회원의 데이터를 넣지 않도록 현재 회원을 따로 들고 있는다
+  const meIdRef = useRef<string | null>(null);
+  const { actions: realActions, reset: resetInteractions } =
+    useRealInteractions({
+      viewerEpoch,
+      me,
+      meId,
+      services,
+      reviews,
+      comments,
+      setServices,
+      setReviews,
+      setComments,
+      setLikes,
+      setSaves,
+      setGuestReviewed,
+      setUsers,
+      setOffline,
+      call,
+      act,
+      toast,
+      go,
+    });
+  const applySession = useCallback(
+    (s: SessionState) => {
+      meIdRef.current = s.meId;
+      if (realAuth) {
+        viewerEpoch.current++;
+        resetInteractions();
+      }
+      setMeId(s.meId);
+      setLikes(new Set(realAuth ? [] : s.likes));
+      setSaves(new Set(realAuth ? [] : s.saves));
+      setReported(new Set(s.reported));
+      setGuestReviewed(new Set(s.guestReviewed));
+      setTodayCount(s.todayCount);
+      setVotes({});
+    },
+    [resetInteractions],
+  );
 
   // 실제 로그인을 쓸 때는 첫 화면을 그린 뒤 서버 세션을 확인해 로그인 상태를 되살린다.
   // 확인이 끝나기 전에는 로그인이 필요한 화면이 로그인 안내를 띄우지 않도록 sessionReady 로 기다리게 한다.
@@ -295,6 +331,25 @@ export function WtProvider({
         if (!live) return;
         setUsers(r.users);
         applySession(r.session);
+        if (s.status === "MEMBER") {
+          // 공개 목록에 없는 내 서비스(비공개 상태 등)도 내 서비스 관리·마이페이지에 보이게 한다
+          void (async () => {
+            try {
+              const mine = await api.myServices();
+              // 요청하는 사이 로그아웃·탈퇴했거나 다른 회원으로 바뀌었으면 반영하지 않는다
+              if (
+                !live ||
+                meIdRef.current === null ||
+                !mine.every((m) => m.owner === meIdRef.current)
+              )
+                return;
+              const ids = new Set(mine.map((m) => m.id));
+              setServices((l) => [...mine, ...l.filter((x) => !ids.has(x.id))]);
+            } catch {
+              // 내 서비스를 못 받아도 로그인 복원은 그대로 둔다(공개 서비스는 이미 보인다)
+            }
+          })();
+        }
       } catch {
         // 저장된 목업 회원 상태가 서버 확인 실패 뒤에 남지 않도록 비운다
         if (live) {
@@ -453,6 +508,8 @@ export function WtProvider({
         if (realAuth) {
           await submitLogout();
           applySession((await api.adoptMember(null)).session);
+          // 내 서비스로 합쳐 둔 비공개 서비스는 비회원 화면에 남지 않게 한다
+          setServices((l) => l.filter((s) => s.pub === "public"));
         } else applySession(await api.logout());
         go("home");
         toast("로그아웃했어요.");
@@ -463,7 +520,11 @@ export function WtProvider({
         if (realAuth) await submitWithdraw();
         const r = await api.withdraw().catch(async (e) => {
           // 서버 계정은 이미 삭제됐으므로 화면의 로그인 상태도 해제한다
-          if (realAuth) applySession((await api.adoptMember(null)).session);
+          if (realAuth) {
+            applySession((await api.adoptMember(null)).session);
+            // 내 서비스로 합쳐 둔 비공개 서비스가 비회원 화면에 남지 않게 한다
+            setServices((l) => l.filter((s) => s.pub === "public"));
+          }
           throw e;
         });
         setServices(r.services);
@@ -670,6 +731,13 @@ export function WtProvider({
 
     aiSearch: (q) => call(() => api.aiSearch(q)),
     recordAiUse: () => setAiUsed((n) => n + 1),
+    myReviewReady: realActions.myReviewReady,
+    reviewRevision: realActions.reviewRevision,
+    commentRevision: realActions.commentRevision,
+    loadReviews: realActions.loadReviews,
+    loadComments: realActions.loadComments,
+    voteOnReview: realActions.voteOnReview,
+    ...(realAuth ? realActions : {}),
   };
 
   return (

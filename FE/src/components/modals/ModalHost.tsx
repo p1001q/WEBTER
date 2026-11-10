@@ -77,6 +77,7 @@ function ModalBody({ m }: { m: ModalState }) {
     case "delete-review":
       return (
         <ConfirmDeleteModal
+          key={m.rid}
           title="리뷰를 삭제할까요?"
           body="삭제한 리뷰는 되돌릴 수 없어요."
           onConfirm={() => wt.deleteReview(m.rid)}
@@ -90,6 +91,7 @@ function ModalBody({ m }: { m: ModalState }) {
     case "delete-comment":
       return (
         <ConfirmDeleteModal
+          key={m.cid}
           title="댓글을 삭제할까요?"
           body="삭제한 댓글은 되돌릴 수 없어요. 답글이 달려 있으면 '삭제된 댓글입니다'로 남아요."
           onConfirm={() => wt.deleteComment(m.cid)}

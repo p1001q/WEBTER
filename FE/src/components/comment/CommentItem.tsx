@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { realAuth } from "@/api/auth/config";
+import { CursorListControls } from "@/components/ui/CursorListControls";
+import { useCursorList } from "@/lib/useCursorList";
 import type { Comment, Service } from "@/api/types";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
@@ -32,7 +35,36 @@ export function CommentItem({
   const revealRef = useRevealWhenFresh(c.id, c.fresh);
   const [replying, setReplying] = useState(false);
   const isReply = !!c.parent;
-  const mine = !!wt.me && !c.deleted && c.a.uid === wt.me.id;
+  const mine =
+    c.permissions?.mine ?? (!!wt.me && !c.deleted && c.a.uid === wt.me.id);
+  const canEdit = c.permissions?.canEdit ?? mine;
+  const canDelete = c.permissions?.canDelete ?? mine;
+  const canReply =
+    !isReply && !c.deleted && (!wt.me || (c.permissions?.canReply ?? true));
+  const [showReplies, setShowReplies] = useState(false);
+  const loadComments = wt.loadComments;
+  const load = useCallback(
+    (cursor?: string) => loadComments(s.id, c.id, cursor),
+    [c.id, loadComments, s.id],
+  );
+  const page = useCursorList(
+    `${s.id}:${c.id}:${wt.me?.id ?? "guest"}`,
+    wt.commentRevision(s.id),
+    realAuth &&
+      wt.sessionReady &&
+      !isReply &&
+      showReplies &&
+      (c.replyCount ?? 0) > 0,
+    load,
+  );
+  const byId = new Map(
+    wt.comments
+      .filter((comment) => comment.parent === c.id)
+      .map((comment) => [comment.id, comment]),
+  );
+  const loadedReplies = realAuth
+    ? page.ids.flatMap((id) => byId.get(id) ?? [])
+    : (replies ?? []);
   const u = c.a.uid ? wt.users[c.a.uid] : undefined;
   const showUser = c.a.kind === "member" && !!u;
   const isMaker = c.a.kind === "member" && c.a.uid === s.owner;
@@ -83,7 +115,7 @@ export function CommentItem({
               {c.edited && " (수정됨)"}
             </span>
             <span className="ml-auto flex gap-0.5">
-              {mine && (
+              {canEdit && (
                 <MiniButton
                   onClick={() =>
                     wt.setModal({ type: "comment", sid: s.id, comment: c })
@@ -93,7 +125,7 @@ export function CommentItem({
                   수정
                 </MiniButton>
               )}
-              {mine && (
+              {canDelete && (
                 <MiniButton
                   onClick={() =>
                     wt.setModal({ type: "delete-comment", cid: c.id })
@@ -131,7 +163,7 @@ export function CommentItem({
           <p className={text}>{c.text}</p>
         </>
       )}
-      {!isReply && !c.deleted && (
+      {canReply && (
         <MiniButton
           className="self-start"
           aria-expanded={replying}
@@ -146,11 +178,35 @@ export function CommentItem({
           답글
         </MiniButton>
       )}
-      {!isReply && (replies?.length || replying) ? (
+      {realAuth && !isReply && !!c.replyCount && (
+        <MiniButton
+          className="self-start"
+          aria-expanded={showReplies}
+          onClick={() => setShowReplies((open) => !open)}
+        >
+          {showReplies ? "답글 접기" : `답글 ${c.replyCount}개 보기`}
+        </MiniButton>
+      )}
+      {!isReply && (loadedReplies.length || replying || showReplies) ? (
         <div className="flex flex-col gap-3">
-          {replies?.map((r) => (
+          {loadedReplies.map((r) => (
             <CommentItem key={r.id} c={r} s={s} />
           ))}
+          {realAuth && showReplies && page.loading && !loadedReplies.length && (
+            <p className="text-14 text-muted" role="status">
+              답글을 불러오고 있어요.
+            </p>
+          )}
+          {realAuth && showReplies && (
+            <CursorListControls
+              label="답글 더 보기"
+              error={page.error}
+              hasMore={page.hasMore}
+              pending={page.loading || page.morePending}
+              loadMore={page.loadMore}
+              retry={page.retry}
+            />
+          )}
           {replying && (
             <div className="ml-8 @max-[560px]/app:ml-3">
               <CommentForm
@@ -162,7 +218,10 @@ export function CommentItem({
                 onCancel={() => setReplying(false)}
                 onSubmit={async (v) => {
                   const ok = await wt.addComment(s, v, c.id);
-                  if (ok) setReplying(false);
+                  if (ok) {
+                    setReplying(false);
+                    setShowReplies(realAuth);
+                  }
                   return ok;
                 }}
               />

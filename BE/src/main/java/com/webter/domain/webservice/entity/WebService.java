@@ -181,4 +181,43 @@ public class WebService extends BaseTimeEntity {
 		}
 	}
 
+
+	/** 등록자가 수정하는 항목을 한 번에 바꾼다. 운영 상태·공개 상태·등록 시점은 바뀌지 않는다. */
+	public void update(String name, String tagline, String descriptionMarkdown, String serviceUrl,
+			String canonicalUrl, String githubUrl, ProjectType projectType, PriceType priceType,
+			RegistrantType registrantType, String teamName, String iconUrl, String thumbnailUrl,
+			PreviewRatio previewRatio, PreviewFit previewFit, boolean allowGuestReviews,
+			boolean allowAnonymousReviews, boolean allowAnonymousComments, List<DeviceCode> deviceCodes,
+			List<LanguageCode> languageCodes, List<String> previewImages) {
+		this.name = name;
+		this.tagline = tagline;
+		this.descriptionMarkdown = descriptionMarkdown;
+		if (!this.canonicalUrl.equals(canonicalUrl)) {
+			this.urlCheckedAt = null;
+		}
+		this.serviceUrl = serviceUrl;
+		this.canonicalUrl = canonicalUrl;
+		this.githubUrl = githubUrl;
+		this.projectType = projectType;
+		this.priceType = priceType;
+		this.registrantType = registrantType;
+		this.teamName = teamName;
+		this.iconUrl = iconUrl;
+		this.thumbnailUrl = thumbnailUrl;
+		this.previewRatio = previewRatio;
+		this.previewFit = previewFit;
+		this.allowGuestReviews = allowGuestReviews;
+		this.allowAnonymousReviews = allowAnonymousReviews;
+		this.allowAnonymousComments = allowAnonymousComments;
+		this.deviceCodes = new ArrayList<>(deviceCodes);
+		this.languageCodes = new ArrayList<>(languageCodes);
+		this.previewImages = new ArrayList<>(previewImages);
+	}
+
+	/** 운영 상태를 바꾼다. 운영 중지는 사유가 있어야 하고, 운영 중으로 돌리면 사유를 지운다. */
+	public void changeAvailability(AvailabilityStatus status, String reason) {
+		this.availabilityStatus = status;
+		this.unavailableReason = status == AvailabilityStatus.UNAVAILABLE ? reason : null;
+	}
+
 }

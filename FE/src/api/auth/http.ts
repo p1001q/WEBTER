@@ -57,7 +57,7 @@ export const getJson = <T>(path: string) => send<T>(path);
 
 /** 상태를 바꾸는 요청. 요청마다 CSRF 토큰을 새로 받아 헤더에 싣는다 */
 async function mutate<T>(
-  method: "POST" | "PUT" | "DELETE",
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   json?: unknown,
 ): Promise<T> {
@@ -78,4 +78,6 @@ export const postJson = <T>(path: string, json?: unknown) =>
   mutate<T>("POST", path, json);
 export const putJson = <T>(path: string, json?: unknown) =>
   mutate<T>("PUT", path, json);
+export const patchJson = <T>(path: string, json: unknown) =>
+  mutate<T>("PATCH", path, json);
 export const deleteJson = <T>(path: string) => mutate<T>("DELETE", path);

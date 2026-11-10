@@ -1,5 +1,10 @@
 "use client";
 
+import { useCallback, useState } from "react";
+import { realAuth } from "@/api/auth/config";
+import type { ReviewSort } from "@/api/real/interactionApi";
+import { CursorListControls } from "@/components/ui/CursorListControls";
+import { useCursorList } from "@/lib/useCursorList";
 import type { Grade, Service } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
@@ -46,18 +51,63 @@ export function ReviewSection({
   const upShown = useTween(agg.up, 600);
   const downShown = useTween(agg.down, 600);
   const noneShown = useTween(agg.none, 600);
-  const list = wt.reviews.filter((r) => r.sid === s.id);
+  const [sort, setSort] = useState<ReviewSort>("RECOMMENDED");
+  const loadReviews = wt.loadReviews;
+  const load = useCallback(
+    (cursor?: string) => loadReviews(s.id, sort, cursor),
+    [loadReviews, s.id, sort],
+  );
+  const page = useCursorList(
+    `${s.id}:${sort}:${wt.me?.id ?? "guest"}`,
+    wt.reviewRevision(s.id),
+    realAuth && wt.sessionReady,
+    load,
+  );
+  const byId = new Map(
+    wt.reviews.filter((r) => r.sid === s.id).map((r) => [r.id, r]),
+  );
+  const list = realAuth
+    ? page.ids.flatMap((id) => byId.get(id) ?? [])
+    : [...byId.values()];
   const isOwner = !!wt.me && s.owner === wt.me.id;
-  const myReview =
-    wt.me && list.find((r) => r.a.uid === wt.me!.id && r.a.kind !== "guest");
+  const myReview = realAuth
+    ? wt.myReview(s.id)
+    : wt.me && list.find((r) => r.a.uid === wt.me!.id && r.a.kind !== "guest");
   const guestDone = !wt.me && wt.guestReviewed.has(s.id);
   const formBox = `${boxClass} my-6 flex flex-col gap-3 p-6`;
   let form;
-  if (myReview)
+  if (realAuth && (!wt.sessionReady || !wt.myReviewReady(s.id))) form = null;
+  else if (myReview)
     form = (
       <Note tone="navy" className="my-5">
         <Icon name="check" size={16} />이 서비스에 리뷰를 남겼어요. 리뷰는
-        서비스당 1개이며 아래에서 수정·삭제할 수 있어요.
+        서비스당 1개예요.
+        {realAuth && !list.some((r) => r.id === myReview.id) && (
+          <span className="flex gap-2">
+            {myReview.permissions?.canEdit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  wt.setModal({ type: "review", sid: s.id, review: myReview })
+                }
+              >
+                내 리뷰 수정
+              </Button>
+            )}
+            {myReview.permissions?.canDelete && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  wt.setModal({ type: "delete-review", rid: myReview.id })
+                }
+              >
+                내 리뷰 삭제
+              </Button>
+            )}
+          </span>
+        )}
       </Note>
     );
   else if (wt.me)
@@ -74,7 +124,11 @@ export function ReviewSection({
           s={s}
           role={isOwner ? "maker" : "member"}
           syncRate={wt.myVote(s.id)}
-          onRate={(r) => wt.setVote(s.id, r === "none" ? null : r)}
+          onRate={
+            realAuth
+              ? undefined
+              : (r) => wt.setVote(s.id, r === "none" ? null : r)
+          }
           onSubmit={(v) => wt.addReview(s, isOwner ? "maker" : "member", v)}
         />
       </div>
@@ -84,8 +138,8 @@ export function ReviewSection({
       <div className={formBox} data-component="review-form" data-role="guest">
         <div className={labelClass}>비회원으로 리뷰 남기기</div>
         <p className={helpClass}>
-          이 서비스는 비회원 리뷰를 허용해요. 같은 기기(IP) 기준 서비스당 1개,
-          작성 후 수정할 수 없어요. 추천·비추천은{" "}
+          이 서비스는 비회원 리뷰를 허용해요. 같은 IP에서 서비스당 1개, 작성 후
+          수정할 수 없어요. 추천·비추천은{" "}
           <button
             type="button"
             className={linkClass}
@@ -171,17 +225,40 @@ export function ReviewSection({
               미설정 {Math.round(noneShown)}
             </span>
           </div>
-          <span className={helpClass}>미설정·제작자 리뷰는 집계에서 제외</span>
+          <span className={helpClass}>
+            미설정·제작자 리뷰는 등급 산정에서 제외
+          </span>
         </div>
         <RatingVote s={s} />
       </div>
       {form}
-      {loading ? (
+      {realAuth && (
+        <div className="flex justify-end">
+          <label className="text-14 text-text-2">
+            리뷰 정렬{" "}
+            <select
+              value={sort}
+              onChange={(event) =>
+                setSort(
+                  event.target.value === "LATEST" ? "LATEST" : "RECOMMENDED",
+                )
+              }
+            >
+              <option value="RECOMMENDED">추천순</option>
+              <option value="LATEST">최신순</option>
+            </select>
+          </label>
+        </div>
+      )}
+      {loading ||
+      (realAuth && (!wt.sessionReady || page.loading) && !list.length) ? (
         <ReviewListSkeleton />
-      ) : list.length || agg.total ? (
+      ) : list.length || (!realAuth && agg.total) ? (
         <>
           <div className={`${helpClass} py-2`}>
-            전체 리뷰 {agg.total}개 중 최근 {list.length}개를 표시하고 있어요.
+            {realAuth
+              ? `리뷰 ${list.length}개를 표시하고 있어요.`
+              : `전체 리뷰 ${agg.total}개 중 최근 ${list.length}개를 표시하고 있어요.`}
           </div>
           <div>
             {list.map((r) => (
@@ -189,10 +266,20 @@ export function ReviewSection({
             ))}
           </div>
         </>
-      ) : (
+      ) : !page.error ? (
         <p className="m-0 py-10 text-center text-14 text-muted">
           아직 리뷰가 없어요. 첫 리뷰를 남겨 보세요.
         </p>
+      ) : null}
+      {realAuth && (
+        <CursorListControls
+          label="리뷰 더 보기"
+          error={page.error}
+          hasMore={page.hasMore}
+          pending={page.loading || page.morePending}
+          loadMore={page.loadMore}
+          retry={page.retry}
+        />
       )}
     </div>
   );

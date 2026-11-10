@@ -14,6 +14,7 @@ import type {
   UrlServerCheck,
   User,
 } from "@/api/types";
+import type { CursorPage, ReviewSort } from "@/api/real/interactionApi";
 import type { ToastContent } from "@/components/ui/Toast";
 import type { FilterState } from "@/domain/filter";
 import type { ReviewAgg } from "@/domain/review";
@@ -110,6 +111,19 @@ export interface WtStore {
   setVote: (sid: string, rate: "up" | "down" | null) => void;
   /** 내가 이 서비스에 남긴 리뷰(의견까지 남긴 평가). 없으면 undefined */
   myReview: (sid: string) => Review | undefined;
+  myReviewReady: (sid: string) => boolean;
+  reviewRevision: (sid: string) => number;
+  commentRevision: (sid: string) => number;
+  loadReviews: (
+    sid: string,
+    sort: ReviewSort,
+    cursor?: string,
+  ) => Promise<CursorPage<string>>;
+  loadComments: (
+    sid: string,
+    parentId?: string,
+    cursor?: string,
+  ) => Promise<CursorPage<string>>;
 
   // 쓰기 동작은 실패하면 안내(토스트·연결 배너·로그인 만료 모달)를 직접 띄우고 false 를 돌려준다.
   // 호출한 쪽은 각 반환형의 성공 결과를 확인한 뒤 모달을 닫거나 입력값을 비운다.
@@ -140,6 +154,7 @@ export interface WtStore {
   addReview: (s: Service, role: ReviewRole, v: ReviewInput) => Promise<boolean>;
   updateReview: (id: string, v: ReviewInput) => Promise<boolean>;
   deleteReview: (id: string) => Promise<boolean>;
+  voteOnReview: (review: Review, vote: "up" | "down") => Promise<boolean>;
   setReply: (rid: string, text: string | null) => Promise<boolean>;
 
   addComment: (
