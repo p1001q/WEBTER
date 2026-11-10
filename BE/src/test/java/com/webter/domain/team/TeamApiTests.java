@@ -221,6 +221,18 @@ class TeamApiTests extends DomainFixtureTest {
 	}
 
 	@Test
+	void aSuspendedMakerCannotManageTheTeam() throws Exception {
+		var owner = createUser("tm_owner");
+		createUser("tm_invitee");
+		long sid = createService(owner, "https://example.com/tm-suspended").getId();
+		jdbc.update("update users set account_status = 'SUSPENDED' where user_id = ?", owner.getId());
+		flushAndClear();
+		invitePost("/api/services/" + sid + "/team/invitations", owner, "tm_invitee").andExpect(status().isForbidden());
+		mvc.perform(delete("/api/services/" + sid + "/team/members/" + owner.getId()).with(as(owner)).with(csrf()))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
 	void withdrawingTheOwnerPassesTheServiceToTheFirstMember() throws Exception {
 		var owner = createUser("tm_owner");
 		var first = createUser("tm_first");

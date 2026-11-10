@@ -156,7 +156,7 @@ export function ServiceDetailScreen({
             data-component="owner-banner"
           >
             <Icon name="info" size={16} />
-            내가 등록한 서비스예요. 본인 서비스에는 좋아요·저장을 할 수 없고,
+            내가 제작자인 서비스예요. 본인 서비스에는 좋아요·저장을 할 수 없고,
             리뷰는 “제작자” 표시로 남겨지며 평가 집계에서 빠져요.
             <RouteLink
               to="edit"

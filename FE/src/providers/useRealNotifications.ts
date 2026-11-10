@@ -47,12 +47,16 @@ export function useRealNotifications({
     latest.current = notifications;
   }, [notifications]);
 
+  // 조회 순서표. 더 늦게 시작한 조회나 화면에서 먼저 고친 변경이 있으면 이전 조회의 응답은 버린다
+  const seq = useRef(0);
+  const responding = useRef(new Set<string>());
   const refresh = useCallback(async () => {
     const epoch = viewerEpoch.current;
+    const ticket = ++seq.current;
     try {
       const list = await notificationApi.list();
-      // 요청하는 사이 로그아웃·다른 회원으로 바뀌었으면 버린다
-      if (epoch !== viewerEpoch.current) return;
+      // 요청하는 사이 로그아웃·다른 회원으로 바뀌었거나 더 새로운 조회·변경이 있으면 버린다
+      if (epoch !== viewerEpoch.current || ticket !== seq.current) return;
       const actors = list.flatMap((m) => (m.actor ? [m.actor] : []));
       if (actors.length)
         setUsers((previous) => ({
@@ -82,10 +86,12 @@ export function useRealNotifications({
     };
   }, [meId, refresh]);
 
-  const patch = (id: string, change: Partial<Notification>) =>
+  const patch = (id: string, change: Partial<Notification>) => {
+    seq.current++;
     setNotifications((l) =>
       l.map((n) => (n.id === id ? { ...n, ...change } : n)),
     );
+  };
 
   const run = async (what: string, request: () => Promise<unknown>) => {
     const ok = await act(what, async () => {
@@ -107,6 +113,7 @@ export function useRealNotifications({
       void run("알림을 읽음으로 바꾸지", () => notificationApi.read(id));
     },
     readAll: () => {
+      seq.current++;
       setNotifications((l) => l.map((n) => ({ ...n, read: true })));
       void run("알림을 읽음으로 바꾸지", () => notificationApi.readAll());
     },
@@ -118,6 +125,7 @@ export function useRealNotifications({
         });
         return;
       }
+      seq.current++;
       setNotifications((l) => l.filter((n) => n.id !== id));
       void run("알림을 삭제하지", () => notificationApi.remove(id));
     },
@@ -128,14 +136,20 @@ export function useRealNotifications({
     },
     respond: async (id: string, accept: boolean) => {
       const invite = latest.current.find((n) => n.id === id)?.invite;
-      if (!invite) return;
-      const ok = await run(
-        accept ? "초대를 수락하지" : "초대를 거절하지",
-        () =>
+      // 이미 처리했거나 처리하는 중인 초대는 다시 보내지 않는다(버튼을 빠르게 두 번 누르는 경우)
+      if (!invite || invite.status !== "PENDING" || responding.current.has(id))
+        return;
+      responding.current.add(id);
+      let ok = false;
+      try {
+        ok = await run(accept ? "초대를 수락하지" : "초대를 거절하지", () =>
           accept
             ? notificationApi.accept(invite.id)
             : notificationApi.decline(invite.id),
-      );
+        );
+      } finally {
+        responding.current.delete(id);
+      }
       if (!ok) return;
       patch(id, {
         read: true,

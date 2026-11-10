@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { failureText, toApiError } from "@/api/errors";
 import type { Price, ProjectType, Service, ServiceInput } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
+import { isMaker } from "@/domain/maker";
 import { Restricted } from "@/components/layout/Restricted";
 import { Button } from "@/components/ui/Button";
 import { FieldMessage } from "@/components/ui/FieldMessage";
@@ -96,7 +97,7 @@ export function ServiceForm({
     [],
   );
   if (editing && !src) return <Restricted title="서비스를 찾을 수 없어요" />;
-  if (editing && src && src.owner !== wt.me?.id)
+  if (editing && src && !isMaker(src, wt.me?.id))
     return (
       <Restricted
         title="수정 권한이 없어요"

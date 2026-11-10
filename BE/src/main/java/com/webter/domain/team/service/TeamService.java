@@ -24,6 +24,7 @@ import com.webter.global.entity.VisibilityStatus;
 import com.webter.global.exception.BusinessException;
 import com.webter.global.exception.CommonErrorCode;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -149,6 +150,7 @@ public class TeamService {
 	public InvitationResponse accept(long invitationId, UUID viewerId) {
 		ServiceInvitation invitation = ownInvitation(invitationId, viewerId);
 		WebService service = lock(invitation.getWebService().getId());
+		refresh(invitation);
 		pendingOrThrow(invitation);
 		if (isMaker(service, viewerId)) {
 			throw new BusinessException(TeamErrorCode.ALREADY_MAKER);
@@ -167,6 +169,7 @@ public class TeamService {
 	public InvitationResponse decline(long invitationId, UUID viewerId) {
 		ServiceInvitation invitation = ownInvitation(invitationId, viewerId);
 		lock(invitation.getWebService().getId());
+		refresh(invitation);
 		pendingOrThrow(invitation);
 		invitation.decline();
 		invitations.flush();
@@ -227,6 +230,16 @@ public class TeamService {
 		return invitation;
 	}
 
+	// 서비스 잠금을 기다리는 사이 다른 요청이 초대를 바꿨거나 지웠을 수 있으므로 잠금 뒤에 최신 상태를 다시 읽는다
+	private void refresh(ServiceInvitation invitation) {
+		try {
+			em.refresh(invitation);
+		}
+		catch (EntityNotFoundException e) {
+			throw new BusinessException(CommonErrorCode.NOT_FOUND);
+		}
+	}
+
 	private static void pendingOrThrow(ServiceInvitation invitation) {
 		if (invitation.getStatus() != InvitationStatus.PENDING) {
 			throw new BusinessException(TeamErrorCode.INVITATION_HANDLED);
@@ -253,6 +266,10 @@ public class TeamService {
 	private WebService requireMaker(WebService service, UUID viewerId) {
 		if (viewerId == null) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+		}
+		User viewer = em.find(User.class, viewerId);
+		if (viewer == null || viewer.getAccountStatus() == AccountStatus.SUSPENDED) {
+			throw new BusinessException(CommonErrorCode.FORBIDDEN);
 		}
 		if (access.isMaker(service, viewerId)) {
 			return service;
