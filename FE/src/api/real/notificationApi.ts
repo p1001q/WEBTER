@@ -15,6 +15,9 @@ interface BackendNotification {
   serviceId: string | null;
   serviceName: string | null;
   quote: string | null;
+  targetKind: Notification["targetKind"] | null;
+  /** 최종 비공개·등록 제한의 처리 사유 */
+  reason: string | null;
   invitation: { id: string; status: InviteStatus } | null;
   read: boolean;
   createdAt: string;
@@ -35,6 +38,10 @@ const KIND: Record<string, NotificationKind> = {
   TEAM_INVITATION_ACCEPTED: "invite-accepted",
   TEAM_INVITATION_DECLINED: "invite-declined",
   SERVICE_HIDDEN: "hidden",
+  SERVICE_UNHIDDEN: "unhidden",
+  SERVICE_BLOCKED: "blocked",
+  CONTENT_HIDDEN: "content-hidden",
+  REGISTRATION_RESTRICTED: "restricted",
 };
 
 export interface MappedNotification {
@@ -56,7 +63,9 @@ export function mapNotification(b: BackendNotification): MappedNotification[] {
         serviceName: b.serviceName ?? undefined,
         date: ymd(b.createdAt),
         read: b.read,
-        quote: b.quote ?? undefined,
+        // 처리 사유가 있는 알림(최종 비공개·등록 제한)은 사유를 인용문 자리에 보여 준다
+        quote: b.quote ?? b.reason ?? undefined,
+        targetKind: b.targetKind ?? undefined,
         invite: b.invitation ?? undefined,
       },
       actor: b.actor ? makerToUser(b.actor) : undefined,
