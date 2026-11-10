@@ -23,6 +23,14 @@ public interface ServiceMemberRepository extends JpaRepository<ServiceMember, Se
 			""")
 	List<ServiceMember> findOrdered(WebService service);
 
+	/** 여러 서비스의 팀원을 수락한 순서로 읽는다(서비스 목록·상세 응답용). */
+	@Query("""
+			select m from ServiceMember m join fetch m.user join fetch m.webService
+			where m.webService.id in :serviceIds
+			order by m.joinedAt asc, m.user.id asc
+			""")
+	List<ServiceMember> findOrderedByServiceIds(java.util.Collection<Long> serviceIds);
+
 	long countByWebService(WebService webService);
 
 	/** 내가 팀원으로 참여한 서비스의 id. */

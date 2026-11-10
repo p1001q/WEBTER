@@ -77,6 +77,9 @@ class TeamApiTests extends DomainFixtureTest {
 			.andExpect(jsonPath("$.data[0].id").value(String.valueOf(sid)));
 		mvc.perform(get("/api/users/" + invitee.getId())).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.serviceCount").value(1));
+		mvc.perform(get("/api/services/" + sid)).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.members.length()").value(1))
+			.andExpect(jsonPath("$.data.members[0].username").value("tm_invitee"));
 		mvc.perform(get("/api/services/" + sid + "/team")).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.members[0].user.username").value("tm_invitee"))
 			.andExpect(jsonPath("$.data.invitations").isEmpty()).andExpect(jsonPath("$.data.canManage").value(false));

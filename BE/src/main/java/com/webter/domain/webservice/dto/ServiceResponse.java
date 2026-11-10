@@ -17,7 +17,7 @@ import java.util.List;
  * 열거형 값은 DB 코드값이며 화면 표시용 값으로의 변환은 프론트가 한다.
  */
 public record ServiceResponse(String id, String name, String tagline, String description, String url,
-		String githubUrl, Owner owner, Instant createdAt, List<String> categories, List<String> tags,
+		String githubUrl, Owner owner, List<Owner> members, Instant createdAt, List<String> categories, List<String> tags,
 		ProjectType projectType, List<DeviceCode> devices, PriceType priceType, RegistrantType registrantType,
 		String teamName, List<LanguageCode> languages, AvailabilityStatus availability, String unavailableReason,
 		VisibilityStatus visibility, String hiddenReason, String iconUrl, String thumbnailUrl,
@@ -25,7 +25,7 @@ public record ServiceResponse(String id, String name, String tagline, String des
 		boolean allowAnonymousReviews, boolean allowAnonymousComments, long views, long clicks, long likes,
 		long saves, ReviewCounts reviews, Scores scores, List<VersionEntry> versions) {
 
-	/** 제작자. 이메일 등 비공개 정보는 담지 않는다. */
+	/** 제작자(등록자와 수락한 팀원). 이메일 등 비공개 정보는 담지 않는다. members는 수락한 순서의 팀원이다. */
 	public record Owner(String id, String username, String nickname) {
 	}
 

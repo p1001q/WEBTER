@@ -1,5 +1,6 @@
 package com.webter.domain.webservice.service;
 
+import com.webter.domain.team.entity.ServiceMember;
 import com.webter.domain.team.repository.ServiceMemberRepository;
 import com.webter.domain.user.entity.User;
 import com.webter.domain.webservice.dto.ServicePageResponse;
@@ -99,20 +100,27 @@ public class ServiceQueryService {
 			.stream()
 			.collect(Collectors.groupingBy(v -> v.getWebService().getId()));
 		Set<Long> memberOf = memberServiceIds(viewer);
+		Map<Long, List<ServiceMember>> membersById = members.findOrderedByServiceIds(ids)
+			.stream()
+			.collect(Collectors.groupingBy(m -> m.getWebService().getId()));
 		return ids.stream()
 			.map(byId::get)
 			.map(s -> toResponse(s, counts.getOrDefault(s.getId(), Counts.EMPTY), categories.getOrDefault(s.getId(), List.of()),
 					tags.getOrDefault(s.getId(), List.of()), versionsById.getOrDefault(s.getId(), List.of()),
-					canSeePrivate(s, viewer, memberOf)))
+					membersById.getOrDefault(s.getId(), List.of()), canSeePrivate(s, viewer, memberOf)))
 			.toList();
 	}
 
 	private static ServiceResponse toResponse(WebService s, Counts c, List<String> categories, List<String> tags,
-			List<ServiceVersion> versions, boolean privileged) {
+			List<ServiceVersion> versions, List<ServiceMember> teamMembers, boolean privileged) {
 		User owner = s.getOwner();
 		return new ServiceResponse(String.valueOf(s.getId()), s.getName(), s.getTagline(), s.getDescriptionMarkdown(),
 				s.getServiceUrl(), s.getGithubUrl(),
 				new ServiceResponse.Owner(owner.getId().toString(), owner.getUsername(), owner.getNickname()),
+				teamMembers.stream()
+					.map(m -> new ServiceResponse.Owner(m.getUser().getId().toString(), m.getUser().getUsername(),
+							m.getUser().getNickname()))
+					.toList(),
 				s.getCreatedAt(), categories, tags, s.getProjectType(), s.getDeviceCodes(), s.getPriceType(),
 				s.getRegistrantType(), s.getTeamName(), s.getLanguageCodes(), s.getAvailabilityStatus(),
 				s.getUnavailableReason(), s.getVisibilityStatus(),
