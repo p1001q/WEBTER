@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * 이미지 저장소(S3) 설정(app.image). bucket이 비어 있으면 이미지 업로드는 꺼진 상태다.
  * endpoint·publicEndpoint는 로컬(MinIO)처럼 AWS가 아닌 S3 호환 저장소를 쓸 때만 지정한다.
- * accessKey·secretKey는 로컬·테스트 전용이며 운영은 환경의 자격증명(AWS 기본 자격증명 체인)을 쓴다.
+ * accessKey·secretKey는 로컬(임의 값)과 운영(이미지 전용 IAM 사용자 키)에서 지정하고, 비우면 AWS 기본 자격증명 체인을 쓴다.
  */
 @ConfigurationProperties("app.image")
 public record ImageStorageProperties(String bucket, String region, String endpoint, String publicEndpoint,

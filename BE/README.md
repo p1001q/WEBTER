@@ -75,7 +75,7 @@ Docker 이미지는 JVM 힙을 컨테이너 메모리의 60%로 제한합니다(
 | `IMAGE_REGION` | `ap-northeast-2` | 버킷 리전 |
 | `IMAGE_S3_ENDPOINT` / `IMAGE_S3_PUBLIC_ENDPOINT` | 없음 | AWS가 아닌 S3 호환 저장소(로컬)를 쓸 때만 지정. 앞은 서버가, 뒤는 브라우저가 접속하는 주소 |
 | `IMAGE_PUBLIC_BASE_URL` | 없음 | 저장한 이미지 주소의 앞부분(CloudFront 주소 등). 이 주소로 시작하는 이미지만 서비스에 연결할 수 있다 |
-| `IMAGE_S3_ACCESS_KEY` / `IMAGE_S3_SECRET_KEY` | 없음 | 로컬·테스트 전용 자격증명. 운영은 비운다 |
+| `IMAGE_S3_ACCESS_KEY` / `IMAGE_S3_SECRET_KEY` | 없음 | 저장소 접근 키. 로컬은 S3 호환 저장소용 임의 값, 운영은 전용 IAM 사용자 키. 비우면 AWS 기본 자격증명 체인을 쓴다 |
 | `SESSION_TIMEOUT` | `30m` | 비활동 기준 만료 시간. 메모리·Redis 세션 공통이며 현재 구현값이고 운영 정책은 미정 |
 | `SESSION_COOKIE_SECURE` | `true` (`local`은 `false`) | HTTPS 환경은 Secure 쿠키 사용 |
 
@@ -196,7 +196,7 @@ JSON 응답은 `ApiResponse`를 따릅니다. 로그인 시작·콜백은 리디
 - **저장 경로**: `uploads/{연}/{월}/{무작위 UUID}.{확장자}`. 추측할 수 없는 이름을 씁니다.
 - **검증**(`ImageVerifier`): 설정한 이미지 주소(`IMAGE_PUBLIC_BASE_URL`)로 시작하는 주소만 이 서버가 올린 이미지로 보고, 저장소에 있는지·5MB 이하인지·파일 앞부분(JPEG·PNG·WebP 서명)이 이미지인지 확인합니다. 유해성 검사는 하지 않습니다.
 - **로컬**: `BE/compose.yml`의 `images`(S3Mock, S3 호환)를 씁니다. 서명·인증을 검사하지 않아 실제 AWS S3에서 적용되는 서명 제한(형식·크기 불일치 거절)은 로컬 테스트로 확인하지 못했습니다.
-- **운영**: AWS S3(비공개 버킷)와 CloudFront를 쓰는 방향입니다. 앱 컨테이너가 EC2 역할 자격증명을 받지 못하게 막아 둔 현재 인프라 설정(`IN/`)에서 앱이 S3 자격증명을 어떻게 받을지는 아직 정하지 않았습니다.
+- **운영**: AWS S3(비공개 버킷)와 CloudFront를 씁니다(`IN/terraform/images.tf`). 앱 컨테이너는 EC2 역할 자격증명을 받지 못하므로, `uploads/` 경로의 `PutObject`·`GetObject`만 가진 전용 IAM 사용자의 접근 키를 `IMAGE_S3_ACCESS_KEY`·`IMAGE_S3_SECRET_KEY`로 받습니다(SSM 런타임 값, 발급 절차는 `IN/README.md`).
 
 ## 세션 저장소
 
