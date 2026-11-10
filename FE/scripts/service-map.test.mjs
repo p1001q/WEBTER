@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { harness } from "./helpers/uiHarness.mjs";
 
-const { mapService, ownerToUser, ymd } = harness().load(
+const { makersOf, mapService, ownerToUser, ymd } = harness().load(
   "api/real/serviceApi.ts",
 );
 
@@ -14,6 +14,7 @@ const backend = (over = {}) => ({
   url: "https://timer.example.test",
   githubUrl: null,
   owner: { id: "u-1", username: "maker_one", nickname: "제작자" },
+  members: [{ id: "u-2", username: "maker_two", nickname: "팀원" }],
   createdAt: "2026-11-09T16:30:00Z",
   categories: ["PRODUCTIVITY", "UTILITY"],
   tags: ["타이머"],
@@ -57,6 +58,7 @@ test("서버 서비스를 화면용 서비스로 바꾼다(코드값·집계·�
   const s = mapService(backend());
   assert.equal(s.id, "7");
   assert.equal(s.owner, "u-1");
+  assert.deepEqual(s.members, ["u-2"]);
   assert.deepEqual(s.cats, ["prod", "util"]);
   assert.equal(s.type, "pro");
   assert.equal(s.price, "partial");
@@ -142,4 +144,15 @@ test("제작자는 공개 항목만 담는다", () => {
     bio: "",
     links: [],
   });
+});
+
+test("등록자와 팀원 모두를 제작자 회원 정보로 바꾼다", () => {
+  const makers = makersOf(backend());
+  assert.deepEqual(
+    makers.map((u) => [u.id, u.handle, u.nick]),
+    [
+      ["u-1", "maker_one", "제작자"],
+      ["u-2", "maker_two", "팀원"],
+    ],
+  );
 });

@@ -20,8 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 사이트 내 알림. 종류마다 채우는 대상 ID가 다르고 DB가 짝을 검사하므로
- * commentReply, reviewReply, teamInvitation 생성 메서드로만 만든다.
+ * 사이트 내 알림. 종류마다 채우는 대상 ID가 다르므로 종류별 생성 메서드로만 만든다.
  * 대상이 삭제되면 DB가 해당 ID만 비운다.
  */
 @Getter
@@ -72,6 +71,30 @@ public class Notification extends BaseCreatedEntity {
 		this.actor = actor;
 		this.type = type;
 		this.targetServiceId = targetServiceId;
+	}
+
+	/** 내 서비스에 리뷰가 달림. 익명·비회원 리뷰는 actor를 비운다. */
+	public static Notification reviewCreated(User recipient, User actor, Long serviceId, Long reviewId) {
+		Notification notification = new Notification(recipient, actor, NotificationType.REVIEW_CREATED, serviceId);
+		notification.targetReviewId = reviewId;
+		return notification;
+	}
+
+	/** 내 서비스에 댓글이 달림. 익명 댓글은 actor를 비운다. */
+	public static Notification commentCreated(User recipient, User actor, Long serviceId, Long commentId) {
+		Notification notification = new Notification(recipient, actor, NotificationType.COMMENT_CREATED, serviceId);
+		notification.targetCommentId = commentId;
+		return notification;
+	}
+
+	/** 초대에 대한 수락·거절 결과를 초대한 사람에게 알린다. */
+	public static Notification teamInvitationResult(User recipient, User actor, Long serviceId, Long invitationId,
+			boolean accepted) {
+		NotificationType type = accepted ? NotificationType.TEAM_INVITATION_ACCEPTED
+				: NotificationType.TEAM_INVITATION_DECLINED;
+		Notification notification = new Notification(recipient, actor, type, serviceId);
+		notification.targetInvitationId = invitationId;
+		return notification;
 	}
 
 	public static Notification commentReply(User recipient, User actor, Long serviceId, Long commentId) {

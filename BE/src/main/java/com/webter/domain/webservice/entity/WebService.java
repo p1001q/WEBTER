@@ -220,4 +220,9 @@ public class WebService extends BaseTimeEntity {
 		this.unavailableReason = status == AvailabilityStatus.UNAVAILABLE ? reason : null;
 	}
 
+	/** 등록자를 바꾼다. 등록자가 빠지거나 탈퇴할 때 가장 먼저 수락한 팀원이 잇는다(정책서 4.11). */
+	public void changeOwner(User newOwner) {
+		this.owner = newOwner;
+	}
+
 }

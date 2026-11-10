@@ -14,6 +14,8 @@ import { boxClass } from "@/components/ui/box";
 import { helpClass, selectClass } from "@/components/ui/field";
 import { fmt, fmtDate } from "@/domain/format";
 import { cx } from "@/lib/cx";
+import { realAuth } from "@/api/auth/config";
+import { isMaker } from "@/domain/maker";
 import { useWt } from "@/providers/context";
 import { ListHead } from "../../_components/ListHead";
 
@@ -27,7 +29,7 @@ export function ManageScreen() {
   const wt = useWt();
   const P = useId();
   const mine = wt.services
-    .filter((s) => s.owner === wt.me?.id)
+    .filter((s) => isMaker(s, wt.me?.id))
     .sort((a, b) => b.created.localeCompare(a.created));
   const onUse = async (id: string, cur: UseState, v: UseState) => {
     if (v === cur) return;
@@ -224,6 +226,15 @@ export function ManageScreen() {
                       <Icon name="history" size={14} />
                       버전
                     </MiniButton>
+                    {realAuth && (
+                      <MiniButton
+                        className={miniAction}
+                        onClick={() => wt.setModal({ type: "team", sid: s.id })}
+                      >
+                        <Icon name="user" size={14} />
+                        팀원
+                      </MiniButton>
+                    )}
                     <MiniButton
                       className={cx(miniAction, "text-price-free!")}
                       onClick={() => wt.go("edit", { id: s.id })}

@@ -72,6 +72,8 @@ export interface Service {
   desc: string;
   url: string;
   owner: string;
+  /** 수락한 팀원의 회원 id(수락한 순서). 팀원은 등록자와 같은 제작자로 다룬다. 목업에는 없다 */
+  members?: string[];
   created: string;
   cats: CategoryId[];
   type: ProjectType;
@@ -217,19 +219,35 @@ export interface SessionState {
   todayCount: number;
 }
 
-/** 알림 종류: 내 서비스에 리뷰·댓글, 내 댓글에 답글, 내 리뷰에 제작자 답글, 서비스 임시 비공개 */
+/**
+ * 알림 종류: 내 서비스에 리뷰·댓글, 내 댓글에 답글, 내 리뷰에 제작자 답글, 서비스 임시 비공개,
+ * 팀 초대 받음·내가 보낸 초대의 수락·거절 결과
+ */
 export type NotificationKind =
-  "review" | "comment" | "reply" | "maker-reply" | "hidden";
+  | "review"
+  | "comment"
+  | "reply"
+  | "maker-reply"
+  | "hidden"
+  | "invite"
+  | "invite-accepted"
+  | "invite-declined";
+/** 팀 초대의 처리 상태. 수락·거절 뒤에도 알림은 남고 상태만 바뀐다 */
+export type InviteStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 export interface Notification {
   id: string;
   kind: NotificationKind;
-  /** 알림을 일으킨 회원(운영 처리 알림에는 없다) */
+  /** 알림을 일으킨 회원(익명·비회원·운영 처리 알림에는 없다) */
   actor?: string;
   sid: string;
+  /** 서버가 내려 준 서비스 이름(서비스 목록에 없는 서비스의 알림에 쓴다) */
+  serviceName?: string;
   date: string;
   read: boolean;
   /** 리뷰·댓글·답글 내용 일부 */
   quote?: string;
+  /** 팀 초대 알림이 가리키는 초대(invite 종류) */
+  invite?: { id: string; status: InviteStatus };
 }
 
 export interface Snapshot {

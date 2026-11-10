@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,8 @@ public class AccountService {
 	private final UserInterestRepository interests;
 
 	private final CategoryService categories;
+
+	private final JdbcClient jdbc;
 
 	@Transactional
 	public MemberResponse updateProfile(UUID userId, UpdateProfileRequest request) {
@@ -69,8 +72,43 @@ public class AccountService {
 		if (!users.existsById(userId)) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
 		}
+		passOwnershipToFirstMember(userId);
 		users.deleteById(userId);
 		users.flush();
+	}
+
+	/**
+	 * 팀원이 남은 서비스는 지우지 않는다. 탈퇴하는 등록자 대신 가장 먼저 수락한 팀원이 등록자가 되고(정책서 4.11),
+	 * 그 팀원의 팀원 관계는 등록자 자리로 바뀌어 사라진다. 팀원이 없는 서비스는 회원 삭제 연쇄로 함께 지워진다.
+	 */
+	private void passOwnershipToFirstMember(UUID ownerId) {
+		var successions = jdbc.sql("""
+				SELECT s.service_id,
+				       m.user_id AS successor_id,
+				       m.invitation_id
+				FROM services s
+				JOIN LATERAL (
+				  SELECT user_id, invitation_id FROM service_members
+				  WHERE service_id = s.service_id ORDER BY joined_at, user_id LIMIT 1
+				) m ON TRUE
+				WHERE s.owner_id = :ownerId
+				""")
+			.param("ownerId", ownerId)
+			.query((rs, i) -> new Succession(rs.getLong("service_id"), rs.getObject("successor_id", UUID.class),
+					rs.getLong("invitation_id")))
+			.list();
+		for (Succession s : successions) {
+			jdbc.sql("DELETE FROM notifications WHERE target_invitation_id = :id").param("id", s.invitationId()).update();
+			// 초대를 지우면 그 초대로 수락한 팀원 행도 함께 지워진다
+			jdbc.sql("DELETE FROM service_invitations WHERE invitation_id = :id").param("id", s.invitationId()).update();
+			jdbc.sql("UPDATE services SET owner_id = :successor WHERE service_id = :id")
+				.param("successor", s.successorId())
+				.param("id", s.serviceId())
+				.update();
+		}
+	}
+
+	private record Succession(long serviceId, UUID successorId, long invitationId) {
 	}
 
 }

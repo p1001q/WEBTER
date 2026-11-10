@@ -25,6 +25,7 @@ import { CAT } from "@/domain/options";
 import { ratioText } from "@/domain/review";
 import { scoreOf } from "@/domain/score";
 import { cx } from "@/lib/cx";
+import { isMaker } from "@/domain/maker";
 import { useWt } from "@/providers/context";
 import { ServiceOverview } from "./ServiceOverview";
 import { ServiceVersions } from "./ServiceVersions";
@@ -73,7 +74,7 @@ export function ServiceDetailScreen({
         desc="삭제되었거나 주소가 잘못되었어요."
       />
     );
-  const isOwner = !!wt.me && s.owner === wt.me.id;
+  const isOwner = isMaker(s, wt.me?.id);
   if (s.pub !== "public" && !isOwner) return <Restricted />;
   if (s.pub !== "public" && isOwner)
     return (
@@ -155,7 +156,7 @@ export function ServiceDetailScreen({
             data-component="owner-banner"
           >
             <Icon name="info" size={16} />
-            내가 등록한 서비스예요. 본인 서비스에는 좋아요·저장을 할 수 없고,
+            내가 제작자인 서비스예요. 본인 서비스에는 좋아요·저장을 할 수 없고,
             리뷰는 “제작자” 표시로 남겨지며 평가 집계에서 빠져요.
             <RouteLink
               to="edit"

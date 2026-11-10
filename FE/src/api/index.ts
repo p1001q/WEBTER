@@ -1,10 +1,6 @@
 import { API_SERVER_BASE, realAuth } from "./auth/config";
 import { createMockApi, type MockOptions } from "./mock/mockApi";
-import {
-  fetchPublicServices,
-  mapService,
-  ownerToUser,
-} from "./real/serviceApi";
+import { fetchPublicServices, makersOf, mapService } from "./real/serviceApi";
 import { submitReport } from "./real/reportApi";
 import { withRealServices } from "./real/serviceActions";
 import type { Snapshot } from "./types";
@@ -28,7 +24,8 @@ export async function loadSnapshot(): Promise<Snapshot> {
   if (!realAuth) return createApi().bootstrap();
   const items = await fetchPublicServices(API_SERVER_BASE);
   const users: Snapshot["users"] = {};
-  for (const item of items) users[item.owner.id] ??= ownerToUser(item);
+  for (const item of items)
+    for (const maker of makersOf(item)) users[maker.id] ??= maker;
   return {
     users,
     services: items.map(mapService),

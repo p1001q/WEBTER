@@ -4,6 +4,8 @@ import com.webter.domain.category.entity.Category;
 import com.webter.domain.category.repository.CategoryRepository;
 import com.webter.domain.policy.entity.DocumentType;
 import com.webter.domain.policy.repository.PolicyDocumentRepository;
+import com.webter.domain.team.entity.ServiceMemberId;
+import com.webter.domain.team.repository.ServiceMemberRepository;
 import com.webter.domain.user.entity.AccountStatus;
 import com.webter.domain.user.entity.User;
 import com.webter.domain.upload.service.ImageVerifier;
@@ -41,8 +43,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 서비스 등록·수정·삭제, 운영 상태와 버전 기록 관리. 관리 권한은 등록자와 관리자에게 있다
- * (수락한 팀원의 권한은 팀원 기능을 붙일 때 추가한다).
+ * 서비스 등록·수정·삭제, 운영 상태와 버전 기록 관리. 관리 권한은 등록자, 수락한 팀원, 관리자에게 있다
+ * (팀원은 등록자와 같은 권한을 가진다, 정책서 4.11).
  */
 @Service
 @RequiredArgsConstructor
@@ -68,6 +70,8 @@ public class ServiceCommandService {
 	private final ImageVerifier images;
 
 	private final TransactionTemplate tx;
+
+	private final ServiceMemberRepository members;
 
 	/**
 	 * 서비스를 등록한다. 이미지는 저장소에서 확인해야 하므로(외부 호출) 트랜잭션 밖에서 먼저 확인한 뒤 저장한다.
@@ -258,7 +262,8 @@ public class ServiceCommandService {
 		}
 		WebService service = services.findLockedById(id)
 			.orElseThrow(() -> new BusinessException(ServiceErrorCode.SERVICE_NOT_FOUND));
-		if (viewer.admin() || service.getOwner().getId().equals(viewer.userId())) {
+		if (viewer.admin() || service.getOwner().getId().equals(viewer.userId())
+				|| members.existsById(new ServiceMemberId(service.getId(), viewer.userId()))) {
 			return service;
 		}
 		throw new BusinessException(ServiceErrorCode.SERVICE_NOT_FOUND);

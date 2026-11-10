@@ -15,6 +15,7 @@ import { GRADE_LABEL } from "@/domain/review";
 import { POLICY } from "@/domain/policy";
 import { cx } from "@/lib/cx";
 import { useTween } from "@/lib/useTween";
+import { isMaker } from "@/domain/maker";
 import { useWt } from "@/providers/context";
 import { RatingVote } from "./RatingVote";
 import { ReviewListSkeleton } from "./ReviewListSkeleton";
@@ -69,7 +70,7 @@ export function ReviewSection({
   const list = realAuth
     ? page.ids.flatMap((id) => byId.get(id) ?? [])
     : [...byId.values()];
-  const isOwner = !!wt.me && s.owner === wt.me.id;
+  const isOwner = isMaker(s, wt.me?.id);
   const myReview = realAuth
     ? wt.myReview(s.id)
     : wt.me && list.find((r) => r.a.uid === wt.me!.id && r.a.kind !== "guest");

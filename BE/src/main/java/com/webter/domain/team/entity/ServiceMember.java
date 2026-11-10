@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 초대를 수락해 서비스의 팀원이 된 회원. 팀원 연결은 서비스 관리 권한을 주지 않는다.
+ * 초대를 수락해 서비스의 팀원이 된 회원. 팀원은 등록자와 같은 서비스 관리 권한을 가진다(정책서 4.11).
  * DB가 수락된(ACCEPTED) 초대만 가리키게 강제하므로, 초대를 수락 상태로 바꾸고 flush한 뒤에 저장해야 한다.
  */
 @Getter
