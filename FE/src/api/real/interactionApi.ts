@@ -183,10 +183,9 @@ export const interactionApi = {
     );
     return review ? mapReview(review) : null;
   },
-  async addReview(sid: string, v: ReviewInput) {
-    return mapReview(
-      await postJson<BackendReview>(`${base(sid)}/reviews`, reviewBody(v)),
-    );
+  async addReview(sid: string, v: ReviewInput, guest: boolean) {
+    const path = `${base(sid)}/reviews${guest ? "/guest" : ""}`;
+    return mapReview(await postJson<BackendReview>(path, reviewBody(v)));
   },
   async updateReview(sid: string, id: string, v: ReviewInput) {
     return mapReview(

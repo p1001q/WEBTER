@@ -34,6 +34,7 @@ interface Props {
   setComments: Setter<Comment[]>;
   setLikes: Setter<Set<string>>;
   setSaves: Setter<Set<string>>;
+  setGuestReviewed: Setter<Set<string>>;
   setUsers: Setter<Record<string, User>>;
   setOffline: Setter<boolean>;
   call: <T>(run: () => Promise<T>) => Promise<T>;
@@ -71,6 +72,7 @@ export function useRealInteractions({
   setComments,
   setLikes,
   setSaves,
+  setGuestReviewed,
   setUsers,
   setOffline,
   call,
@@ -367,14 +369,28 @@ export function useRealInteractions({
             : {},
         ),
       ),
-    addReview: (s, _role, v) =>
+    addReview: (s, role, v) =>
       interact(`my-review:${s.id}`, "리뷰를 남기지", async (current) => {
-        const entry = await interactionApi.addReview(s.id, v);
-        if (!current()) return;
-        rememberReview(entry);
-        refreshReviews(s.id);
-        refreshCounts(s.id);
-        toast("리뷰를 남겼어요.");
+        const guest = role === "guest";
+        const markGuestReviewed = () =>
+          setGuestReviewed((old) => updateSet(old, s.id, true));
+        try {
+          const entry = await interactionApi.addReview(s.id, v, guest);
+          if (!current()) return;
+          if (guest) markGuestReviewed();
+          rememberReview(entry);
+          refreshReviews(s.id);
+          refreshCounts(s.id);
+          toast("리뷰를 남겼어요.");
+        } catch (error) {
+          if (
+            guest &&
+            current() &&
+            toApiError(error).code === "INTERACTION_409_05"
+          )
+            markGuestReviewed();
+          throw error;
+        }
       }),
     updateReview: (id, v) =>
       interact(

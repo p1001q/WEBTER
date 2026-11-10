@@ -133,13 +133,13 @@ export function ReviewSection({
         />
       </div>
     );
-  else if (!realAuth && s.allowGuest && !guestDone)
+  else if (s.allowGuest && !guestDone)
     form = (
       <div className={formBox} data-component="review-form" data-role="guest">
         <div className={labelClass}>비회원으로 리뷰 남기기</div>
         <p className={helpClass}>
-          이 서비스는 비회원 리뷰를 허용해요. 같은 기기(IP) 기준 서비스당 1개,
-          작성 후 수정할 수 없어요. 추천·비추천은{" "}
+          이 서비스는 비회원 리뷰를 허용해요. 같은 IP에서 서비스당 1개, 작성 후
+          수정할 수 없어요. 추천·비추천은{" "}
           <button
             type="button"
             className={linkClass}

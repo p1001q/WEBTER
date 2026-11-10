@@ -287,6 +287,7 @@ export function WtProvider({
       setComments,
       setLikes,
       setSaves,
+      setGuestReviewed,
       setUsers,
       setOffline,
       call,
