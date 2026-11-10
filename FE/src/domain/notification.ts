@@ -18,6 +18,12 @@ export function notificationText(
       return `${actor} 님이 ${service}의 내 리뷰에 제작자 답글을 남겼어요.`;
     case "hidden":
       return `${service}이(가) 신고가 쌓여 임시 비공개되었어요. 운영자가 검토하고 있어요.`;
+    case "invite":
+      return `${actor} 님이 ${service}의 팀원으로 초대했어요.`;
+    case "invite-accepted":
+      return `${actor} 님이 ${service}의 팀원 초대를 수락했어요.`;
+    case "invite-declined":
+      return `${actor} 님이 ${service}의 팀원 초대를 거절했어요.`;
   }
 }
 
@@ -34,6 +40,9 @@ export function notificationTarget(n: Notification): {
     case "reply":
       return { to: "detail", params: { id: n.sid, tab: "comments" } };
     case "hidden":
+    case "invite":
+    case "invite-accepted":
+    case "invite-declined":
       return { to: "manage", params: {} };
   }
 }

@@ -3,6 +3,15 @@ import type { Notification } from "../types";
 /** 알림 목업. 로그인한 기본 회원(u_me)의 알림이다. 날짜는 DISPLAY.demoToday(2026-10-22) 기준 */
 export const SEED_NOTIFICATIONS: Notification[] = [
   {
+    id: "nt0",
+    kind: "invite",
+    actor: "u_pixel",
+    sid: "s11",
+    date: "2026-10-22",
+    read: false,
+    invite: { id: "iv1", status: "PENDING" },
+  },
+  {
     id: "nt1",
     kind: "comment",
     actor: "u_pixel",

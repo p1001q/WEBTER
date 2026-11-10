@@ -20,6 +20,8 @@ export interface BackendService {
   url: string;
   githubUrl: string | null;
   owner: { id: string; username: string; nickname: string };
+  /** 수락한 팀원(수락한 순서) */
+  members: { id: string; username: string; nickname: string }[];
   createdAt: string;
   categories: string[];
   tags: string[];
@@ -116,6 +118,7 @@ export function mapService(b: BackendService): Service {
     desc: b.description ?? "",
     url: b.url,
     owner: b.owner.id,
+    members: b.members.map((m) => m.id),
     created: ymd(b.createdAt),
     cats,
     type: TYPE[b.projectType],
@@ -163,14 +166,24 @@ export function mapService(b: BackendService): Service {
 }
 
 /** 제작자 정보(공개 항목만). 소개·링크는 프로필 API를 붙일 때 채운다 */
-export const ownerToUser = (b: BackendService): User => ({
-  id: b.owner.id,
-  nick: b.owner.nickname,
-  handle: b.owner.username,
+export const makerToUser = (m: {
+  id: string;
+  username: string;
+  nickname: string;
+}): User => ({
+  id: m.id,
+  nick: m.nickname,
+  handle: m.username,
   color: "#E3E8F0",
   bio: "",
   links: [],
 });
+
+/** 서비스의 등록자와 팀원(제작자 전원)의 회원 정보 */
+export const makersOf = (b: BackendService): User[] =>
+  [b.owner, ...b.members].map(makerToUser);
+
+export const ownerToUser = (b: BackendService): User => makerToUser(b.owner);
 
 const PAGE_SIZE = 100;
 /** 한 번에 모으는 서비스의 상한(목록·정렬을 화면에서 처리하는 동안의 안전장치) */

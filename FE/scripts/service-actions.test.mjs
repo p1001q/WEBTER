@@ -105,6 +105,7 @@ const backend = {
   url: "https://timer.example.test",
   githubUrl: null,
   owner: { id: "u-1", username: "m", nickname: "n" },
+  members: [],
   createdAt: "2026-11-10T00:00:00Z",
   categories: [],
   tags: [],

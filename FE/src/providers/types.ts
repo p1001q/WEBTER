@@ -42,6 +42,7 @@ export type ModalState =
   /** 리뷰가 있는 서비스에서 추천·비추천을 누르면, 리뷰를 수정할지 묻는다 */
   | { type: "confirm-review-edit"; sid: string; review: Review; rate: Rate }
   | { type: "versions"; sid: string }
+  | { type: "team"; sid: string }
   | { type: "lightbox"; sid: string; index: number }
   | { type: "withdraw" }
   | { type: "session" };
@@ -62,6 +63,10 @@ export interface WtStore {
   readAllNotifications: () => void;
   deleteNotification: (id: string) => void;
   clearNotifications: () => void;
+  /** 서비스 한 건을 서버에서 다시 받아 목록에 반영한다(팀 구성이 바뀐 뒤). 더는 볼 수 없으면 목록에서 뺀다 */
+  reloadService: (sid: string) => Promise<void>;
+  /** 받은 팀원 초대를 수락(true)하거나 거절(false)한다. 알림 id 로 부른다 */
+  respondInvite: (id: string, accept: boolean) => void;
   likes: Set<string>;
   saves: Set<string>;
   reported: Set<string>;

@@ -25,6 +25,7 @@ import { CAT } from "@/domain/options";
 import { ratioText } from "@/domain/review";
 import { scoreOf } from "@/domain/score";
 import { cx } from "@/lib/cx";
+import { isMaker } from "@/domain/maker";
 import { useWt } from "@/providers/context";
 import { ServiceOverview } from "./ServiceOverview";
 import { ServiceVersions } from "./ServiceVersions";
@@ -73,7 +74,7 @@ export function ServiceDetailScreen({
         desc="삭제되었거나 주소가 잘못되었어요."
       />
     );
-  const isOwner = !!wt.me && s.owner === wt.me.id;
+  const isOwner = isMaker(s, wt.me?.id);
   if (s.pub !== "public" && !isOwner) return <Restricted />;
   if (s.pub !== "public" && isOwner)
     return (

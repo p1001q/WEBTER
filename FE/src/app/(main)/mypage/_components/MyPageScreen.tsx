@@ -14,6 +14,7 @@ import { fmtDate } from "@/domain/format";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import { MYPAGE_TABS, type MyPageTab as Tab } from "../tabs";
+import { isMaker } from "@/domain/maker";
 import { MyServiceList } from "./MyServiceList";
 import { SettingsPanel } from "./SettingsPanel";
 
@@ -43,7 +44,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   useEffect(() => {
     loadMypage().catch(() => {});
   }, [loadMypage]);
-  const mine = wt.services.filter((s) => s.owner === me.id);
+  const mine = wt.services.filter((s) => isMaker(s, me.id));
   // 담은 순서(먼저 담은 것이 앞)를 그대로 둔다. 저장한 서비스의 정렬이 이 순서를 쓴다
   const saved = [...wt.saves].flatMap((id) => wt.svc(id) ?? []);
   const myReviews = wt.reviews.filter(

@@ -12,6 +12,7 @@ import { ReviewEditModal } from "./ReviewEditModal";
 import { ReviewRateConfirmModal } from "./ReviewRateConfirmModal";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 import { StopReasonModal } from "./StopReasonModal";
+import { TeamModal } from "./TeamModal";
 import { VersionModal } from "./VersionModal";
 import { WithdrawModal } from "./WithdrawModal";
 
@@ -128,6 +129,8 @@ function ModalBody({ m }: { m: ModalState }) {
       ) : null;
     case "versions":
       return s ? <VersionModal s={s} onClose={close} /> : null;
+    case "team":
+      return s ? <TeamModal s={s} onClose={close} /> : null;
     case "lightbox":
       return s ? <Lightbox s={s} index={m.index} onClose={close} /> : null;
     case "withdraw":

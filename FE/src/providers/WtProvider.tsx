@@ -21,7 +21,13 @@ import {
   submitWithdraw,
 } from "@/api/auth/authApi";
 import { realAuth } from "@/api/auth/config";
+import { getJson } from "@/api/auth/http";
 import { ApiError, failureText, toApiError } from "@/api/errors";
+import {
+  makersOf,
+  mapService,
+  type BackendService,
+} from "@/api/real/serviceApi";
 import type {
   Comment,
   Notification,
@@ -42,8 +48,10 @@ import {
   type RouteParams,
 } from "@/lib/routes";
 import { WtCtx } from "./context";
+import { isMaker } from "@/domain/maker";
 import { RouteWatcher } from "./RouteWatcher";
 import { useRealInteractions } from "./useRealInteractions";
+import { useRealNotifications } from "./useRealNotifications";
 import type { ModalState, ToastOptions, ViewMode, WtStore } from "./types";
 
 const MOBILE_MAX = 560;
@@ -259,7 +267,7 @@ export function WtProvider({
     (id: string | undefined) => services.find((s) => s.id === id),
     [services],
   );
-  const isOwner = (s: Service) => !!me && s.owner === me.id;
+  const isOwner = (s: Service) => isMaker(s, me?.id);
 
   const myReviewOf = (sid: string) =>
     me
@@ -296,12 +304,37 @@ export function WtProvider({
       toast,
       go,
     });
+  // 팀원이 되면 그 서비스가 내 서비스 관리·마이페이지에 보이도록 내 서비스를 다시 받는다
+  const reloadMyServices = useCallback(async () => {
+    try {
+      const mine = await api.myServices();
+      if (
+        meIdRef.current === null ||
+        !mine.every((m) => isMaker(m, meIdRef.current))
+      )
+        return;
+      const ids = new Set(mine.map((m) => m.id));
+      setServices((l) => [...mine, ...l.filter((x) => !ids.has(x.id))]);
+    } catch {
+      // 못 받아도 다음 로그인 복원 때 다시 받는다
+    }
+  }, [api]);
+  const realNotifications = useRealNotifications({
+    viewerEpoch,
+    meId,
+    setUsers,
+    act,
+    toast,
+    onJoined: () => void reloadMyServices(),
+  });
+  const resetNotifications = realNotifications.reset;
   const applySession = useCallback(
     (s: SessionState) => {
       meIdRef.current = s.meId;
       if (realAuth) {
         viewerEpoch.current++;
         resetInteractions();
+        resetNotifications();
       }
       setMeId(s.meId);
       setLikes(new Set(realAuth ? [] : s.likes));
@@ -311,7 +344,7 @@ export function WtProvider({
       setTodayCount(s.todayCount);
       setVotes({});
     },
-    [resetInteractions],
+    [resetInteractions, resetNotifications],
   );
 
   // 실제 로그인을 쓸 때는 첫 화면을 그린 뒤 서버 세션을 확인해 로그인 상태를 되살린다.
@@ -339,7 +372,7 @@ export function WtProvider({
               if (
                 !live ||
                 meIdRef.current === null ||
-                !mine.every((m) => m.owner === meIdRef.current)
+                !mine.every((m) => isMaker(m, meIdRef.current))
               )
                 return;
               const ids = new Set(mine.map((m) => m.id));
@@ -387,16 +420,54 @@ export function WtProvider({
     services,
     reviews,
     comments,
-    notifications,
-    readNotification: (id) =>
-      setNotifications((l) =>
-        l.map((n) => (n.id === id ? { ...n, read: true } : n)),
-      ),
-    readAllNotifications: () =>
-      setNotifications((l) => l.map((n) => ({ ...n, read: true }))),
-    deleteNotification: (id) =>
-      setNotifications((l) => l.filter((n) => n.id !== id)),
-    clearNotifications: () => setNotifications([]),
+    notifications: realAuth ? realNotifications.notifications : notifications,
+    readNotification: realAuth
+      ? realNotifications.read
+      : (id) =>
+          setNotifications((l) =>
+            l.map((n) => (n.id === id ? { ...n, read: true } : n)),
+          ),
+    readAllNotifications: realAuth
+      ? realNotifications.readAll
+      : () => setNotifications((l) => l.map((n) => ({ ...n, read: true }))),
+    deleteNotification: realAuth
+      ? realNotifications.remove
+      : (id) => setNotifications((l) => l.filter((n) => n.id !== id)),
+    clearNotifications: realAuth
+      ? () => void realNotifications.clear()
+      : () => setNotifications([]),
+    reloadService: async (sid) => {
+      if (!realAuth) return;
+      try {
+        const b = await getJson<BackendService>(`/api/services/${sid}`);
+        setServices((l) => l.map((x) => (x.id === sid ? mapService(b) : x)));
+        setUsers((prev) => ({
+          ...Object.fromEntries(makersOf(b).map((u) => [u.id, u])),
+          ...prev,
+        }));
+      } catch (e) {
+        // 팀에서 나가 더는 볼 수 없는 서비스(비공개)는 내 목록에서 뺀다
+        if (toApiError(e).kind === "notFound")
+          setServices((l) => l.filter((x) => x.id !== sid));
+      }
+    },
+    respondInvite: realAuth
+      ? (id, accept) => void realNotifications.respond(id, accept)
+      : (id, accept) =>
+          setNotifications((l) =>
+            l.map((n) =>
+              n.id === id && n.invite
+                ? {
+                    ...n,
+                    read: true,
+                    invite: {
+                      ...n.invite,
+                      status: accept ? "ACCEPTED" : "DECLINED",
+                    },
+                  }
+                : n,
+            ),
+          ),
     likes,
     saves,
     reported,

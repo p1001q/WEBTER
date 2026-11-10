@@ -13,6 +13,7 @@ import { RouteLink } from "@/components/ui/RouteLink";
 import { fmtDate } from "@/domain/format";
 import { authorName, hasLink } from "@/domain/review";
 import { cx } from "@/lib/cx";
+import { isMaker } from "@/domain/maker";
 import { useRevealWhenFresh } from "@/lib/revealFresh";
 import { useWt } from "@/providers/context";
 
@@ -28,7 +29,7 @@ const text =
 export function ReviewItem({ r, s }: { r: Review; s: Service }) {
   const wt = useWt();
   const revealRef = useRevealWhenFresh(r.id, r.fresh);
-  const isOwner = !!wt.me && s.owner === wt.me.id;
+  const isOwner = isMaker(s, wt.me?.id);
   const mine = r.permissions?.mine ?? (!!wt.me && r.a.uid === wt.me.id);
   const canEdit = r.permissions?.canEdit ?? mine;
   const canDelete = r.permissions?.canDelete ?? mine;
