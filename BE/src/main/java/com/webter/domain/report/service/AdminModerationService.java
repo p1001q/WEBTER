@@ -4,6 +4,7 @@ import static com.webter.domain.report.dto.ModerationInput.Decision.DISMISS;
 import static com.webter.domain.report.entity.ReportStatus.OPEN;
 import static com.webter.global.entity.VisibilityStatus.HIDDEN;
 import static com.webter.global.entity.VisibilityStatus.PUBLIC;
+import static com.webter.global.entity.VisibilityStatus.TEMP_HIDDEN;
 
 import com.webter.domain.report.dto.ModerationInput.Resolve;
 import com.webter.domain.report.dto.ModerationInput.SanctionMember;
@@ -15,6 +16,8 @@ import com.webter.domain.report.dto.ModerationView.Queue;
 import com.webter.domain.report.dto.ModerationView.ReasonCount;
 import com.webter.domain.report.dto.ModerationView.ReportEntry;
 import com.webter.domain.report.dto.ModerationView.ReportGroup;
+import com.webter.domain.notification.entity.NotificationType;
+import com.webter.domain.notification.service.NotificationPublisher;
 import com.webter.domain.report.dto.ModerationView.TargetRef;
 import com.webter.domain.report.entity.ModerationAction;
 import com.webter.domain.report.entity.Report;
@@ -45,6 +48,7 @@ public class AdminModerationService {
 	private final ModerationActionRepository actions;
 	private final ReportTargetStore targets;
 	private final UserRepository users;
+	private final NotificationPublisher notifications;
 
 	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public Queue queue(UUID adminId, boolean pendingOnly, int page) {
@@ -101,11 +105,17 @@ public class AdminModerationService {
 				requireAvailable(visibility != PUBLIC);
 				targets.changeVisibility(ref, PUBLIC, null);
 				open.forEach(report -> report.dismiss(admin, reason));
+				if (ref.targetType() == ReportTargetType.SERVICE && visibility == TEMP_HIDDEN) {
+					notifications.serviceModerated(NotificationType.SERVICE_UNHIDDEN, target.orElseThrow().rowId(), null);
+				}
 			}
 			case HIDE -> {
 				requireAvailable(visibility != HIDDEN);
 				targets.changeVisibility(ref, HIDDEN, reason);
 				open.forEach(report -> report.resolve(admin, reason));
+				if (ref.targetType() == ReportTargetType.SERVICE) {
+					notifications.serviceModerated(NotificationType.SERVICE_BLOCKED, target.orElseThrow().rowId(), reason);
+				}
 			}
 			case DELETE -> {
 				requireAvailable(ref.targetType() != ReportTargetType.PROFILE);
@@ -136,6 +146,7 @@ public class AdminModerationService {
 			case REGISTRATION_RESTRICTED -> {
 				requireAvailable(member.getAccountStatus() == AccountStatus.ACTIVE);
 				member.restrict(AccountStatus.REGISTRATION_RESTRICTED, reason);
+				notifications.registrationRestricted(member, reason);
 			}
 			case SUSPENDED -> {
 				requireAvailable(member.getAccountStatus() != AccountStatus.SUSPENDED);

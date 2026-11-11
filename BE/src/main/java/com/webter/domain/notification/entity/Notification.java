@@ -63,6 +63,13 @@ public class Notification extends BaseCreatedEntity {
 	@Column(name = "target_invitation_id")
 	private Long targetInvitationId;
 
+	// 운영 처리 알림이 가리키는 대상 종류(SERVICE·REVIEW·REVIEW_REPLY·COMMENT·PROFILE)와 처리 사유
+	@Column(name = "target_kind", length = 20)
+	private String targetKind;
+
+	@Column(name = "reason")
+	private String reason;
+
 	@Column(name = "read_at")
 	private Instant readAt;
 
@@ -95,6 +102,35 @@ public class Notification extends BaseCreatedEntity {
 		Notification notification = new Notification(recipient, actor, type, serviceId);
 		notification.targetInvitationId = invitationId;
 		return notification;
+	}
+
+	/** 서비스 임시 비공개·해제·최종 비공개. 최종 비공개는 사유를 함께 알린다. */
+	public static Notification serviceModeration(NotificationType type, User recipient, Long serviceId, String reason) {
+		Notification notification = new Notification(recipient, null, type, serviceId);
+		notification.targetKind = "SERVICE";
+		notification.reason = limit(reason);
+		return notification;
+	}
+
+	/** 내 리뷰·제작자 답글·댓글·프로필의 임시 비공개. 대상 종류로 구분한다. */
+	public static Notification contentHidden(User recipient, String kind, Long serviceId, Long reviewId,
+			Long commentId) {
+		Notification notification = new Notification(recipient, null, NotificationType.CONTENT_HIDDEN, serviceId);
+		notification.targetKind = kind;
+		notification.targetReviewId = reviewId;
+		notification.targetCommentId = commentId;
+		return notification;
+	}
+
+	/** 서비스 등록 제한과 사유 안내. */
+	public static Notification registrationRestricted(User recipient, String reason) {
+		Notification notification = new Notification(recipient, null, NotificationType.REGISTRATION_RESTRICTED, null);
+		notification.reason = limit(reason);
+		return notification;
+	}
+
+	private static String limit(String reason) {
+		return reason == null || reason.length() <= 500 ? reason : reason.substring(0, 500);
 	}
 
 	public static Notification commentReply(User recipient, User actor, Long serviceId, Long commentId) {

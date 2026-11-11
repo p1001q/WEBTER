@@ -229,6 +229,10 @@ export type NotificationKind =
   | "reply"
   | "maker-reply"
   | "hidden"
+  | "unhidden"
+  | "blocked"
+  | "content-hidden"
+  | "restricted"
   | "invite"
   | "invite-accepted"
   | "invite-declined";
@@ -246,6 +250,8 @@ export interface Notification {
   read: boolean;
   /** 리뷰·댓글·답글 내용 일부 */
   quote?: string;
+  /** 운영 처리 알림이 가리키는 대상 종류(content-hidden 에서 리뷰·답글·댓글·프로필을 구분한다) */
+  targetKind?: "SERVICE" | "REVIEW" | "REVIEW_REPLY" | "COMMENT" | "PROFILE";
   /** 팀 초대 알림이 가리키는 초대(invite 종류) */
   invite?: { id: string; status: InviteStatus };
 }

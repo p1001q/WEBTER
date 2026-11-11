@@ -54,6 +54,10 @@ test("종류마다 화면 종류에 맞추고 알 수 없는 종류는 건너뛴
     TEAM_INVITATION_ACCEPTED: "invite-accepted",
     TEAM_INVITATION_DECLINED: "invite-declined",
     SERVICE_HIDDEN: "hidden",
+    SERVICE_UNHIDDEN: "unhidden",
+    SERVICE_BLOCKED: "blocked",
+    CONTENT_HIDDEN: "content-hidden",
+    REGISTRATION_RESTRICTED: "restricted",
   };
   for (const [type, kind] of Object.entries(kinds))
     assert.equal(mapNotification(backend({ type }))[0].item.kind, kind);
@@ -90,4 +94,38 @@ test("등록자와 수락한 팀원은 제작자이고 그 밖의 회원과 비�
   assert.equal(isMaker(s, "u-3"), false);
   assert.equal(isMaker(s, null), false);
   assert.equal(isMaker({ owner: "u-1" }, "u-2"), false);
+});
+
+test("운영 처리 알림은 대상 종류와 사유를 문구·이동에 반영한다", () => {
+  const [hidden] = mapNotification(
+    backend({ type: "CONTENT_HIDDEN", targetKind: "COMMENT", quote: null }),
+  );
+  assert.equal(hidden.item.targetKind, "COMMENT");
+  assert.equal(
+    notificationText(hidden.item, "", "타이머"),
+    "내 댓글이(가) 신고가 쌓여 임시 비공개되었어요. 운영자가 검토하고 있어요.",
+  );
+  assert.deepEqual(
+    { ...notificationTarget(hidden.item).params },
+    { id: "12", tab: "comments" },
+  );
+  const [profile] = mapNotification(
+    backend({ type: "CONTENT_HIDDEN", targetKind: "PROFILE", serviceId: null }),
+  );
+  assert.equal(notificationTarget(profile.item).to, "mypage");
+  const [blocked] = mapNotification(
+    backend({ type: "SERVICE_BLOCKED", quote: null, reason: "최종 검토 결과" }),
+  );
+  assert.equal(blocked.item.quote, "최종 검토 결과");
+  assert.equal(notificationTarget(blocked.item).to, "manage");
+  const [restricted] = mapNotification(
+    backend({
+      type: "REGISTRATION_RESTRICTED",
+      serviceId: null,
+      quote: null,
+      reason: "등록 규칙 위반",
+    }),
+  );
+  assert.equal(restricted.item.quote, "등록 규칙 위반");
+  assert.equal(notificationTarget(restricted.item).to, "mypage");
 });

@@ -5,6 +5,9 @@ import static com.webter.domain.report.repository.ReportTargetStore.ref;
 import static com.webter.global.entity.VisibilityStatus.PUBLIC;
 import static com.webter.global.entity.VisibilityStatus.TEMP_HIDDEN;
 
+import com.webter.domain.notification.entity.NotificationType;
+import com.webter.domain.notification.service.NotificationPublisher;
+import com.webter.domain.report.dto.ModerationView.TargetRef;
 import com.webter.domain.report.dto.ReportInput;
 import com.webter.domain.report.entity.ModerationAction;
 import com.webter.domain.report.entity.ReportReason;
@@ -30,10 +33,12 @@ public class ReportService {
 	private final ModerationActionRepository actions;
 	private final ReportTargetStore targets;
 	private final UserRepository users;
+	private final NotificationPublisher notifications;
 	private final int hideThreshold;
 
 	public ReportService(ReportRepository reports, ModerationActionRepository actions, ReportTargetStore targets,
-			UserRepository users, @Value("${app.report.hide-threshold:4}") int hideThreshold) {
+			UserRepository users, NotificationPublisher notifications,
+			@Value("${app.report.hide-threshold:4}") int hideThreshold) {
 		if (hideThreshold < 1) {
 			throw new IllegalArgumentException("app.report.hide-threshold must be positive");
 		}
@@ -41,6 +46,7 @@ public class ReportService {
 		this.actions = actions;
 		this.targets = targets;
 		this.users = users;
+		this.notifications = notifications;
 		this.hideThreshold = hideThreshold;
 	}
 
@@ -78,8 +84,23 @@ public class ReportService {
 			targets.changeVisibility(ref, TEMP_HIDDEN, AUTO_HIDE_REASON);
 			actions.save(ModerationAction.builder().targetType(ref.targetType()).targetKey(ref.targetId())
 				.report(report).actionType("TEMP_HIDE").reason(AUTO_HIDE_REASON).automatic(true).build());
+			notifyHidden(ref, target);
 		}
 		return new Receipt(report.getId().toString(), hidden);
+	}
+
+	// 임시 비공개를 대상 작성자(서비스는 등록자·팀원)에게 알린다
+	private void notifyHidden(TargetRef ref, ReportTargetStore.Target target) {
+		var preview = target.preview();
+		Long serviceId = preview.serviceId() == null ? null : Long.valueOf(preview.serviceId());
+		switch (ref.targetType()) {
+			case SERVICE -> notifications.serviceModerated(NotificationType.SERVICE_HIDDEN, target.rowId(), null);
+			case REVIEW -> notifications.contentHidden(preview.authorId(), "REVIEW", serviceId, target.rowId(), null);
+			case REVIEW_REPLY ->
+				notifications.contentHidden(preview.authorId(), "REVIEW_REPLY", serviceId, target.rowId(), null);
+			case COMMENT -> notifications.contentHidden(preview.authorId(), "COMMENT", serviceId, null, target.rowId());
+			case PROFILE -> notifications.contentHidden(preview.authorId(), "PROFILE", null, null, null);
+		}
 	}
 
 	public record Receipt(String id, boolean temporarilyHidden) {
