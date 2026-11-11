@@ -205,3 +205,17 @@ test("서비스 등록·삭제와 주소 검사 결과를 화면 값으로 바�
   );
   assert.equal(calls.at(-1)[2].selfId, null);
 });
+
+test("내 서비스는 등록자와 팀원을 제작자 정보로 함께 돌려준다", async () => {
+  calls.length = 0;
+  respond.value = [
+    {
+      ...backend,
+      members: [{ id: "u-2", username: "maker_two", nickname: "팀원" }],
+    },
+  ];
+  const { services, makers } = await api.myServices();
+  assert.deepEqual(calls[0], ["GET", "/api/users/me/services"]);
+  assert.deepEqual(services[0].members, ["u-2"]);
+  assert.deepEqual(makers.map((u) => u.id).sort(), ["u-1", "u-2"]);
+});

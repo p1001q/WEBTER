@@ -308,7 +308,7 @@ export function WtProvider({
   // 팀원이 되면 그 서비스가 내 서비스 관리·마이페이지에 보이도록 내 서비스를 다시 받는다
   const reloadMyServices = useCallback(async () => {
     try {
-      const mine = await api.myServices();
+      const { services: mine, makers } = await api.myServices();
       if (
         meIdRef.current === null ||
         !mine.every((m) => isMaker(m, meIdRef.current))
@@ -316,6 +316,11 @@ export function WtProvider({
         return;
       const ids = new Set(mine.map((m) => m.id));
       setServices((l) => [...mine, ...l.filter((x) => !ids.has(x.id))]);
+      // 새 팀원처럼 사용자 맵에 없는 제작자도 상세 화면에서 보이게 한다
+      setUsers((prev) => ({
+        ...Object.fromEntries(makers.map((u) => [u.id, u])),
+        ...prev,
+      }));
     } catch {
       // 못 받아도 다음 로그인 복원 때 다시 받는다
     }
@@ -368,7 +373,7 @@ export function WtProvider({
           // 공개 목록에 없는 내 서비스(비공개 상태 등)도 내 서비스 관리·마이페이지에 보이게 한다
           void (async () => {
             try {
-              const mine = await api.myServices();
+              const { services: mine, makers } = await api.myServices();
               // 요청하는 사이 로그아웃·탈퇴했거나 다른 회원으로 바뀌었으면 반영하지 않는다
               if (
                 !live ||
@@ -378,6 +383,10 @@ export function WtProvider({
                 return;
               const ids = new Set(mine.map((m) => m.id));
               setServices((l) => [...mine, ...l.filter((x) => !ids.has(x.id))]);
+              setUsers((prev) => ({
+                ...Object.fromEntries(makers.map((u) => [u.id, u])),
+                ...prev,
+              }));
             } catch {
               // 내 서비스를 못 받아도 로그인 복원은 그대로 둔다(공개 서비스는 이미 보인다)
             }

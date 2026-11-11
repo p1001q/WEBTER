@@ -325,8 +325,10 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       return clone(comments);
     },
 
-    myServices: async () =>
-      clone(services.filter((s) => s.owner === session.meId)),
+    myServices: async () => ({
+      services: clone(services.filter((s) => s.owner === session.meId)),
+      makers: [],
+    }),
     createService: async (input: ServiceInput) => {
       const u = need();
       const c = CAT[input.cats[0]];

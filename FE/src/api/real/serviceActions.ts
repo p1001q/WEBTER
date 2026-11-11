@@ -9,7 +9,7 @@ import {
   PROJECT_TYPE_CODE,
 } from "./codes";
 import { resolveImages } from "./imageUpload";
-import { mapService, type BackendService } from "./serviceApi";
+import { makersOf, mapService, type BackendService } from "./serviceApi";
 
 /** 이미지 주소(올리기를 마친 서버 주소). 올리지 못한 임시 주소(data·blob)는 보내지 않는다 */
 const imageUrl = (v?: string | null) =>
@@ -124,9 +124,12 @@ export function withRealServices(base: WebterApi): WebterApi {
         msg: r.message,
       };
     },
-    myServices: async () =>
-      (await getJson<BackendService[]>("/api/users/me/services")).map(
-        mapService,
-      ),
+    myServices: async () => {
+      const items = await getJson<BackendService[]>("/api/users/me/services");
+      return {
+        services: items.map(mapService),
+        makers: items.flatMap(makersOf),
+      };
+    },
   };
 }

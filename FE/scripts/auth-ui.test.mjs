@@ -307,7 +307,7 @@ async function provider(t, fetchSession, extra = {}, mine = []) {
           users: u ? { ...snap.users, [u.id]: u } : snap.users,
           session: u ? { ...guest, meId: u.id } : guest,
         }),
-        myServices: async () => mine,
+        myServices: async () => ({ services: mine, makers: [] }),
         withdraw: async () => {
           throw Error("mock withdraw failure");
         },
