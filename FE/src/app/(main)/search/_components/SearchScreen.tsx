@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { aiSearchAvailable } from "@/api/auth/config";
 import type { AiSearchResult } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
 import { SearchBar } from "@/components/layout/SearchBar";
@@ -77,7 +78,8 @@ function SearchResults({
   const limit = wt.me ? POLICY.aiLimitMember : POLICY.aiLimitGuest;
   // 같은 검색어 + 같은 상태 → 같은 결과. 검색을 시작할 때의 AI 사용 횟수로 한도를 판정한다
   const [usedAtStart] = useState(wt.aiUsed);
-  const exhausted = natural && usedAtStart >= limit;
+  // AI 검색을 쓸 수 없으면 한도와 같은 경로로 일반 검색 결과를 보여 준다
+  const exhausted = natural && (!aiSearchAvailable || usedAtStart >= limit);
   // 검색 로딩 스켈레톤 — 고정 지연이라 같은 조건에 같은 결과
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -214,7 +216,13 @@ function SearchResults({
           </button>
         </Note>
       )}
-      {mode === "exhausted" && !aiFailed && (
+      {mode === "exhausted" && !aiFailed && !aiSearchAvailable && (
+        <Note tone="butter" className="mb-5">
+          <Icon name="info" size={16} />
+          AI 검색은 아직 준비 중이라 일반 검색 결과를 보여 드려요.
+        </Note>
+      )}
+      {mode === "exhausted" && !aiFailed && aiSearchAvailable && (
         <Note tone="butter" className="mb-5">
           <Icon name="info" size={16} />
           오늘 AI 검색 {limit}회를 모두 사용해서 일반 검색 결과를 보여 드려요.

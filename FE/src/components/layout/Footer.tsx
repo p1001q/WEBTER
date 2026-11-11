@@ -1,3 +1,4 @@
+import { realAuth } from "@/api/auth/config";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { Wordmark } from "./Wordmark";
 
@@ -26,9 +27,11 @@ export function Footer() {
             문의 <span className="font-mono">tndus10@skuniv.ac.kr</span>
           </div>
         </div>
-        <div className="w-full text-12">
-          표시되는 서비스·사용자·수치는 모두 가상의 샘플 데이터입니다.
-        </div>
+        {!realAuth && (
+          <div className="w-full text-12">
+            표시되는 서비스·사용자·수치는 모두 가상의 샘플 데이터입니다.
+          </div>
+        )}
       </div>
     </footer>
   );
