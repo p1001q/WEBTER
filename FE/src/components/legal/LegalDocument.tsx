@@ -165,7 +165,9 @@ export async function LegalDocument({ kind }: { kind: "terms" | "privacy" }) {
                   <span>
                     시행일:{" "}
                     {doc.effectiveAt
-                      ? doc.effectiveAt.slice(0, 10)
+                      ? new Intl.DateTimeFormat("sv-SE", {
+                          timeZone: "Asia/Seoul",
+                        }).format(new Date(doc.effectiveAt))
                       : "정식 오픈 시 기재"}
                   </span>
                   <span>버전: {doc.version}</span>
