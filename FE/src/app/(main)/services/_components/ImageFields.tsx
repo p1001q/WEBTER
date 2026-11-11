@@ -21,13 +21,17 @@ import {
 import { ImageZoom } from "@/components/service/ImageZoom";
 import { ServiceThumb } from "@/components/service/ServiceThumb";
 import { POLICY } from "@/domain/policy";
-import { imageError, imgSize, readAsURL } from "@/domain/validation";
+import {
+  IMAGE_UNREADABLE,
+  imageError,
+  imgSize,
+  readAsURL,
+} from "@/domain/validation";
 import { cx } from "@/lib/cx";
 import { dropClass, removeImageClass } from "../../_components/formStyles";
 import { BLANK_PREVIEW, type FormState } from "./serviceFormState";
 
 const IMG_ACCEPT = "image/jpeg,image/png,image/webp";
-const UNREADABLE = "이미지를 읽을 수 없어요. 다른 파일을 골라 주세요.";
 type ImgErr = Partial<
   Record<"icon" | "thumb" | "pv" | "iconWarn", string | null>
 >;
@@ -70,8 +74,8 @@ export function ImageFields({
       const read = await Promise.all(
         ok.slice(0, Math.max(room, 0)).map(async (file) => {
           const url = await readAsURL(file);
-          if ((await imgSize(url))[0]) return url;
-          errs.push(`${file.name}: ${UNREADABLE}`);
+          if (url && (await imgSize(url))[0]) return url;
+          errs.push(`${file.name}: ${IMAGE_UNREADABLE}`);
           return null;
         }),
       );
@@ -90,9 +94,9 @@ export function ImageFields({
       return;
     }
     const url = await readAsURL(file);
-    const [w, h] = await imgSize(url);
+    const [w, h] = url ? await imgSize(url) : [0, 0];
     if (!w) {
-      setImgErr((x) => ({ ...x, [kind]: UNREADABLE }));
+      setImgErr((x) => ({ ...x, [kind]: IMAGE_UNREADABLE }));
       return;
     }
     let warn: string | null = null;

@@ -207,6 +207,9 @@ export function handleChangeStatus(
 }
 
 /* 이미지 파일 */
+export const IMAGE_UNREADABLE =
+  "이미지를 읽을 수 없어요. 다른 파일을 골라 주세요.";
+
 export function imageError(f: File): string | null {
   if (!(POLICY.imageTypes as readonly string[]).includes(f.type))
     return "JPG, PNG, WebP 파일만 올릴 수 있어요.";
@@ -217,7 +220,7 @@ export function imageError(f: File): string | null {
 export const readAsURL = (f: File) =>
   new Promise<string>((res) => {
     const r = new FileReader();
-    r.onload = () => res(String(r.result));
+    r.onloadend = () => res(typeof r.result === "string" ? r.result : "");
     r.readAsDataURL(f);
   });
 export const imgSize = (src: string) =>

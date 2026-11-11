@@ -22,9 +22,11 @@ import {
 import { CATEGORIES, LINK_LABEL } from "@/domain/options";
 import { DISPLAY, POLICY } from "@/domain/policy";
 import {
+  IMAGE_UNREADABLE,
   handleCheck,
   handleChangeStatus,
   imageError,
+  imgSize,
   linkCheck,
   msgState,
   nickCheck,
@@ -56,8 +58,13 @@ export function SettingsPanel() {
     me.links.map((l) => [...l]),
   );
   const [cats, setCats] = useState<CategoryId[]>(me.interests || []);
-  const [avatar, setAvatar] = useState<string | null>(me.avatarImg || null);
+  const [avatarDraft, setAvatarDraft] = useState<string | null>();
+  const avatar =
+    avatarDraft === undefined ? (me.avatarImg ?? null) : avatarDraft;
+  const avatarChanged = avatar !== (me.avatarImg ?? null);
   const [avErr, setAvErr] = useState("");
+  const [readingAvatar, setReadingAvatar] = useState(false);
+  const [saving, setSaving] = useState(false);
   /** 사진 읽기 순번. 새로 고르거나 되돌리면 올려서 늦게 끝난 이전 읽기를 버린다 */
   const avatarRun = useRef(0);
   const hc = handleCheck(handle, wt.takenHandles, me.handle, {
@@ -74,7 +81,7 @@ export function SettingsPanel() {
     JSON.stringify(links.filter((l) => l[1].trim())) !==
       JSON.stringify(me.links) ||
     JSON.stringify(cats) !== JSON.stringify(me.interests || []) ||
-    avatar !== (me.avatarImg || null);
+    avatarChanged;
   const linkErrs = links.map(([k, u]) => linkCheck(k, u));
   // 서버는 같은 종류의 링크를 하나만 저장한다
   const dupKind =
@@ -86,20 +93,25 @@ export function SettingsPanel() {
     nc.state === "ok" &&
     linkErrs.every((e) => !e) &&
     !dupKind;
-  const pickAvatar = (e: ChangeEvent<HTMLInputElement>) => {
+  const pickAvatar = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
+    const run = ++avatarRun.current;
     const err = imageError(f);
     if (err) {
       setAvErr(err);
+      setReadingAvatar(false);
       return;
     }
     setAvErr("");
-    const run = ++avatarRun.current;
-    readAsURL(f).then((url) => {
-      if (avatarRun.current === run) setAvatar(url);
-    });
+    setReadingAvatar(true);
+    const url = await readAsURL(f);
+    const readable = url && (await imgSize(url))[0] > 0;
+    if (avatarRun.current !== run) return;
+    setReadingAvatar(false);
+    if (readable) setAvatarDraft(url);
+    else setAvErr(IMAGE_UNREADABLE);
   };
   const tog = (c: CategoryId) =>
     setCats(
@@ -115,11 +127,11 @@ export function SettingsPanel() {
     setBio(me.bio || "");
     setLinks(me.links.map((l) => [...l]));
     setCats(me.interests || []);
-    setAvatar(me.avatarImg || null);
+    setAvatarDraft(undefined);
     setAvErr("");
+    setReadingAvatar(false);
     avatarRun.current++;
   };
-  const [saving, setSaving] = useState(false);
   const save = async () => {
     setSaving(true);
     const sent = links
@@ -134,8 +146,9 @@ export function SettingsPanel() {
       bio,
       links: sent,
       interests: cats,
-      avatarImg: avatar,
+      ...(avatarChanged && { avatarImg: avatar }),
     });
+    if (saved) setAvatarDraft(undefined);
     // 서버가 정리한 주소로 입력칸을 맞춰 저장 직후 "변경 사항 있음"이 남지 않게 한다
     if (saved && realAuth) {
       // 저장을 기다리는 동안 새로 편집한 값은 덮어쓰지 않는다.
@@ -156,49 +169,47 @@ export function SettingsPanel() {
           <h2 className={sectionTitleClass}>프로필</h2>
           <div className="flex items-center gap-4">
             <Avatar user={{ ...me, avatarImg: avatar }} size={72} />
-            {realAuth ? (
-              <span className={helpClass}>
-                프로필 사진 변경은 준비 중이에요.
-              </span>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex gap-2">
-                  <label
-                    className={cx(
-                      buttonClass({ variant: "ghost", size: "sm" }),
-                      "cursor-pointer",
-                    )}
-                  >
-                    사진 변경
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="sr-only"
-                      onChange={pickAvatar}
-                    />
-                  </label>
-                  {avatar && (
-                    <Button
-                      variant="text"
-                      size="sm"
-                      onClick={() => {
-                        avatarRun.current++;
-                        setAvatar(null);
-                      }}
-                    >
-                      기본 사진으로
-                    </Button>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-2">
+                <label
+                  className={cx(
+                    buttonClass({ variant: "ghost", size: "sm" }),
+                    saving ? "cursor-not-allowed opacity-50" : "cursor-pointer",
                   )}
-                </div>
-                {avErr ? (
-                  <FieldMessage state="err">{avErr}</FieldMessage>
-                ) : (
-                  <span className={helpClass}>
-                    JPG·PNG·WebP, {POLICY.imageMaxMB}MB 이하
-                  </span>
+                >
+                  사진 변경
+                  <input
+                    type="file"
+                    accept={POLICY.imageTypes.join(",")}
+                    className="sr-only"
+                    disabled={saving}
+                    onChange={pickAvatar}
+                  />
+                </label>
+                {avatar && (
+                  <Button
+                    variant="text"
+                    size="sm"
+                    disabled={saving}
+                    onClick={() => {
+                      avatarRun.current++;
+                      setAvatarDraft(null);
+                      setReadingAvatar(false);
+                      setAvErr("");
+                    }}
+                  >
+                    기본 사진으로
+                  </Button>
                 )}
               </div>
-            )}
+              {avErr ? (
+                <FieldMessage state="err">{avErr}</FieldMessage>
+              ) : (
+                <span className={helpClass}>
+                  JPG·PNG·WebP, {POLICY.imageMaxMB}MB 이하
+                </span>
+              )}
+            </div>
           </div>
           <div className={twoColumnClass}>
             <div className={fieldClass}>
@@ -357,10 +368,17 @@ export function SettingsPanel() {
           <span className={helpClass}>
             {dirty ? "저장하지 않은 변경 사항이 있어요." : "변경 사항 없음"}
           </span>
-          <Button variant="ghost" disabled={!dirty} onClick={reset}>
+          <Button
+            variant="ghost"
+            disabled={saving || (!dirty && !readingAvatar)}
+            onClick={reset}
+          >
             되돌리기
           </Button>
-          <Button disabled={!dirty || !ok || saving} onClick={save}>
+          <Button
+            disabled={!dirty || !ok || saving || readingAvatar}
+            onClick={save}
+          >
             저장
           </Button>
         </div>

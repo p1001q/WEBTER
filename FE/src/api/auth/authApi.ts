@@ -1,5 +1,6 @@
 import type { CategoryId, LinkKind, PolicyVersion, User } from "../types";
 import { CODE_BY_ID, ID_BY_CODE } from "../real/codes";
+import { uploadDataUrl } from "../real/imageUpload";
 import { API_BASE } from "./config";
 import { deleteJson, getJson, postJson, putJson } from "./http";
 
@@ -8,6 +9,7 @@ export interface BackendMember {
   username: string;
   nickname: string;
   email: string | null;
+  avatarUrl?: string | null;
   bio: string;
   links: { kind: string; url: string }[];
   role: "USER" | "ADMIN";
@@ -30,6 +32,7 @@ export function memberToUser(m: BackendMember): User {
     color: "#E3E8F0",
     bio: m.bio ?? "",
     email: m.email ?? undefined,
+    avatarImg: m.avatarUrl ?? null,
     role: m.role,
     profileModerated: m.profileModerated,
     links: m.links.map((l): [LinkKind, string] => [l.kind as LinkKind, l.url]),
@@ -74,13 +77,23 @@ export async function submitSignup(input: {
 }
 
 /** 계정 설정 저장. 편집 항목 전체를 보내며 링크·관심 카테고리는 보낸 목록으로 바뀐다 */
-export async function submitProfile(u: User): Promise<BackendMember> {
+export async function submitProfile(
+  u: User,
+  avatarChange?: string | null,
+): Promise<BackendMember> {
+  const avatarUrl =
+    avatarChange === null
+      ? ""
+      : avatarChange === undefined
+        ? undefined
+        : await uploadDataUrl(avatarChange);
   return putJson<BackendMember>("/api/users/me", {
     username: u.handle.toLowerCase(),
     nickname: u.nick,
     bio: u.bio,
     links: u.links.map(([kind, url]) => ({ kind, url })),
     interests: (u.interests ?? []).map((id) => CODE_BY_ID[id]),
+    avatarUrl,
   });
 }
 
