@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { harness } from "./helpers/uiHarness.mjs";
+import { harness, nodes, text } from "./helpers/uiHarness.mjs";
 
 const { makersOf, mapService, ownerToUser, ymd } = harness().load(
   "api/real/serviceApi.ts",
@@ -53,6 +53,46 @@ const backend = (over = {}) => ({
   ],
   ...over,
 });
+
+for (const realAuth of [true, false]) {
+  test(
+    realAuth
+      ? "서비스 상세에 수락한 팀원의 닉네임과 프로필 링크를 표시한다"
+      : "팀원 필드가 없는 목업 서비스 상세에는 등록자만 표시한다",
+    (t) => {
+      const response = backend({ visibility: "PUBLIC" });
+      const service = mapService(response);
+      if (!realAuth) delete service.members;
+      const wt = {
+        svc: () => service,
+        users: Object.fromEntries(makersOf(response).map((u) => [u.id, u])),
+        agg: () => ({ up: 0, down: 0, none: 0 }),
+        comments: [],
+        publicServices: [],
+        countView() {},
+      };
+      const h = harness({
+        "@/api/auth/config": { realAuth },
+        "@/providers/context": { useWt: () => wt },
+        "./ServiceOverview": { ServiceOverview: "ServiceOverview" },
+        "./ServiceVersions": { ServiceVersions: "ServiceVersions" },
+      });
+      t.after(() => h.dispose());
+      const { ServiceDetailScreen } = h.load(
+        "app/(main)/services/[id]/_components/ServiceDetailScreen.tsx",
+      );
+      const tree = h.render(ServiceDetailScreen, { id: service.id });
+      const card = nodes(
+        tree,
+        (n) => n.props?.["data-component"] === "maker-card",
+      )[0];
+      const teamLinks = nodes(card, (n) => n.props?.params?.id === "u-2");
+      assert.deepEqual(teamLinks.map(text), realAuth ? ["팀원"] : []);
+      if (realAuth) assert.equal(teamLinks[0].props.to, "profile");
+      assert.match(text(card), /제작자/);
+    },
+  );
+}
 
 test("서버 서비스를 화면용 서비스로 바꾼다(코드값·집계·상태)", () => {
   const s = mapService(backend());
