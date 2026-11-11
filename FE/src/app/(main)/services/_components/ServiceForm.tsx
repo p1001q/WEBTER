@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { realAuth } from "@/api/auth/config";
 import { failureText, toApiError } from "@/api/errors";
 import type { Price, ProjectType, Service, ServiceInput } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
@@ -398,22 +399,24 @@ export function ServiceForm({
                     {urlSt.msg || URL_MSG[urlState]}
                   </FieldMessage>
                 </div>
-                <div
-                  className="flex flex-wrap items-center gap-1.5 text-12 text-muted"
-                  aria-label="데모 샘플 주소"
-                >
-                  데모 샘플:
-                  {URL_SAMPLES.map(([l, v]) => (
-                    <button
-                      key={l}
-                      type="button"
-                      className={demoButtonClass}
-                      onClick={() => onUrl(v)}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
+                {!realAuth && (
+                  <div
+                    className="flex flex-wrap items-center gap-1.5 text-12 text-muted"
+                    aria-label="데모 샘플 주소"
+                  >
+                    데모 샘플:
+                    {URL_SAMPLES.map(([l, v]) => (
+                      <button
+                        key={l}
+                        type="button"
+                        className={demoButtonClass}
+                        onClick={() => onUrl(v)}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className={fieldClass}>
                 <span className={labelClass} id={P + "f-cats"}>

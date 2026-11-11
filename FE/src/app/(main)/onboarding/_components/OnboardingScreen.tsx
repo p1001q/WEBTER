@@ -372,33 +372,35 @@ export function OnboardingScreen({
               {nc.msg || `${NICK_RULE_HINT} 다른 사람과 같아도 괜찮아요.`}
             </FieldMessage>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 text-12 text-muted">
-            샘플:{" "}
-            <button
-              type="button"
-              className={demoButtonClass}
-              onClick={() => setHandle("bori_tea")}
-            >
-              사용 중
-            </button>
-            <button
-              type="button"
-              className={demoButtonClass}
-              onClick={() => setHandle("dawn code!")}
-            >
-              형식 오류
-            </button>
-            <button
-              type="button"
-              className={demoButtonClass}
-              onClick={() => {
-                setHandle("new.maker");
-                setNick("새내기");
-              }}
-            >
-              사용 가능
-            </button>
-          </div>
+          {!realAuth && (
+            <div className="flex flex-wrap items-center gap-1.5 text-12 text-muted">
+              샘플:{" "}
+              <button
+                type="button"
+                className={demoButtonClass}
+                onClick={() => setHandle("bori_tea")}
+              >
+                사용 중
+              </button>
+              <button
+                type="button"
+                className={demoButtonClass}
+                onClick={() => setHandle("dawn code!")}
+              >
+                형식 오류
+              </button>
+              <button
+                type="button"
+                className={demoButtonClass}
+                onClick={() => {
+                  setHandle("new.maker");
+                  setNick("새내기");
+                }}
+              >
+                사용 가능
+              </button>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button variant="ghost" size="lg" onClick={() => setStep(1)}>
               이전
