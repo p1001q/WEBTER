@@ -84,6 +84,9 @@ export function ServiceDetailScreen({
       />
     );
   const owner = wt.users[s.owner];
+  const members = (s.members ?? [])
+    .map((id) => wt.users[id])
+    .filter((member) => !!member);
   const firstCategory = s.cats[0];
   const agg = wt.agg(s);
   const commentCount = wt.comments.filter(
@@ -265,14 +268,31 @@ export function ServiceDetailScreen({
               data-component="maker-card"
             >
               <div className={helpClass}>제작자</div>
-              <div className="flex min-w-0 items-center gap-3">
-                <Avatar user={owner} size={48} />
-                <div className="min-w-0">
-                  <b>{owner.nick}</b>
-                  <div className="font-mono text-12 text-muted">
-                    @{owner.handle}
+              <div className="flex flex-wrap items-center gap-3">
+                <RouteLink
+                  to="profile"
+                  params={{ id: owner.id }}
+                  className="flex min-w-0 items-center gap-3 hover:underline"
+                >
+                  <Avatar user={owner} size={48} />
+                  <div className="min-w-0">
+                    <b>{owner.nick}</b>
+                    <div className="font-mono text-12 text-muted">
+                      @{owner.handle}
+                    </div>
                   </div>
-                </div>
+                </RouteLink>
+                {members.map((member) => (
+                  <RouteLink
+                    key={member.id}
+                    to="profile"
+                    params={{ id: member.id }}
+                    className="flex min-w-0 items-center gap-1.5 text-13 font-semibold hover:underline"
+                  >
+                    <Avatar user={member} size={24} />
+                    <span>{member.nick}</span>
+                  </RouteLink>
+                ))}
               </div>
               <p className="m-0 text-[13.5px] text-text-2">{owner.bio}</p>
               <RouteLink
