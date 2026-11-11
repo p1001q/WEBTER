@@ -4,13 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
 import com.webter.IntegrationTest;
 import com.webter.domain.upload.service.ImageVerifier;
+import com.webter.domain.user.entity.User;
+import com.webter.domain.user.repository.UserRepository;
 import com.webter.global.exception.BusinessException;
 import com.webter.global.security.SessionPrincipal;
 import java.net.URI;
@@ -23,6 +27,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -69,13 +74,23 @@ class ImageUploadApiTests extends IntegrationTest {
 	@Autowired
 	ImageVerifier verifier;
 
+	@Autowired
+	UserRepository users;
+
+	@Autowired
+	JdbcTemplate jdbc;
+
 	final HttpClient http = HttpClient.newHttpClient();
 
 	static final byte[] PNG = { (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0 };
 
 	RequestPostProcessor member() {
+		return member(UUID.randomUUID());
+	}
+
+	RequestPostProcessor member(UUID id) {
 		return authentication(UsernamePasswordAuthenticationToken.authenticated(
-				new SessionPrincipal.Member(UUID.randomUUID()), null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+				new SessionPrincipal.Member(id), null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 	}
 
 	ResultActions issue(String contentType, long size) throws Exception {
@@ -141,6 +156,39 @@ class ImageUploadApiTests extends IntegrationTest {
 		String uploaded = upload("image/png", "<html>not an image</html>".getBytes());
 		assertThatThrownBy(() -> verifier.verify(uploaded)).isInstanceOf(BusinessException.class)
 			.extracting(e -> ((BusinessException) e).getErrorCode().getCode()).isEqualTo("UPLOAD_400_03");
+	}
+
+	@Test
+	void profileAvatarCanBeSavedKeptAndCleared() throws Exception {
+		UUID id = users.saveAndFlush(User.builder().username("avatar_test").nickname("사진 테스트").build()).getId();
+		String imageUrl = upload("image/png", PNG);
+		String profile = """
+				{"username":"avatar_test","nickname":"사진 테스트"%s}
+				""";
+		saveProfile(id, profile.formatted(",\"avatarUrl\":\"" + imageUrl + "\""))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.avatarUrl").value(imageUrl));
+		saveProfile(id, profile.formatted(""))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.avatarUrl").value(imageUrl));
+		saveProfile(id, profile.formatted(",\"avatarUrl\":\"https://foreign.example.test/photo.png\""))
+			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("UPLOAD_400_04"));
+
+		mockMvc.perform(get("/api/auth/session").with(member(id)))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.member.avatarUrl").value(imageUrl));
+		mockMvc.perform(get("/api/users/" + id))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.avatarUrl").value(imageUrl));
+
+		jdbc.update("UPDATE users SET visibility_status = 'TEMP_HIDDEN' WHERE user_id = ?", id);
+		mockMvc.perform(get("/api/users/" + id))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.avatarUrl").doesNotExist());
+		saveProfile(id, profile.formatted(",\"avatarUrl\":\"\""))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.avatarUrl").doesNotExist());
+		mockMvc.perform(get("/api/auth/session").with(member(id)))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.data.member.avatarUrl").doesNotExist());
+	}
+
+	private ResultActions saveProfile(UUID id, String profile) throws Exception {
+		return mockMvc.perform(put("/api/users/me").with(member(id)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON).content(profile));
 	}
 
 	@Test
