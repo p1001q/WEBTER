@@ -10,6 +10,7 @@ interface BackendProfile {
   id: string;
   username: string;
   nickname: string;
+  avatarUrl?: string | null;
   bio: string;
   links: { kind: string; url: string }[];
   serviceCount: number;
@@ -23,6 +24,7 @@ export const profileToUser = (p: BackendProfile): User => ({
   handle: p.username,
   color: "#E3E8F0",
   bio: p.bio ?? "",
+  avatarImg: p.avatarUrl ?? null,
   profileModerated: p.moderated,
   links: p.links.map((l): [LinkKind, string] => [l.kind as LinkKind, l.url]),
 });

@@ -427,7 +427,10 @@ export function WtProvider({
   const store: WtStore = {
     me,
     users: me?.profileModerated
-      ? { ...users, [me.id]: { ...me, nick: HIDDEN_NICKNAME, bio: "" } }
+      ? {
+          ...users,
+          [me.id]: { ...me, nick: HIDDEN_NICKNAME, bio: "", avatarImg: null },
+        }
       : users,
     services,
     reviews,
@@ -593,7 +596,12 @@ export function WtProvider({
           if (me?.profileModerated) {
             setUsers((us) => ({
               ...us,
-              [me.id]: { ...me, nick: HIDDEN_NICKNAME, bio: "" },
+              [me.id]: {
+                ...me,
+                nick: HIDDEN_NICKNAME,
+                bio: "",
+                avatarImg: null,
+              },
             }));
           }
           // 내 서비스로 합쳐 둔 비공개 서비스는 비회원 화면에 남지 않게 한다
@@ -632,7 +640,9 @@ export function WtProvider({
         let u: User;
         if (realAuth) {
           // 서버에 저장하고, 서버가 정리한 값(링크 주소 등)을 화면에 반영한다
-          u = memberToUser(await submitProfile({ ...me!, ...patch }));
+          u = memberToUser(
+            await submitProfile({ ...me!, ...patch }, patch.avatarImg),
+          );
           await api.adoptMember(u);
         } else u = await api.updateProfile(patch);
         setUsers((us) => ({ ...us, [u.id]: u }));

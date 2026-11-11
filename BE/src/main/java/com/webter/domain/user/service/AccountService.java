@@ -2,6 +2,7 @@ package com.webter.domain.user.service;
 
 import com.webter.domain.category.entity.Category;
 import com.webter.domain.category.service.CategoryService;
+import com.webter.domain.upload.service.ImageVerifier;
 import com.webter.domain.user.dto.MemberResponse;
 import com.webter.domain.user.dto.UpdateProfileRequest;
 import com.webter.domain.user.entity.User;
@@ -30,6 +31,8 @@ public class AccountService {
 
 	private final CategoryService categories;
 
+	private final ImageVerifier images;
+
 	private final JdbcClient jdbc;
 
 	@Transactional
@@ -41,6 +44,13 @@ public class AccountService {
 		if (!request.username().equalsIgnoreCase(user.getUsername())
 				&& users.existsByUsernameIgnoreCase(request.username())) {
 			throw new BusinessException(UserErrorCode.USERNAME_DUPLICATED);
+		}
+		String avatarUrl = request.avatarUrl();
+		if (avatarUrl != null && !avatarUrl.equals(user.getAvatarUrl())) {
+			if (!avatarUrl.isEmpty()) {
+				images.verify(avatarUrl);
+			}
+			user.updateAvatar(avatarUrl.isEmpty() ? null : avatarUrl);
 		}
 		user.updateProfile(request.username(), request.nickname(), request.bio() == null ? "" : request.bio(), links);
 		try {

@@ -7,7 +7,7 @@ import com.webter.global.entity.VisibilityStatus;
 import java.util.List;
 import java.util.UUID;
 
-public record MemberResponse(UUID id, String username, String nickname, String email, String bio,
+public record MemberResponse(UUID id, String username, String nickname, String email, String avatarUrl, String bio,
 		List<LinkResponse> links, UserRole role, AccountStatus accountStatus, List<String> interests, boolean profileModerated) {
 
 	// 외부 링크는 종류 이름순으로 내려 응답이 항상 같은 순서가 되게 한다
@@ -19,7 +19,7 @@ public record MemberResponse(UUID id, String username, String nickname, String e
 			.map(entry -> new LinkResponse(entry.getKey(), entry.getValue()))
 			.toList();
 		return new MemberResponse(user.getId(), user.getUsername(), user.getNickname(), user.getEmail(),
-				user.getBio() == null ? "" : user.getBio(), links, user.getRole(), user.getAccountStatus(),
+				user.getAvatarUrl(), user.getBio() == null ? "" : user.getBio(), links, user.getRole(), user.getAccountStatus(),
 				interestCodes, user.getVisibilityStatus() != VisibilityStatus.PUBLIC);
 	}
 
