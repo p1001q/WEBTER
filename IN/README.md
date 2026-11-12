@@ -82,10 +82,10 @@ aws iam create-access-key --user-name <image_app_user 출력값>
 
 ## 런타임 비밀값 등록
 
-비밀번호·OAuth 비밀값은 Terraform 변수나 user-data에 넣지 않는다. Terraform은 Parameter Store 경로와 읽기 권한만 만들며, 값은 별도로 등록한다.
+비밀번호·OAuth 비밀값·방문자 IP HMAC 키는 Terraform 변수나 user-data에 넣지 않는다. Terraform은 Parameter Store 경로와 읽기 권한만 만들며, 값은 별도로 등록한다.
 
 1. `IN/runtime/runtime.env.example`을 저장소 밖의 비공개 파일로 복사한다.
-2. `PG_ADMIN_PASSWORD`, `PG_APP_PASSWORD`, `REDIS_PASSWORD`에 서로 다른 `openssl rand -hex 32` 결과를 넣는다.
+2. `PG_ADMIN_PASSWORD`, `PG_APP_PASSWORD`, `REDIS_PASSWORD`, `SERVICE_EVENT_IP_HMAC_KEY`에는 각각 `openssl rand -hex 32`를 실행해 서로 다른 값을 넣는다. 배포 스크립트는 빈 값, 예시값, 64자리 소문자 16진수 형식에 맞지 않는 값, 중복값을 거절한다.
 3. 앱에서 사용할 구글 OAuth 등의 설정을 맞춘다. 값은 따옴표 없이 한 줄로 작성한다.
 4. 생성한 파일 권한을 600으로 설정하고 AWS CLI로 등록한다.
 
