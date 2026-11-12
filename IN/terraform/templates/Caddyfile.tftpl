@@ -1,4 +1,6 @@
 ${site_address} {
     encode gzip
-    reverse_proxy app:${app_port}
+    reverse_proxy app:${app_port} {
+        header_up -X-Forwarded-Port
+    }
 }

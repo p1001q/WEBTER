@@ -14,7 +14,14 @@ config=/srv/webter/data/config
 mkdir -p "$config"
 chmod 700 "$config"
 staging=$(mktemp -d "$config/.deploy.XXXXXX")
-trap 'rm -rf "$staging"' EXIT
+migration_source_container=
+cleanup() {
+  if [[ -n "$migration_source_container" ]]; then
+    docker rm "$migration_source_container" >/dev/null || true
+  fi
+  rm -rf "$staging"
+}
+trap cleanup EXIT
 
 aws ssm get-parameter --region "$AWS_REGION" --name "$RUNTIME_ENV_NAME" \
   --with-decryption --query Parameter.Value --output text > "$staging/runtime.env"
@@ -52,6 +59,38 @@ image="$ECR_REPOSITORY_URL@$1"
 registry="${ECR_REPOSITORY_URL%%/*}"
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$registry"
 docker pull "$image"
+
+# 이번 배포 digest에 들어 있는 SQL을 꺼낸다. 앱 컨테이너는 실행하지 않는다.
+migration_source_container=$(docker create --network none "$image")
+docker cp "$migration_source_container:/app/app.jar" "$staging/app.jar"
+docker rm "$migration_source_container" >/dev/null
+migration_source_container=
+python3 - "$staging/app.jar" "$staging/migrations" <<'PY'
+import os
+import sys
+from pathlib import Path, PurePosixPath
+from zipfile import ZipFile
+
+prefix = "BOOT-INF/classes/db/migration/"
+output = Path(sys.argv[2])
+# Flyway 컨테이너가 읽을 수 있게 한다. 바깥 staging 디렉터리는 root 전용이다.
+os.umask(0o022)
+with ZipFile(sys.argv[1]) as jar:
+    migrations = [
+        name for name in jar.namelist()
+        if name.startswith(prefix) and name.endswith((".sql", ".sql.conf"))
+    ]
+    if not any(name.endswith(".sql") for name in migrations):
+        raise SystemExit("No SQL migrations in the application image")
+    for name in migrations:
+        relative = PurePosixPath(name.removeprefix(prefix))
+        if relative.is_absolute() or ".." in relative.parts:
+            raise SystemExit("Invalid migration path in the application image")
+        target = output / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(jar.read(name))
+PY
+rm "$staging/app.jar"
 
 # 이전 환경과 이미지를 함께 보관한다. DB 스키마를 되돌리는 기능은 아니다.
 previous=false
@@ -95,6 +134,8 @@ rollback() {
 
 if ! /usr/local/sbin/webter-compose config --quiet \
   || ! /usr/local/sbin/webter-compose up -d --wait --wait-timeout 180 db redis \
+  || ! /usr/local/sbin/webter-compose run --rm --no-deps -T \
+       --volume "$staging/migrations:/flyway/sql:ro" migrate \
   || ! /usr/local/sbin/webter-compose up -d --no-deps app proxy \
   || ! ready; then
   rollback || true
