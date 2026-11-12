@@ -387,7 +387,7 @@ export function SettingsPanel() {
         <div className={`${boxClass} flex flex-col gap-2 p-5`}>
           <b>로그인 계정</b>
           <span className={helpClass}>
-            Google · {me.email || "dawn@example.com"} (비공개)
+            {me.email ? `Google · ${me.email} (비공개)` : "Google 계정"}
           </span>
         </div>
         <div>
