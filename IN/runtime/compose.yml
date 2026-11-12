@@ -118,5 +118,6 @@ networks:
     ipam:
       config:
         - subnet: 172.30.249.0/29
+          ip_range: 172.30.249.4/30
   backend:
     internal: true
