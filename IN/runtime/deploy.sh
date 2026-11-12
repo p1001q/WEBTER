@@ -41,12 +41,13 @@ def parse(path):
     return values
 
 new = parse(pathlib.Path(sys.argv[1]))
-protected = {'PG_ADMIN_PASSWORD', 'PG_APP_PASSWORD', 'REDIS_PASSWORD'}
-for key in protected:
+protected = ('PG_ADMIN_PASSWORD', 'PG_APP_PASSWORD', 'REDIS_PASSWORD')
+required_secrets = (*protected, 'SERVICE_EVENT_IP_HMAC_KEY')
+for key in required_secrets:
     if not re.fullmatch(r'[a-f0-9]{64}', new.get(key, '')):
         raise SystemExit(f'{key} must contain exactly 64 lowercase hex characters')
-if len({new[key] for key in protected}) != 3:
-    raise SystemExit('Use different passwords for admin, app and Redis')
+if len({new[key] for key in required_secrets}) != len(required_secrets):
+    raise SystemExit('Use different values for database, Redis and IP HMAC secrets')
 previous = pathlib.Path(sys.argv[2])
 if previous.exists():
     old = parse(previous)
