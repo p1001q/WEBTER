@@ -42,6 +42,7 @@ import type { WebterApi } from "@/api/webterApi";
 import type { ToastContent } from "@/components/ui/Toast";
 import { FILTER_DEFAULT, type FilterState } from "@/domain/filter";
 import { gradeOf, reviewAgg } from "@/domain/review";
+import { githubCheck } from "@/domain/validation";
 import {
   pathFor,
   safeBackPath,
@@ -678,13 +679,21 @@ export function WtProvider({
         }
       }
     },
-    openSource: () =>
+    openSource: (s) => {
+      if (realAuth) {
+        const url = s.github?.trim();
+        if (url && !githubCheck(url)) {
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
       toast(
         <span>
           데모 — 실제로는 GitHub 저장소가 새 탭에서 열려요. 소스 보기는 이용하기
           집계에 넣지 않아요.
         </span>,
-      ),
+      );
+    },
     copyLink: async (s) => {
       const url = window.location.origin + pathFor("detail", { id: s.id });
       let ok = false;

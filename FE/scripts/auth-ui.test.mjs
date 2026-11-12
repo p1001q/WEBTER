@@ -212,6 +212,7 @@ test("설정 저장 후 서버의 링크 정렬·주소를 입력칸에도 반�
   );
   const render = () => h.render(SettingsPanel);
   let tree = render();
+  assert.doesNotMatch(text(tree), /dawn@example\.com/);
   button(tree, "링크 추가").props.onClick();
   tree = render();
   nodes(tree, (n) => n.props?.["aria-label"] === "링크 종류")[0].props.onChange(
@@ -351,6 +352,23 @@ test("서버 세션 MEMBER: 서버가 알려 준 회원으로 로그인 상태�
   assert.equal(store.sessionReady, true);
   assert.equal(store.me?.id, "restored");
   assert.equal(store.me?.nick, "복원");
+});
+
+test("실제 서버 모드에서 소스 보기는 GitHub 저장소만 새 탭으로 연다", async (t) => {
+  const { render } = await provider(t, async () => ({ status: "ANONYMOUS" }));
+  const opened = [];
+  globalThis.window.open = (...args) => opened.push(args);
+  const store = render();
+  store.openSource({ github: "https://github.com/example-user/example-repo" });
+  store.openSource({ github: "https://other.example.test/user/repo" });
+  store.openSource({ github: null });
+  assert.deepEqual(opened, [
+    [
+      "https://github.com/example-user/example-repo",
+      "_blank",
+      "noopener,noreferrer",
+    ],
+  ]);
 });
 
 test("서버 세션 MEMBER: 내 서비스(비공개 포함)를 공개 목록에 합친다", async (t) => {

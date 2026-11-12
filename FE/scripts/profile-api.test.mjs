@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { harness } from "./helpers/uiHarness.mjs";
+import { harness, nodes } from "./helpers/uiHarness.mjs";
 
 const calls = [];
 const respond = { value: null };
@@ -17,6 +17,40 @@ const h = harness({
   },
 });
 const { profileApi, profileToUser } = h.load("api/real/profileApi.ts");
+
+test("프로필의 웹 링크를 새 탭으로 연결하고 지원하지 않는 주소는 숨긴다", (t) => {
+  const user = profileToUser({
+    id: "u-1",
+    username: "maker",
+    nickname: "제작자",
+    links: [
+      { kind: "github", url: "https://github.com/example-user" },
+      { kind: "velog", url: "velog.io/@example-user/posts" },
+      { kind: "portfolio", url: "javascript:alert(1)" },
+    ],
+  });
+  const wt = {
+    users: { [user.id]: user },
+    publicServices: [],
+    loadProfile: async () => {},
+  };
+  const h = harness({ "@/providers/context": { useWt: () => wt } });
+  t.after(() => h.dispose());
+  const { ProfileScreen } = h.load(
+    "app/(main)/users/[id]/_components/ProfileScreen.tsx",
+  );
+  const tree = h.render(ProfileScreen, { id: user.id });
+  const anchors = nodes(tree, (node) => node.type === "a");
+  assert.deepEqual(
+    anchors.map(({ props }) => props.href),
+    ["https://github.com/example-user", "https://velog.io/@example-user/posts"],
+  );
+  for (const { props } of anchors) {
+    assert.equal(props.target, "_blank");
+    assert.equal(props.rel, "noopener noreferrer");
+    assert.equal(props.onClick, undefined);
+  }
+});
 
 test("서버 프로필을 화면용 사용자로 바꾼다(소개·외부 링크)", () => {
   const u = profileToUser({

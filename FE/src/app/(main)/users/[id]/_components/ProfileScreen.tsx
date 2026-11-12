@@ -12,6 +12,8 @@ import { Icon } from "@/components/ui/Icon";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { fmtNum } from "@/domain/format";
 import { LINK_ICON, LINK_LABEL } from "@/domain/options";
+import { normalizeLink } from "@/domain/profileLinks";
+import { linkCheck } from "@/domain/validation";
 import { useWt } from "@/providers/context";
 
 /** 제작자 프로필: 소개·외부 링크·등록한 서비스 */
@@ -33,6 +35,9 @@ export function ProfileScreen({ id }: { id: string }) {
   const list = wt.publicServices.filter((s) => s.owner === u.id);
   const likes = list.reduce((a, s) => a + s.likes, 0);
   const isMe = !!wt.me && wt.me.id === u.id;
+  const links = u.links.filter(
+    ([, url]) => url.trim() && !linkCheck("portfolio", url),
+  );
   return (
     <>
       <div className="page-wrap">
@@ -67,21 +72,19 @@ export function ProfileScreen({ id }: { id: string }) {
                 </b>
               </span>
             </div>
-            {u.links.length > 0 && (
+            {links.length > 0 && (
               <div
                 className="flex flex-wrap gap-1.5"
                 aria-label="외부 링크"
                 data-component="profile-links"
               >
-                {u.links.map(([k, url]) => (
+                {links.map(([k, url]) => (
                   <a
                     key={k}
-                    href="#"
+                    href={normalizeLink(url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-border bg-card px-2.5 text-13 font-semibold hover:border-border-strong"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      wt.toast(`데모: ${url} 로 이동하지 않아요.`);
-                    }}
                     aria-label={`${LINK_LABEL[k]} (외부 링크)`}
                   >
                     <Icon name={LINK_ICON[k]} size={15} />
