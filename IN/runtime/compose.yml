@@ -17,7 +17,9 @@ services:
       - /opt/webter/Caddyfile:/etc/caddy/Caddyfile:ro
       - /srv/webter/data/caddy:/data
       - /srv/webter/data/caddy-config:/config
-    networks: [web]
+    networks:
+      web:
+        ipv4_address: 172.30.249.2
     mem_limit: 96m
     logging: *logging
 
@@ -39,6 +41,11 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD:?required}
+      SERVER_FORWARDHEADERSSTRATEGY: native
+      SERVER_TOMCAT_REMOTEIP_REMOTEIPHEADER: X-Forwarded-For
+      SERVER_TOMCAT_REMOTEIP_PROTOCOLHEADER: X-Forwarded-Proto
+      # Tomcat은 web 네트워크에서 Caddy가 보내는 헤더만 신뢰한다.
+      SERVER_TOMCAT_REMOTEIP_INTERNALPROXIES: 172.30.249.2/32
     ports:
       - "127.0.0.1:${APP_PORT}:${APP_PORT}"
     depends_on:
@@ -61,7 +68,8 @@ services:
       - /srv/webter/data/postgres:/var/lib/postgresql/data
       - /opt/webter/init-db.sh:/docker-entrypoint-initdb.d/10-app-user.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U webter_admin -d webter"]
+      # 최초 초기화에 쓰는 임시 PostgreSQL은 Unix 소켓만 연다.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "webter_admin", "-d", "webter"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -92,7 +100,24 @@ services:
     mem_limit: 128m
     logging: *logging
 
+  migrate:
+    # BE와 같은 Flyway 버전. 배포 스크립트가 이번 앱 이미지에서 추출한 SQL을 마운트한다.
+    image: flyway/flyway:12.4.0@sha256:5be18367a9b3979a9f37234c371b80da457a448fb9577bd94d4bf24d923fafac
+    profiles: [deploy]
+    command: ["migrate"]
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/webter
+      FLYWAY_USER: webter_admin
+      FLYWAY_PASSWORD: ${PG_ADMIN_PASSWORD:?required}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    networks: [backend]
+    logging: *logging
+
 networks:
-  web: {}
+  web:
+    ipam:
+      config:
+        - subnet: 172.30.249.0/29
+          ip_range: 172.30.249.4/30
   backend:
     internal: true
