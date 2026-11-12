@@ -42,7 +42,8 @@ def parse(path):
 
 new = parse(pathlib.Path(sys.argv[1]))
 protected = ('PG_ADMIN_PASSWORD', 'PG_APP_PASSWORD', 'REDIS_PASSWORD')
-required_secrets = (*protected, 'SERVICE_EVENT_IP_HMAC_KEY')
+hmac_key = 'SERVICE_EVENT_IP_HMAC_KEY'
+required_secrets = (*protected, hmac_key)
 for key in required_secrets:
     if not re.fullmatch(r'[a-f0-9]{64}', new.get(key, '')):
         raise SystemExit(f'{key} must contain exactly 64 lowercase hex characters')
@@ -53,6 +54,8 @@ if previous.exists():
     old = parse(previous)
     if any(old.get(key) != new[key] for key in protected):
         raise SystemExit('Database/Redis password rotation requires a separate maintenance procedure')
+    if old.get(hmac_key) and old[hmac_key] != new[hmac_key]:
+        raise SystemExit('IP HMAC key rotation requires a separate maintenance procedure')
 pathlib.Path(sys.argv[3]).write_text(''.join(f'{k}={v}\n' for k, v in new.items() if k not in protected))
 PY
 
