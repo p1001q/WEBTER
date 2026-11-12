@@ -9,6 +9,7 @@ import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   ...(SITE_URL ? { metadataBase: SITE_URL } : {}),
+  robots: { index: false },
   title: {
     default: "WEBTER | 웹이 모이는 터, 웹터",
     template: "%s | WEBTER",
