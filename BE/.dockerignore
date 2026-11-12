@@ -1,0 +1,8 @@
+.gradle
+build
+.idea
+.vscode
+.env*
+compose.yml
+Dockerfile
+*.md

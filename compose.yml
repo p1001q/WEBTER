@@ -1,0 +1,70 @@
+# 로컬 개발 전용: DB·Redis·BE·FE를 한 번에 띄운다(docker compose up --build). 운영 구성은 IN/ 을 따른다.
+# DB·Redis는 BE/compose.yml 을 그대로 가져와 쓰므로 BE 폴더에서 띄우던 컨테이너와 데이터가 같다.
+# 포트, 구글 클라이언트 값은 루트 .env 로 정한다(Git 제외, 예시는 .env.example).
+name: webter-local
+
+include:
+  - path: BE/compose.yml
+
+services:
+  be:
+    build: BE
+    # local: Flyway 스키마·Swagger·메모리 대신 redis-session: Redis 세션
+    environment:
+      SPRING_PROFILES_ACTIVE: local,redis-session
+      PORT: "8080"
+      DB_HOST: db
+      REDIS_HOST: redis
+      # 브라우저가 접속하는 주소 기준이다(구글 콜백과 로그인 후 이동·CORS 허용 origin)
+      AUTH_BACKEND_ORIGIN: http://localhost:${BE_PORT:-8080}
+      AUTH_FRONTEND_ORIGIN: http://localhost:${FE_PORT:-3000}
+      CORS_ALLOWED_ORIGINS: http://localhost:${FE_PORT:-3000}
+      # 이미지 업로드(로컬 S3 호환 저장소). 서버는 컨테이너 이름으로, 브라우저는 호스트 포트로 접속한다
+      IMAGE_BUCKET: webter-images
+      IMAGE_S3_ENDPOINT: http://images:9090
+      IMAGE_S3_PUBLIC_ENDPOINT: http://localhost:${IMAGE_PORT:-9090}
+      IMAGE_PUBLIC_BASE_URL: http://localhost:${IMAGE_PORT:-9090}/webter-images
+      IMAGE_S3_ACCESS_KEY: local-access-key
+      IMAGE_S3_SECRET_KEY: local-secret-key
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    ports:
+      - "127.0.0.1:${BE_PORT:-8080}:8080"
+    # FE가 시작할 때 서비스 목록을 받아 가므로 BE가 요청을 받을 수 있을 때까지 기다리게 한다(포트가 열리면 준비된 것으로 본다)
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      images: {condition: service_started}
+
+  fe:
+    image: node:24.22.2
+    working_dir: /app
+    environment:
+      # 브라우저가 쓰는 BE 주소
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:${BE_PORT:-8080}
+      # FE 서버(컨테이너 안)가 BE에 접속하는 주소
+      API_INTERNAL_BASE_URL: http://be:8080
+      # pnpm 저장소를 마운트한 소스 폴더(FE/) 밖에 둔다
+      npm_config_store_dir: /pnpm-store
+    # 호스트 Node 버전과 무관하게 .nvmrc 와 같은 Node 24.22.2로 실행한다. 설치물은 컨테이너 볼륨에 둔다.
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --hostname 0.0.0.0 --port 3000"
+    volumes:
+      - ./FE:/app
+      - fe_node_modules:/app/node_modules
+      - fe_next:/app/.next
+      - fe_pnpm_store:/pnpm-store
+    ports:
+      - "127.0.0.1:${FE_PORT:-3000}:3000"
+    depends_on:
+      be: {condition: service_healthy}
+
+volumes:
+  fe_node_modules:
+  fe_next:
+  fe_pnpm_store:

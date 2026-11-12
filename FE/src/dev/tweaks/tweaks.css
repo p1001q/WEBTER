@@ -1,0 +1,8 @@
+/* 개발 전용: Tweaks 가 <html> 에 붙이는 data-tw-* 값에 따라 카드 열 수·확장 라벨을 바꾼다 */
+
+/* 카드 열 수. 컨테이너가 좁아져 3 → 2 → 1열로 줄어드는 구간은 건드리지 않는다 */
+@container app (min-width: 1181px) {
+  :root[data-tw-cols="3"] [data-component="service-list"] {
+    --cols: 3 !important;
+  }
+}

@@ -1,0 +1,113 @@
+"use client";
+
+import { useId, useState } from "react";
+import type { Comment, CommentInput, Service } from "@/api/types";
+import { Button } from "@/components/ui/Button";
+import {
+  checkClass,
+  counterClass,
+  fieldClass,
+  textareaClass,
+} from "@/components/ui/field";
+import { FieldMessage } from "@/components/ui/FieldMessage";
+import { helpClass } from "@/components/ui/field";
+import { COMMENT_MAX } from "@/domain/comment";
+import { hasLink } from "@/domain/review";
+import { cx } from "@/lib/cx";
+import { useWt } from "@/providers/context";
+
+interface Props {
+  s: Service;
+  initial?: Comment | null;
+  label: string;
+  placeholder?: string;
+  submitLabel?: string;
+  minHeight?: number;
+  /** 저장에 성공하면 true. false 면 입력한 내용을 그대로 둔다 */
+  onSubmit: (v: CommentInput) => Promise<boolean>;
+  onCancel?: () => void;
+}
+
+/* 댓글·답글 작성 폼 (상세 인라인, 답글, 수정 모달 공용) */
+export function CommentForm({
+  s,
+  initial,
+  label,
+  placeholder = "서비스에 대한 이야기를 남겨 주세요.",
+  submitLabel = "댓글 남기기",
+  minHeight = 80,
+  onSubmit,
+  onCancel,
+}: Props) {
+  const wt = useWt();
+  const id = useId();
+  const [text, setText] = useState(initial?.text ?? "");
+  const [anon, setAnon] = useState(initial?.a.kind === "anon");
+  const [busy, setBusy] = useState(false);
+  const canAnon = s.allowAnonComment && wt.me?.id !== s.owner;
+  const link = hasLink(text);
+  const ok = text.trim().length > 0 && !link && !busy;
+  const submit = async () => {
+    setBusy(true);
+    const ok = await onSubmit({ text: text.trim(), anon: canAnon && anon });
+    if (ok && !initial) {
+      setText("");
+      setAnon(false);
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className={fieldClass}>
+        <label className="sr-only" htmlFor={id}>
+          {label}
+        </label>
+        <textarea
+          id={id}
+          className={cx(textareaClass, link && "border-wine!")}
+          style={{ minHeight }}
+          maxLength={COMMENT_MAX}
+          value={text}
+          placeholder={placeholder}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <div className="flex items-center gap-2">
+          {link ? (
+            <FieldMessage state="err">
+              댓글에는 링크를 넣을 수 없어요. 주소를 지워 주세요.
+            </FieldMessage>
+          ) : (
+            <span className={helpClass}>링크는 넣을 수 없어요.</span>
+          )}
+          <span className={counterClass}>
+            {text.length}/{COMMENT_MAX}
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {canAnon && !initial ? (
+          <label className={checkClass}>
+            <input
+              type="checkbox"
+              checked={anon}
+              onChange={(e) => setAnon(e.target.checked)}
+            />
+            익명으로 남기기
+          </label>
+        ) : (
+          <span />
+        )}
+        <div className="flex gap-2">
+          {onCancel && (
+            <Button variant="ghost" size="sm" onClick={onCancel}>
+              취소
+            </Button>
+          )}
+          <Button size="sm" disabled={!ok} onClick={submit}>
+            {busy ? "저장 중…" : submitLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

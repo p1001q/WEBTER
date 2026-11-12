@@ -1,0 +1,39 @@
+name: Check frontend
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend-check:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: FE
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: FE/.nvmrc
+      - name: Install pnpm
+        run: npm install --global pnpm@10.34.9
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check formatting, lint and types
+        run: pnpm check
+      - name: Build production application
+        run: pnpm build

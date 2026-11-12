@@ -1,0 +1,4 @@
+${site_address} {
+    encode gzip
+    reverse_proxy app:${app_port}
+}

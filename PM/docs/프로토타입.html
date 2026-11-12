@@ -985,6 +985,12 @@ body.is-ds { background: var(--wt-bg-page); }
 </style>
 </head>
 <body>
+<aside data-webter-doc-status="2026-10-30" aria-label="시안 기준 안내" style="position:relative;z-index:10000;padding:10px 16px;background:#FBF3D9;color:#242424;font:13px/1.6 sans-serif;border-bottom:1px solid #E7E5DF">
+  <details><summary style="cursor:pointer"><strong>기존 시안 · 최신 정책과 차이 있음</strong> — 현재 구현 완료 화면이 아님 (2026-10-30)</summary>
+    <p style="margin:8px 0 0">최신 기준은 <a href="정책서.md">정책서</a>와 <a href="화면설계서.md">화면설계서</a>를 따른다. 첫 출시는 구글 로그인만 제공한다. 온보딩 이탈 시 처음부터 진행하고 최종 제출에서 가입을 완료한다. 비회원 IP는 일부만 표시한다. 카드 가격 hover 배지·누적 알림창·초대 수락·열람 전용 팀원 연결은 요구사항이며 이 시안에 구현됐다고 보지 않는다. 내부 임베딩·팀 공동 관리 권한은 첫 출시 요구에 적용하지 않는다.</p>
+  </details>
+</aside>
+
 <div id="app"></div>
 <script>
 /* ===== data.js ===== */
@@ -1815,10 +1821,10 @@ function sidebar(A, o = {}) {
     <div class="wt-side-head"><button type="button" class="wt-iconbtn" data-act="closeSide" aria-label="사이드바 닫기" style="margin-left:-4px">${I('close', 20)}</button>${wordmark()}</div>
     <div class="wt-side-body"><div class="wt-side-label">서비스 용도</div>${item('all', '전체')}${CATS.map((c) => item(c.id, c.label)).join('')}
       <div class="wt-side-label" style="margin-top:8px">내 메뉴</div>${priv('bookmark', '저장한 서비스', 'mypage?tab=saved', 'saved', me ? st.saves.size : null)}${priv('grid', '내 서비스 관리', 'manage', 'manage')}</div>
-    <div class="wt-side-foot"><b>웹에서 놀다, 웹터.</b>개발자가 만든 웹 서비스를 발견하고 바로 이용해 보세요.</div></aside>`;
+    <div class="wt-side-foot"><b>웹이 모이는 터, 웹터.</b>개발자가 만든 웹 서비스를 발견하고 바로 이용해 보세요.</div></aside>`;
 }
 function siteFooter() {
-  return `<footer class="wt-footer"><div class="wt-wrap wt-footer-in"><div style="flex:1 1 260px">${wordmark(18)}<div style="margin-top:10px;color:var(--wt-ink);font-weight:var(--wt-fw-semibold)">웹에서 놀다, 웹터.</div></div>
+  return `<footer class="wt-footer"><div class="wt-wrap wt-footer-in"><div style="flex:1 1 260px">${wordmark(18)}<div style="margin-top:10px;color:var(--wt-ink);font-weight:var(--wt-fw-semibold)">웹이 모이는 터, 웹터.</div></div>
     <div class="wt-footer-links"><a href="#terms">이용약관</a><a href="#privacy">개인정보 취급 방침</a><span>문의 tndus10@skuniv.ac.kr <span class="wt-tag">임시</span></span></div>
     <p class="wt-footer-note">표시되는 서비스·수치는 모두 가상의 샘플 데이터입니다.</p></div></footer>`;
 }
@@ -2193,7 +2199,7 @@ function homePage(A) {
     latest: { title: '새로 등록된 서비스', sub: '등록일순', more: '#latest', list: sortBy(base, 'latest'), rank: false },
   };
   const interestLine = interests.length ? `<div class="wt-interest">${I('circleDot', 16)}<span>관심 카테고리: <b>${interests.map((c) => CAT_LABEL[c]).join(', ')}</b></span><a class="wt-more" style="margin-left:4px" href="#mypage?tab=settings">변경</a></div>` : '';
-  return `<div class="wt-wrap"><section class="wt-hero"><h1 class="wt-hero-title">웹에서 놀다, 웹터.</h1><p class="wt-hero-sub">개발자가 만든 웹 서비스를 발견하고, 설치 없이 바로 이용해 보세요.</p>
+  return `<div class="wt-wrap"><section class="wt-hero"><h1 class="wt-hero-title">오늘은 어떤 웹을 만나볼까요?</h1><p class="wt-hero-sub">찾던 웹도, 몰랐던 웹도 이곳에서! 설치 없이 버튼 하나로 만나봐요</p>
       <div class="wt-hero-search">${searchBar(A, {})}${exampleChips(A)}</div>${interestLine}</section>
     ${VIEW.homeSections.map((k) => { const c = secs[k]; return `<section class="wt-sec">${secHead(c.title, c.sub, c.more)}${renderServices(A, c.list.slice(0, n).map((s) => ({ s })), { rank: c.rank, cols: A.s.cols, card: true })}</section>`; }).join('')}</div>`;
 }
@@ -3272,7 +3278,7 @@ const fillReg = (A, extra = {}) => {
    ========================================================= */
 
 /* window.__WEBTER_READY__ 는 HTML <head> 의 인라인 스크립트에서 false 로 초기화한다. */
-const REQUIRED_FONTS = [['400 16px "Pretendard Variable"', '웹터 WEBTER 웹에서 놀다'], ['800 16px "Pretendard Variable"', '웹에서 놀다, 웹터.'], ['500 12px "JetBrains Mono"', '0123456789 /']];
+const REQUIRED_FONTS = [['400 16px "Pretendard Variable"', '웹터 WEBTER 웹이 모이는 터'], ['800 16px "Pretendard Variable"', '웹이 모이는 터, 웹터.'], ['500 12px "JetBrains Mono"', '0123456789 /']];
 function reportError(msg) {
   (window.__WEBTER_ERRORS__ = window.__WEBTER_ERRORS__ || []).push(msg);
   let b = document.getElementById('wt-boot-error');

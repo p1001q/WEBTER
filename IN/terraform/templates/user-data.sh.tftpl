@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+# EIP 연결이 user-data 시작보다 늦을 수 있다. 네트워크 연결 후 패키지를 설치한다.
+for attempt in $(seq 1 60); do
+  if dnf install -y docker jq python3 xfsprogs util-linux; then break; fi
+  if [ "$attempt" -eq 60 ]; then exit 1; fi
+  sleep 5
+done
+command -v aws >/dev/null || dnf install -y awscli-2
+systemctl enable --now amazon-ssm-agent
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+compose_file=docker-compose-linux-x86_64
+curl --fail --location --retry 5 "https://github.com/docker/compose/releases/download/${compose_version}/$compose_file" \
+  -o "/usr/local/lib/docker/cli-plugins/$compose_file"
+curl --fail --location --retry 5 "https://github.com/docker/compose/releases/download/${compose_version}/$compose_file.sha256" \
+  -o /tmp/webter-compose.sha256
+cd /usr/local/lib/docker/cli-plugins
+sha256sum --check /tmp/webter-compose.sha256
+mv "$compose_file" docker-compose
+chmod 755 docker-compose
+mkdir -p /etc/docker
+printf '%s\n' '{"log-driver":"local","log-opts":{"max-size":"10m","max-file":"3"}}' > /etc/docker/daemon.json
+systemctl enable --now docker
+
+# Nitro는 /dev/sdf를 NVMe 이름으로 노출한다. 전달받은 EBS ID로 해당 디스크만 찾는다.
+volume_serial=$(printf '%s' '${volume_id}' | tr -d '-')
+device=""
+for _ in $(seq 1 120); do
+  device=$(lsblk -dnpo NAME,SERIAL | awk -v id="$volume_serial" '$2 == id {print $1; exit}')
+  if [ -n "$device" ] && [ -b "$device" ]; then break; fi
+  sleep 5
+done
+[ -n "$device" ] && [ -b "$device" ] || { echo "Data EBS not found" >&2; exit 1; }
+filesystem=$(blkid -s TYPE -o value "$device" || true)
+if [ -z "$filesystem" ]; then
+  [ -z "$(wipefs --no-act --noheadings --output TYPE "$device")" ] || {
+    echo "Unexpected disk signature; refusing to format" >&2; exit 1;
+  }
+  mkfs.xfs "$device"
+fi
+uuid=$(blkid -s UUID -o value "$device")
+mkdir -p /srv/webter/data
+printf 'UUID=%s /srv/webter/data auto defaults,nofail 0 2\n' "$uuid" >> /etc/fstab
+mount /srv/webter/data
+mountpoint -q /srv/webter/data
+chmod 700 /srv/webter/data
+# 재부팅 시 Docker의 자동 재시작도 데이터 볼륨 마운트 이후에만 허용한다.
+# 없으면 Compose의 보호 검사보다 먼저 DB가 빈 루트 디스크 경로에서 시작할 수 있다.
+mkdir -p /etc/systemd/system/docker.service.d
+cat > /etc/systemd/system/docker.service.d/10-webter-data.conf <<'MOUNT'
+[Unit]
+RequiresMountsFor=/srv/webter/data
+MOUNT
+mkdir -p /opt/webter/bin /srv/webter/data/config
+chmod 700 /srv/webter/data/config
+
+%{ for filename, content in files ~}
+printf '%s' '${base64encode(content)}' | base64 --decode > '/opt/webter/${filename}'
+%{ endfor ~}
+chmod 755 /opt/webter/bin/*.sh /opt/webter/init-db.sh
+
+cat > /opt/webter/stack.env <<'CONFIG'
+AWS_REGION=${region}
+RUNTIME_ENV_NAME=${runtime_env_name}
+ECR_REPOSITORY_URL=${repository_url}
+BACKUP_BUCKET=${backup_bucket}
+APP_PORT=${app_port}
+APP_HEALTH_PATH=${health_path}
+POSTGRES_IMAGE=${postgres_image}
+REDIS_IMAGE=${redis_image}
+PROXY_IMAGE=${proxy_image}
+CONFIG
+
+cat > /usr/local/sbin/webter-compose <<'COMPOSE'
+#!/usr/bin/env bash
+set -euo pipefail
+mountpoint -q /srv/webter/data || { echo 'Data EBS not mounted' >&2; exit 1; }
+set -a
+source /opt/webter/stack.env
+set +a
+exec docker compose --project-directory /opt/webter \
+  --env-file /srv/webter/data/config/runtime.env \
+  --env-file /srv/webter/data/config/release.env \
+  -f /opt/webter/compose.yml "$@"
+COMPOSE
+chmod 755 /usr/local/sbin/webter-compose
+
+cat > /etc/systemd/system/webter.service <<'SERVICE'
+[Unit]
+Description=WEBTER Docker Compose stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+RequiresMountsFor=/srv/webter/data
+ConditionPathExists=/srv/webter/data/config/release.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/webter-compose up -d --wait --wait-timeout 180
+ExecStop=/usr/local/sbin/webter-compose stop
+TimeoutStartSec=240
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+cat > /etc/systemd/system/webter-backup.service <<'SERVICE'
+[Unit]
+Description=WEBTER PostgreSQL backup to S3
+Requires=docker.service
+After=docker.service network-online.target
+RequiresMountsFor=/srv/webter/data
+
+[Service]
+Type=oneshot
+ExecStart=/opt/webter/bin/backup.sh
+TimeoutStartSec=1800
+SERVICE
+
+cat > /etc/systemd/system/webter-backup.timer <<'TIMER'
+[Unit]
+Description=Daily PostgreSQL backup (03:00 Asia/Seoul)
+
+[Timer]
+OnCalendar=*-*-* 18:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+touch /opt/webter/.bootstrap-complete
+systemctl daemon-reload
+systemctl enable webter.service
+systemctl enable --now webter-backup.timer
+if [ -f /srv/webter/data/config/release.env ]; then
+  # EC2 교체 뒤에는 로컬 이미지·ECR 로그인 정보가 없으므로 먼저 인증한다.
+  registry=$(printf '%s' '${repository_url}' | cut -d/ -f1)
+  aws ecr get-login-password --region '${region}' | docker login --username AWS --password-stdin \
+    "$registry"
+fi
+systemctl start webter.service

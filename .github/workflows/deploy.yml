@@ -1,0 +1,124 @@
+name: Deploy application to AWS EC2
+
+# 앱 Dockerfile이 아직 없으므로 수동 실행으로 시작한다.
+# 앱·테스트가 준비되면 main push 트리거를 추가할 수 있다.
+on:
+  workflow_dispatch:
+    inputs:
+      dockerfile:
+        description: Repository-relative application Dockerfile
+        required: true
+        default: Dockerfile
+      build_context:
+        description: Repository-relative Docker build context
+        required: true
+        default: .
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: webter-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY_URL: ${{ vars.ECR_REPOSITORY_URL }}
+      EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+      DEPLOY_DOCUMENT_NAME: ${{ vars.DEPLOY_DOCUMENT_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Check prerequisites
+        env:
+          APP_DOCKERFILE: ${{ inputs.dockerfile }}
+          APP_CONTEXT: ${{ inputs.build_context }}
+          DEPLOY_ROLE: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          for name in AWS_REGION ECR_REPOSITORY_URL EC2_INSTANCE_ID DEPLOY_DOCUMENT_NAME DEPLOY_ROLE; do
+            [[ -n "${!name}" ]] || { echo "Missing repository variable: $name" >&2; exit 1; }
+          done
+          [[ -f "$APP_DOCKERFILE" ]] || {
+            echo "Application Dockerfile is not ready: $APP_DOCKERFILE" >&2
+            exit 1
+          }
+          [[ -d "$APP_CONTEXT" ]] || { echo "Build context does not exist" >&2; exit 1; }
+
+      - name: Obtain short-lived AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: webter-${{ github.run_id }}
+
+      - name: Log in to ECR
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build and push application image
+        id: image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ inputs.build_context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy exact image digest using SSM
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, re
+          digest = os.environ['IMAGE_DIGEST']
+          if not re.fullmatch(r'sha256:[a-f0-9]{64}', digest):
+              raise SystemExit('Invalid build digest')
+          path = pathlib.Path(os.environ['RUNNER_TEMP']) / 'webter-ssm-parameters.json'
+          path.write_text(json.dumps({'ImageDigest': [digest]}))
+          PY
+          command_id=$(aws ssm send-command \
+            --document-name "$DEPLOY_DOCUMENT_NAME" \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --parameters "file://$RUNNER_TEMP/webter-ssm-parameters.json" \
+            --timeout-seconds 900 \
+            --comment "WEBTER $GITHUB_SHA" \
+            --query Command.CommandId --output text)
+
+          for _ in $(seq 1 200); do
+            if status=$(aws ssm get-command-invocation \
+              --command-id "$command_id" --instance-id "$EC2_INSTANCE_ID" \
+              --query Status --output text 2>/dev/null); then
+              case "$status" in
+                Success)
+                  echo "Deployment succeeded: $IMAGE_DIGEST"
+                  exit 0
+                  ;;
+                Pending|InProgress|Delayed) ;;
+                *)
+                  aws ssm get-command-invocation \
+                    --command-id "$command_id" --instance-id "$EC2_INSTANCE_ID" \
+                    --query '{Status:Status,Error:StandardErrorContent,Output:StandardOutputContent}'
+                  exit 1
+                  ;;
+              esac
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for SSM; inspect the command before retrying: $command_id" >&2
+          exit 1
