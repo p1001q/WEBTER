@@ -64,6 +64,7 @@ final class ProfileLinks {
 			boolean web = secure || "http".equalsIgnoreCase(uri.getScheme());
 			Rule rule = RULES.get(kind);
 			if (!web || uri.getHost() == null || uri.getRawUserInfo() != null || rule == null
+					|| uri.getRawAuthority().endsWith(":")
 					|| (uri.getPort() != -1 && uri.getPort() != (secure ? 443 : 80))
 					|| !rule.host().matcher(uri.getHost().toLowerCase(Locale.ROOT)).matches()
 					|| !rule.path().matcher(uri.getRawPath()).matches()) {

@@ -230,6 +230,7 @@ class MemberApiTests extends DomainFixtureTest {
 		User user = createUser("link_hosts");
 		for (var link : List.of(
 				List.of("github", "https://other.example/maker"),
+				List.of("github", "https://github.com:/maker"),
 				List.of("notion", "https://team.notion.site.example.com/page"),
 				List.of("notion", "https://www.notion.so/page"),
 				List.of("tistory", "https://maker.tistory.com@other.example"),
