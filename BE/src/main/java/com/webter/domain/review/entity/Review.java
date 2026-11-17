@@ -16,6 +16,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,7 +24,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 서비스 리뷰와 평가. 회원은 서비스당 하나, 비회원은 같은 서비스에 IP 해시당 하나만 쓸 수 있다.
- * 회원이 탈퇴하면 author가 비워지고 "탈퇴한 사용자"로 표시된다.
+ * 회원이 탈퇴하면 author가 비워진다.
  */
 @Getter
 @Entity
@@ -59,6 +60,9 @@ public class Review extends BaseTimeEntity {
 	@Column(nullable = false, length = 20)
 	private ReviewRating rating = ReviewRating.NONE;
 
+	@Column(name = "recommended_at")
+	private Instant recommendedAt;
+
 	@Column(nullable = false, length = 500)
 	private String content;
 
@@ -87,7 +91,7 @@ public class Review extends BaseTimeEntity {
 		this.guestIpHmac = guestIpHmac;
 		this.guestIpDisplay = guestIpDisplay;
 		if (rating != null) {
-			this.rating = rating;
+			setRating(rating);
 		}
 		this.content = content;
 		this.anonymous = anonymous;
@@ -100,9 +104,16 @@ public class Review extends BaseTimeEntity {
 	}
 
 	public void update(ReviewRating rating, String content, boolean creatorReview) {
-		this.rating = rating;
+		setRating(rating);
 		this.content = content;
 		this.creatorReview = creatorReview;
+	}
+
+	private void setRating(ReviewRating next) {
+		if (rating != next) {
+			recommendedAt = next == ReviewRating.RECOMMEND ? Instant.now() : null;
+			rating = next;
+		}
 	}
 
 	public boolean hasContent() {

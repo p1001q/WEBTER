@@ -72,6 +72,13 @@ class ServiceQueryApiTests extends DomainFixtureTest {
 				user.getId(), s.getId(), java.sql.Timestamp.from(at));
 	}
 
+	void recommend(WebService s, User user, Instant at) {
+		jdbc.update("""
+				INSERT INTO reviews (service_id, author_id, author_kind, rating, content, recommended_at)
+				VALUES (?, ?, 'MEMBER', 'RECOMMEND', '', ?)
+				""", s.getId(), user.getId(), java.sql.Timestamp.from(at));
+	}
+
 	void launch(WebService s, Instant at, boolean counted) {
 		jdbc.update("INSERT INTO service_events (service_id, actor_key, event_type, is_counted, excluded_reason, occurred_at) "
 				+ "VALUES (?, 'actor', 'LAUNCH', ?, ?, ?)", s.getId(), counted, counted ? null : "ABUSE",
@@ -167,11 +174,14 @@ class ServiceQueryApiTests extends DomainFixtureTest {
 		WebService recent = service("최근 인기", "https://recent.example.test");
 		WebService old = service("과거 인기", "https://old.example.test");
 		launch(recent, now.minus(1, ChronoUnit.DAYS), true);
-		like(recent, fan, now.minus(1, ChronoUnit.DAYS));
+		recommend(recent, fan, now.minus(1, ChronoUnit.DAYS));
 		launch(old, now.minus(20, ChronoUnit.DAYS), true);
 		launch(old, now.minus(20, ChronoUnit.DAYS), true);
-		like(old, fan, now.minus(20, ChronoUnit.DAYS));
-		like(old, owner, now.minus(20, ChronoUnit.DAYS));
+		recommend(old, fan, now.minus(20, ChronoUnit.DAYS));
+		User olderFan = createUser("older_fan");
+		em.flush();
+		recommend(old, olderFan, now.minus(20, ChronoUnit.DAYS));
+		like(old, fan, now.minus(1, ChronoUnit.DAYS));
 		flushAndClear();
 
 		// 최근 3일: 최근 인기 = 1 + 3, 과거 인기 = 0
@@ -235,9 +245,9 @@ class ServiceQueryApiTests extends DomainFixtureTest {
 			.andExpect(jsonPath("$.data.reviews.up").value(1))
 			.andExpect(jsonPath("$.data.reviews.down").value(1))
 			.andExpect(jsonPath("$.data.reviews.none").value(0))
-			// 3일 점수: 저장 5 + 클릭 1 = 6, 주간: 6, 월간: 6 + 좋아요 3 = 9
-			.andExpect(jsonPath("$.data.scores.threeDays").value(6))
-			.andExpect(jsonPath("$.data.scores.week").value(6))
+			// 각 기간에는 추천 3, 저장 5, 클릭 1이 들어가고 예전 좋아요는 빠진다
+			.andExpect(jsonPath("$.data.scores.threeDays").value(9))
+			.andExpect(jsonPath("$.data.scores.week").value(9))
 			.andExpect(jsonPath("$.data.scores.month").value(9))
 			.andExpect(jsonPath("$.data.owner.username").value("maker_one"))
 			.andExpect(jsonPath("$.data.owner.email").doesNotExist());

@@ -25,18 +25,20 @@ public class ServiceQueryRepository {
 
 	public static final int CLICK_WEIGHT = 1;
 
-	public static final int LIKE_WEIGHT = 3;
+	public static final int RECOMMEND_WEIGHT = 3;
 
 	public static final int SAVE_WEIGHT = 5;
 
-	// 점수의 근거가 되는 기록(이용하기 클릭, 좋아요, 저장)을 시각·가중치로 모은 것
+	// 점수의 근거가 되는 이용하기·추천·저장 기록을 시각과 가중치로 모은다.
 	private static final String SCORE_EVENTS = """
 			SELECT service_id, occurred_at AS ts, %d AS weight FROM service_events
 			WHERE event_type = 'LAUNCH' AND is_counted
 			UNION ALL
-			SELECT service_id, created_at AS ts,
-			       CASE reaction_type WHEN 'LIKE' THEN %d ELSE %d END AS weight FROM service_reactions
-			""".formatted(CLICK_WEIGHT, LIKE_WEIGHT, SAVE_WEIGHT);
+			SELECT service_id, coalesce(recommended_at, created_at) AS ts, %d AS weight FROM reviews
+			WHERE rating = 'RECOMMEND' AND visibility_status = 'PUBLIC' AND NOT is_creator_review
+			UNION ALL
+			SELECT service_id, created_at AS ts, %d AS weight FROM service_reactions WHERE reaction_type = 'SAVE'
+			""".formatted(CLICK_WEIGHT, RECOMMEND_WEIGHT, SAVE_WEIGHT);
 
 	private final NamedParameterJdbcTemplate jdbc;
 
