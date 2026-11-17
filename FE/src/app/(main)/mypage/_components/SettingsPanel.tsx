@@ -408,9 +408,13 @@ export function SettingsPanel() {
         >
           <b>회원 탈퇴</b>
           <ul className="m-0 list-disc pl-[18px] text-13 leading-[1.8] text-text-2">
-            <li>등록한 서비스는 삭제돼요.</li>
             <li>
-              작성한 리뷰와 댓글은 “{DEPARTED_MEMBER_NAME}” 이름으로 남아요.
+              팀원이 없는 내 서비스는 삭제돼요. 팀원이 있는 서비스는 가장 먼저
+              합류한 팀원이 등록자가 돼요.
+            </li>
+            <li>
+              남아 있는 서비스에 작성한 리뷰와 댓글은 “{DEPARTED_MEMBER_NAME}”
+              이름으로 남아요.
             </li>
             <li>저장 기록은 삭제돼요.</li>
           </ul>
