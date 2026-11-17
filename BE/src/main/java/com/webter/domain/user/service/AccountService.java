@@ -75,7 +75,7 @@ public class AccountService {
 
 	/**
 	 * 회원 탈퇴. 회원 행을 지우면 DB 외래키 규칙이 정책을 따른다: 등록한 서비스·좋아요·저장·동의 이력·알림은 삭제되고,
-	 * 작성한 리뷰·댓글은 작성자만 비워져 "탈퇴한 사용자"로 남는다(정책서 2.1).
+	 * 다른 서비스에 작성한 리뷰·댓글은 작성자 연결을 해제한 뒤 남긴다(정책서 2.1).
 	 */
 	@Transactional
 	public void withdraw(UUID userId) {

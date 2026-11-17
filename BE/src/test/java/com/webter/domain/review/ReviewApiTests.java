@@ -159,7 +159,8 @@ class ReviewApiTests extends DomainFixtureTest {
 			.content("{\"text\":\"example.com에서 확인\"}")).andExpect(status().isBadRequest());
 		mvc.perform(put(base + suffix).with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"text\":\"감사합니다\"}")).andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.reply.edited").value(false));
+			.andExpect(jsonPath("$.data.reply.edited").value(false))
+			.andExpect(jsonPath("$.data.reply.withdrawn").value(false));
 		UUID replyId = jdbc.queryForObject("select reply_id from reviews where review_id = ?", UUID.class, Long.parseLong(id));
 		mvc.perform(put(base + suffix).with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"text\":\"의견 감사합니다\"}")).andExpect(status().isOk())
@@ -167,6 +168,12 @@ class ReviewApiTests extends DomainFixtureTest {
 			.andExpect(jsonPath("$.data.edited").value(false));
 		assertThat(jdbc.queryForObject("select reply_id from reviews where review_id = ?", UUID.class, Long.parseLong(id)))
 			.isEqualTo(replyId);
+		// 탈퇴 시 외래키가 답글 작성자를 비운 뒤에도 답글은 공개된다.
+		em.flush();
+		jdbc.update("update reviews set reply_author_id = null where review_id = ?", Long.parseLong(id));
+		em.clear();
+		mvc.perform(get(base + "/reviews")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.items[0].reply.withdrawn").value(true));
 		mvc.perform(delete(base + suffix).with(as(owner)).with(csrf())).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.reply").doesNotExist());
 	}
