@@ -100,14 +100,14 @@ class MemberApiTests extends DomainFixtureTest {
 		mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(profile("After.01", "새 닉네임", "\"한 줄 소개\"",
-					"[{\"kind\":\"github\",\"url\":\"github.com/after\"},{\"kind\":\"blog\",\"url\":\"http://blog.example.com/x\"}]",
+					"[{\"kind\":\"github\",\"url\":\"github.com/after\"},{\"kind\":\"naver_blog\",\"url\":\"http://blog.naver.com/after\"}]",
 					"[\"DEV_TOOLS\",\"LIFE\"]")))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.username").value("After.01"))
 			.andExpect(jsonPath("$.data.nickname").value("새 닉네임"))
 			.andExpect(jsonPath("$.data.bio").value("한 줄 소개"))
 			.andExpect(jsonPath("$.data.links[?(@.kind=='github')].url").value("https://github.com/after"))
-			.andExpect(jsonPath("$.data.links[?(@.kind=='blog')].url").value("http://blog.example.com/x"))
+			.andExpect(jsonPath("$.data.links[?(@.kind=='naver_blog')].url").value("http://blog.naver.com/after"))
 			.andExpect(jsonPath("$.data.interests[0]").value("DEV_TOOLS"));
 
 		flushAndClear();
@@ -188,7 +188,7 @@ class MemberApiTests extends DomainFixtureTest {
 		for (String links : List.of("[{\"kind\":\"github\",\"url\":\"javascript:alert(1)\"}]",
 				"[{\"kind\":\"github\",\"url\":\"ftp://example.com/x\"}]",
 				"[{\"kind\":\"github\",\"url\":\"has space.com\"}]",
-				"[{\"kind\":\"blog\",\"url\":\"a.example.com\"},{\"kind\":\"blog\",\"url\":\"b.example.com\"}]")) {
+				"[{\"kind\":\"tistory\",\"url\":\"one.tistory.com\"},{\"kind\":\"tistory\",\"url\":\"two.tistory.com\"}]")) {
 			mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profile("linker", "닉네임", "\"\"", links, "[]")))
@@ -205,34 +205,61 @@ class MemberApiTests extends DomainFixtureTest {
 	}
 
 	@Test
-	void koreanDomainLinksAreAcceptedAsEnteredAndUserInfoIsRejected() throws Exception {
-		User user = createUser("idn_user");
+	void supportsThePublishedPlatformAddresses() throws Exception {
+		User user = createUser("platform_links");
+		String links = """
+				[
+				  {"kind":"naver_blog","url":"https://blog.naver.com/maker123"},
+				  {"kind":"tistory","url":"https://maker-demo.tistory.com/"},
+				  {"kind":"velog","url":"https://velog.io/@maker/posts"},
+				  {"kind":"notion","url":"https://team.notion.site/portfolio?source=copy_link"}
+				]""";
 		mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
-			.content(profile("idn_user", "닉네임", "\"\"",
-					"[{\"kind\":\"portfolio\",\"url\":\"https://한글.example/포트폴리오\"},{\"kind\":\"blog\",\"url\":\"블로그.한국:8443\"}]",
-					"[]")))
+			.content(profile("platform_links", "닉네임", "\"\"", links, "[]")))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.links[?(@.kind=='portfolio')].url").value("https://한글.example/포트폴리오"))
-			.andExpect(jsonPath("$.data.links[?(@.kind=='blog')].url").value("https://블로그.한국:8443"));
+			.andExpect(jsonPath("$.data.links[?(@.kind=='notion')].url")
+				.value("https://team.notion.site/portfolio?source=copy_link"))
+			.andExpect(jsonPath("$.data.links[?(@.kind=='naver_blog')].url").value("https://blog.naver.com/maker123"))
+			.andExpect(jsonPath("$.data.links[?(@.kind=='tistory')].url").value("https://maker-demo.tistory.com/"))
+			.andExpect(jsonPath("$.data.links[?(@.kind=='velog')].url").value("https://velog.io/@maker/posts"));
+	}
 
-		for (String url : List.of("https://user@example.com", "https://user:pw@한글.example", "https://-한글-.example")) {
+	@Test
+	void rejectsWrongDomainsAndRetiredLinkKinds() throws Exception {
+		User user = createUser("link_hosts");
+		for (var link : List.of(
+				List.of("github", "https://other.example/maker"),
+				List.of("notion", "https://team.notion.site.example.com/page"),
+				List.of("notion", "https://www.notion.so/page"),
+				List.of("tistory", "https://maker.tistory.com@other.example"),
+				List.of("tistory", "https://tistory.com"),
+				List.of("naver_blog", "https://blog.naver.com/"))) {
 			mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(profile("idn_user", "닉네임", "\"\"", "[{\"kind\":\"portfolio\",\"url\":\"" + url + "\"}]", "[]")))
+				.content(profile("link_hosts", "닉네임", "\"\"",
+						"[{\"kind\":\"%s\",\"url\":\"%s\"}]".formatted(link.get(0), link.get(1)), "[]")))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("USER_400_03"));
+		}
+		for (String kind : List.of("blog", "portfolio")) {
+			mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(profile("link_hosts", "닉네임", "\"\"",
+						"[{\"kind\":\"%s\",\"url\":\"https://maker.tistory.com\"}]".formatted(kind), "[]")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("COMMON_400_01"));
 		}
 	}
 
 	@Test
 	void linkLimitIncludesAddedHttpsScheme() throws Exception {
 		User user = createUser("link_limit");
-		String address = "https://example.com/" + "a".repeat(300 - "https://example.com/".length());
+		String address = "https://team.notion.site/" + "a".repeat(300 - "https://team.notion.site/".length());
 		mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(profile("link_limit", "닉네임", "\"\"",
-					"[{\"kind\":\"portfolio\",\"url\":\"" + address + "\"}]", "[]")))
+					"[{\"kind\":\"notion\",\"url\":\"" + address + "\"}]", "[]")))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.links[0].url").value(address));
 
@@ -241,10 +268,10 @@ class MemberApiTests extends DomainFixtureTest {
 		mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(profile("link_limit", "닉네임", "\"\"",
-					"[{\"kind\":\"portfolio\",\"url\":\"" + withoutScheme + "\"}]", "[]")))
+					"[{\"kind\":\"notion\",\"url\":\"" + withoutScheme + "\"}]", "[]")))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("USER_400_03"));
-		assertThat(jdbc.queryForObject("SELECT profile_links ->> 'portfolio' FROM users WHERE user_id = ?",
+		assertThat(jdbc.queryForObject("SELECT profile_links ->> 'notion' FROM users WHERE user_id = ?",
 				String.class, user.getId())).isEqualTo(address);
 	}
 
