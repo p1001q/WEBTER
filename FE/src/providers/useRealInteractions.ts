@@ -23,7 +23,7 @@ import {
 import { profileApi } from "@/api/real/profileApi";
 import type { Comment, Review, Service, User } from "@/api/types";
 import { gradeOf } from "@/domain/review";
-import type { WtStore } from "./types";
+import type { MyReviewStatus, WtStore } from "./types";
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 
@@ -65,18 +65,23 @@ function mergeEntries<T extends { id: string; fresh?: boolean }>(
 }
 
 function rememberFresh<T extends { id: string; fresh?: boolean }>(
+  timers: Map<string, number>,
+  key: string,
   setEntries: Setter<T[]>,
   item: T,
 ) {
+  window.clearTimeout(timers.get(key));
   setEntries((old) => mergeEntries(old, [{ ...item, fresh: true }]));
-  window.setTimeout(
-    () =>
+  timers.set(
+    key,
+    window.setTimeout(() => {
+      timers.delete(key);
       setEntries((old) =>
         old.map((entry) =>
           entry.id === item.id ? { ...entry, fresh: false } : entry,
         ),
-      ),
-    3000,
+      );
+    }, 3000),
   );
 }
 
@@ -108,6 +113,10 @@ export function useRealInteractions({
   go,
 }: Props) {
   const [myReviews, setMyReviews] = useState<Record<string, Review | null>>({});
+  const [myReviewRequests, setMyReviewRequests] = useState<
+    Record<string, "loading" | "error" | undefined>
+  >({});
+  const pendingMyReviews = useRef(new Set<string>());
   const [reviewRevisions, setReviewRevisions] = useState<
     Record<string, number>
   >({});
@@ -119,12 +128,20 @@ export function useRealInteractions({
   const serviceRefreshes = useRef(new Map<string, number>());
   const reactionStates = useRef(new Map<string, Promise<ReactionState>>());
   const interactionLocks = useRef(new Set<string>());
+  const freshTimers = useRef(new Map<string, number>());
+  const clearFreshTimers = useCallback(() => {
+    freshTimers.current.forEach((timer) => window.clearTimeout(timer));
+    freshTimers.current.clear();
+  }, []);
+  useEffect(() => clearFreshTimers, [clearFreshTimers]);
   const reset = useCallback(() => {
     reactionStates.current.clear();
+    clearFreshTimers();
     setReviews([]);
     setComments([]);
     setMyReviews({});
-  }, [setReviews, setComments]);
+    setMyReviewRequests({});
+  }, [clearFreshTimers, setReviews, setComments]);
 
   const rememberAuthors = useCallback(
     (entries: Authored<unknown>[]) => {
@@ -171,13 +188,29 @@ export function useRealInteractions({
     async (sid: string) => {
       if (!realAuth || !meId) return;
       const epoch = viewerEpoch.current;
-      const version = reviewVersions.current.get(sid);
-      const mine = await call(() => interactionApi.myReview(sid));
-      if (
-        epoch === viewerEpoch.current &&
-        version === reviewVersions.current.get(sid)
-      )
-        setMyReviews((old) => ({ ...old, [sid]: mine?.item ?? null }));
+      const key = `${epoch}:${sid}`;
+      if (pendingMyReviews.current.has(key)) return;
+      pendingMyReviews.current.add(key);
+      setMyReviewRequests((old) => ({ ...old, [sid]: "loading" }));
+      try {
+        while (epoch === viewerEpoch.current) {
+          const version = reviewVersions.current.get(sid);
+          try {
+            const mine = await call(() => interactionApi.myReview(sid));
+            if (epoch !== viewerEpoch.current) return;
+            if (version !== reviewVersions.current.get(sid)) continue;
+            setMyReviews((old) => ({ ...old, [sid]: mine?.item ?? null }));
+            setMyReviewRequests((old) => ({ ...old, [sid]: undefined }));
+          } catch {
+            if (epoch !== viewerEpoch.current) return;
+            if (version !== reviewVersions.current.get(sid)) continue;
+            setMyReviewRequests((old) => ({ ...old, [sid]: "error" }));
+          }
+          return;
+        }
+      } finally {
+        pendingMyReviews.current.delete(key);
+      }
     },
     [call, meId, viewerEpoch],
   );
@@ -360,7 +393,13 @@ export function useRealInteractions({
 
   const rememberReview = (entry: Authored<Review>, fresh = false) => {
     rememberAuthors([entry]);
-    if (fresh) rememberFresh(setReviews, entry.item);
+    if (fresh)
+      rememberFresh(
+        freshTimers.current,
+        `review:${entry.item.id}`,
+        setReviews,
+        entry.item,
+      );
     else setReviews((old) => mergeEntries(old, [entry.item]));
     if (entry.item.permissions?.mine)
       setMyReviews((old) => ({ ...old, [entry.item.sid]: entry.item }));
@@ -368,7 +407,13 @@ export function useRealInteractions({
 
   const rememberComment = (entry: Authored<Comment>, fresh = false) => {
     rememberAuthors([entry]);
-    if (fresh) rememberFresh(setComments, entry.item);
+    if (fresh)
+      rememberFresh(
+        freshTimers.current,
+        `comment:${entry.item.id}`,
+        setComments,
+        entry.item,
+      );
     else setComments((old) => mergeEntries(old, [entry.item]));
   };
 
@@ -423,7 +468,7 @@ export function useRealInteractions({
     | "agg"
     | "myVote"
     | "myReview"
-    | "myReviewReady"
+    | "myReviewStatus"
     | "reviewRevision"
     | "commentRevision"
     | "loadReviews"
@@ -593,7 +638,10 @@ export function useRealInteractions({
       const mine = myReviews[sid];
       return mine?.text ? mine : undefined;
     },
-    myReviewReady: (sid) => !realAuth || !me || myReviews[sid] !== undefined,
+    myReviewStatus: (sid): MyReviewStatus =>
+      !realAuth || !me || myReviews[sid] !== undefined
+        ? "ready"
+        : (myReviewRequests[sid] ?? "idle"),
     reviewRevision: (sid) => reviewRevisions[sid] ?? 0,
     commentRevision: (sid) => commentRevisions[sid] ?? 0,
     loadReviews,

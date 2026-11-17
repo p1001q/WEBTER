@@ -879,7 +879,7 @@ export function WtProvider({
 
     aiSearch: (q) => call(() => api.aiSearch(q)),
     recordAiUse: () => setAiUsed((n) => n + 1),
-    myReviewReady: realActions.myReviewReady,
+    myReviewStatus: realActions.myReviewStatus,
     loadMyReview: realActions.loadMyReview,
     reviewRevision: realActions.reviewRevision,
     commentRevision: realActions.commentRevision,

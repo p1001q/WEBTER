@@ -1,6 +1,7 @@
 "use client";
 
 import type { Service } from "@/api/types";
+import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { isMaker } from "@/domain/maker";
 import { cx } from "@/lib/cx";
@@ -9,13 +10,18 @@ import { useWt } from "@/providers/context";
 export function useServiceRating(s: Service) {
   const wt = useWt();
   const current = wt.myVote(s.id);
+  const status = wt.me ? wt.myReviewStatus(s.id) : "ready";
   const disabledReason = isMaker(s, wt.me?.id)
     ? "내 서비스는 평가할 수 없어요"
     : s.use === "stop"
       ? "운영 중지된 서비스는 평가할 수 없어요"
-      : wt.me && !wt.myReviewReady(s.id)
+      : status === "loading"
         ? "내 평가를 불러오고 있어요"
-        : undefined;
+        : status === "error"
+          ? "내 평가를 불러오지 못했어요"
+          : status === "idle"
+            ? "내 평가를 확인한 뒤 평가할 수 있어요"
+            : undefined;
   const select = (rate: "up" | "down") => {
     if (disabledReason) return;
     wt.requireLogin(() => {
@@ -33,6 +39,18 @@ export function useServiceRating(s: Service) {
     }, "서비스를 평가하려면 로그인이 필요해요.");
   };
   return { current, disabledReason, select };
+}
+
+export function RetryMyReview({ sid }: { sid: string }) {
+  const { loadMyReview } = useWt();
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-13 text-muted">
+      <span role="status">내 평가를 불러오지 못했어요.</span>
+      <Button size="sm" variant="ghost" onClick={() => void loadMyReview(sid)}>
+        다시 시도
+      </Button>
+    </div>
+  );
 }
 
 /** 비추천은 리뷰 탭에서 남긴다. 추천은 상세 상단에서 누를 수 있다. */

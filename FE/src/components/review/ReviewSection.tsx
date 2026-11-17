@@ -18,7 +18,7 @@ import { cx } from "@/lib/cx";
 import { useTween } from "@/lib/useTween";
 import { isMaker } from "@/domain/maker";
 import { useWt } from "@/providers/context";
-import { RatingVote } from "./RatingVote";
+import { RatingVote, RetryMyReview } from "./RatingVote";
 import { ReviewListSkeleton } from "./ReviewListSkeleton";
 import { RatioBar } from "./RatioBar";
 import { ReviewForm } from "./ReviewForm";
@@ -76,7 +76,15 @@ export function ReviewSection({
   const guestDone = !wt.me && wt.guestReviewed.has(s.id);
   const formBox = `${boxClass} my-6 flex flex-col gap-3 p-6`;
   let form;
-  if (realAuth && (!wt.sessionReady || !wt.myReviewReady(s.id))) form = null;
+  const myReviewStatus = realAuth ? wt.myReviewStatus(s.id) : "ready";
+  if (myReviewStatus === "error")
+    form = (
+      <div className="my-5">
+        <RetryMyReview sid={s.id} />
+      </div>
+    );
+  else if (realAuth && (!wt.sessionReady || myReviewStatus !== "ready"))
+    form = null;
   else if (myReview)
     form = (
       <Note tone="navy" className="my-5">

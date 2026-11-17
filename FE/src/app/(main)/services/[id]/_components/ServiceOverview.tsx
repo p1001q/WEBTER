@@ -2,7 +2,10 @@
 
 import { useEffect } from "react";
 import type { Service } from "@/api/types";
-import { useServiceRating } from "@/components/review/RatingVote";
+import {
+  RetryMyReview,
+  useServiceRating,
+} from "@/components/review/RatingVote";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -35,7 +38,7 @@ export function ServiceOverview({
   const count = wt.agg(s).up;
   const { loadMyReview } = wt;
   useEffect(() => {
-    loadMyReview(s.id).catch(() => {});
+    void loadMyReview(s.id);
   }, [loadMyReview, s.id]);
   const save = () => {
     if (isOwner) return;
@@ -178,6 +181,9 @@ export function ServiceOverview({
             </IconButton>
           ) : null}
         </div>
+        {wt.me && wt.myReviewStatus(s.id) === "error" && (
+          <RetryMyReview sid={s.id} />
+        )}
         {isOwner && (
           <p className="m-0 text-12 text-muted">
             본인 서비스에는 평가와 저장을 할 수 없어요.
