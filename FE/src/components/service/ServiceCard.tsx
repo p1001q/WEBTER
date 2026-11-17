@@ -100,16 +100,6 @@ export function ServiceCard({
           <ServiceThumb s={s} className={down ? "opacity-70" : undefined} />
         </RouteLink>
         <div className="pointer-events-none absolute top-2.5 left-2.5 flex items-center gap-1.5">
-          {rank != null && (
-            <span
-              className={cx(
-                "inline-grid h-[26px] min-w-[26px] place-items-center rounded-sm px-[7px] font-mono text-12 font-bold",
-                rank <= 3 ? "bg-butter text-ink" : "bg-ink text-white",
-              )}
-            >
-              {rank}
-            </span>
-          )}
           <GradeBadge
             grade={agg.grade}
             count={agg.total}
@@ -137,9 +127,19 @@ export function ServiceCard({
         </button>
       </div>
       <div className="order-3 flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
+        {rank != null && (
+          <span
+            className={cx(
+              "inline-grid h-[26px] shrink-0 place-items-center rounded-sm px-1.5 text-12 font-bold tabular-nums",
+              rank <= 3 ? "bg-butter text-ink" : "bg-light text-ink",
+            )}
+          >
+            {rank}위
+          </span>
+        )}
         <ServiceStats
           s={s}
-          liked={wt.likes.has(s.id)}
+          recommendations={agg.up}
           saved={wt.saves.has(s.id)}
           className="ml-auto"
         />

@@ -1,4 +1,5 @@
-import type { CategoryId, LinkKind, PolicyVersion, User } from "../types";
+import { mapProfileLinks } from "@/domain/profileLinks";
+import type { CategoryId, PolicyVersion, User } from "../types";
 import { CODE_BY_ID, ID_BY_CODE } from "../real/codes";
 import { uploadDataUrl } from "../real/imageUpload";
 import { API_BASE } from "./config";
@@ -35,7 +36,7 @@ export function memberToUser(m: BackendMember): User {
     avatarImg: m.avatarUrl ?? null,
     role: m.role,
     profileModerated: m.profileModerated,
-    links: m.links.map((l): [LinkKind, string] => [l.kind as LinkKind, l.url]),
+    links: mapProfileLinks(m.links),
     interests: m.interests.flatMap((c) =>
       ID_BY_CODE[c] ? [ID_BY_CODE[c]] : [],
     ),
@@ -64,8 +65,8 @@ export async function submitSignup(input: {
   consents: PolicyVersion[];
 }): Promise<BackendMember> {
   const session = await postJson<BackendSession>("/api/auth/signup", {
-    username: input.handle.toLowerCase(),
-    nickname: input.nick,
+    username: input.handle ? input.handle.toLowerCase() : null,
+    nickname: input.nick || null,
     interests: input.interests.map((id) => CODE_BY_ID[id]),
     consents: input.consents
       .filter((c) => REQUIRED_CONSENTS.includes(c.documentType))

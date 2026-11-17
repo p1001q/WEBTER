@@ -110,6 +110,7 @@ export interface WtStore {
   /** 내가 이 서비스에 남긴 리뷰(의견까지 남긴 평가). 없으면 undefined */
   myReview: (sid: string) => Review | undefined;
   myReviewReady: (sid: string) => boolean;
+  loadMyReview: (sid: string) => Promise<void>;
   reviewRevision: (sid: string) => number;
   commentRevision: (sid: string) => number;
   loadReviews: (

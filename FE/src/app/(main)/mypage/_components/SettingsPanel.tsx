@@ -1,7 +1,11 @@
 "use client";
 
 import { useId, useRef, useState, type ChangeEvent } from "react";
-import { normalizeLink, PROFILE_LINK_MAX } from "@/domain/profileLinks";
+import {
+  linkCheck,
+  normalizeLink,
+  PROFILE_LINK_MAX,
+} from "@/domain/profileLinks";
 import { realAuth } from "@/api/auth/config";
 import type { CategoryId, LinkKind } from "@/api/types";
 import { Avatar } from "@/components/ui/Avatar";
@@ -20,14 +24,13 @@ import {
   selectClass,
 } from "@/components/ui/field";
 import { CATEGORIES, LINK_LABEL } from "@/domain/options";
-import { DISPLAY, POLICY } from "@/domain/policy";
+import { DEPARTED_MEMBER_NAME, DISPLAY, POLICY } from "@/domain/policy";
 import {
   IMAGE_UNREADABLE,
   handleCheck,
   handleChangeStatus,
   imageError,
   imgSize,
-  linkCheck,
   msgState,
   nickCheck,
   nickWeight,
@@ -83,6 +86,9 @@ export function SettingsPanel() {
     JSON.stringify(cats) !== JSON.stringify(me.interests || []) ||
     avatarChanged;
   const linkErrs = links.map(([k, u]) => linkCheck(k, u));
+  const nextLinkKind = (Object.keys(LINK_LABEL) as LinkKind[]).find(
+    (kind) => !links.some(([selected]) => selected === kind),
+  );
   // 서버는 같은 종류의 링크를 하나만 저장한다
   const dupKind =
     realAuth &&
@@ -330,12 +336,12 @@ export function SettingsPanel() {
                 같은 종류의 링크는 하나만 저장할 수 있어요.
               </FieldMessage>
             )}
-            {links.length < 5 && (
+            {links.length < 5 && nextLinkKind && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="self-start"
-                onClick={() => setLinks([...links, ["blog", ""]])}
+                onClick={() => setLinks([...links, [nextLinkKind, ""]])}
               >
                 <Icon name="plus" size={14} />
                 링크 추가
@@ -403,8 +409,10 @@ export function SettingsPanel() {
           <b>회원 탈퇴</b>
           <ul className="m-0 list-disc pl-[18px] text-13 leading-[1.8] text-text-2">
             <li>등록한 서비스는 삭제돼요.</li>
-            <li>작성한 리뷰는 “탈퇴한 사용자”로 남아요.</li>
-            <li>좋아요·저장 기록은 삭제돼요.</li>
+            <li>
+              작성한 리뷰와 댓글은 “{DEPARTED_MEMBER_NAME}” 이름으로 남아요.
+            </li>
+            <li>저장 기록은 삭제돼요.</li>
           </ul>
           <Button
             variant="ghost"

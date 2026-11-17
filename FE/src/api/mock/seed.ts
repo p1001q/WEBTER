@@ -14,7 +14,7 @@ export const SEED_USERS: Record<string, User> = {
     links: [
       ["github", "github.com/dawn-code-demo"],
       ["velog", "velog.io/@dawn-code"],
-      ["blog", "dawn.example.com"],
+      ["naver_blog", "blog.naver.com/dawn_demo"],
     ],
     interests: ["play", "learn"],
   },
@@ -27,8 +27,8 @@ export const SEED_USERS: Record<string, User> = {
     links: [
       ["github", "github.com/bori-tea-demo"],
       ["instagram", "instagram.com/bori.makes"],
-      ["blog", "bori.example.com"],
-      ["portfolio", "bori.example.net"],
+      ["tistory", "bori-demo.tistory.com"],
+      ["notion", "bori-demo.notion.site"],
     ],
   },
   u_mint: {
@@ -54,7 +54,7 @@ export const SEED_USERS: Record<string, User> = {
     color: "#F1D9CF",
     bio: "디자이너 겸 개발자. 색과 이미지를 다루는 도구를 만듭니다.",
     links: [
-      ["portfolio", "pixelcat.example.com"],
+      ["notion", "pixelcat-demo.notion.site"],
       ["instagram", "instagram.com/pixel.cat.demo"],
     ],
   },
@@ -66,7 +66,7 @@ export const SEED_USERS: Record<string, User> = {
     bio: "백엔드 개발자. 귀찮은 일을 줄여 주는 도구 제작.",
     links: [
       ["github", "github.com/junlog-demo"],
-      ["blog", "junlog.example.com"],
+      ["tistory", "junlog-demo.tistory.com"],
     ],
   },
   u_seoha: {

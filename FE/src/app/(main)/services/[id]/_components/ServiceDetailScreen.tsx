@@ -59,7 +59,7 @@ export function ServiceDetailScreen({
   };
   const counted = useRef<string>(undefined);
   useEffect(() => {
-    if (realAuth && (!wt.sessionReady || !wt.me)) return;
+    if (realAuth && !wt.sessionReady) return;
     if (s && s.pub === "public" && counted.current !== s.id) {
       counted.current = s.id;
       wt.countView(s);
@@ -102,18 +102,18 @@ export function ServiceDetailScreen({
     )
     .sort((a, b) => scoreOf(b, "m") - scoreOf(a, "m"))
     .slice(0, 4);
-  /** [값, 이름, 아이콘] 조회수·이용하기 클릭 · 리뷰(아래 평가 칸) · 좋아요·저장 순서 */
+  /** [값, 이름, 아이콘] 조회수·이용하기 클릭 · 평가 요약 · 추천·저장 순서 */
   const stats = {
     views: [fmtNum(s.views), "조회수", "eye"],
     clicks: [fmtNum(s.clicks), "이용하기 클릭", "click"],
-    likes: [fmtNum(s.likes), "좋아요", "heart"],
+    recommendations: [fmtNum(agg.up), "추천", "thumbUp"],
     saves: [fmtNum(s.saves), "저장", "bookmark"],
   } as const;
   const cells = [
     stats.views,
     stats.clicks,
     "review",
-    stats.likes,
+    stats.recommendations,
     stats.saves,
   ] as const;
   return (
@@ -159,7 +159,7 @@ export function ServiceDetailScreen({
             data-component="owner-banner"
           >
             <Icon name="info" size={16} />
-            내가 제작자인 서비스예요. 본인 서비스에는 좋아요·저장을 할 수 없고,
+            내가 제작자인 서비스예요. 본인 서비스에는 평가와 저장을 할 수 없고,
             리뷰는 “제작자” 표시로 남겨지며 평가 집계에서 빠져요.
             <RouteLink
               to="edit"

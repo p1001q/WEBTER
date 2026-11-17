@@ -4,15 +4,15 @@ import { cx } from "@/lib/cx";
 
 const stat = "inline-flex items-center gap-1 text-[12.5px] tabular-nums";
 
-/** 좋아요·저장 수. liked/saved 이면 강조한다 */
+/** 추천·저장 수 */
 export function ServiceStats({
   s,
-  liked,
+  recommendations,
   saved,
   className,
 }: {
-  s: { likes: number; saves: number };
-  liked?: boolean;
+  s: { saves: number };
+  recommendations: number;
   saved?: boolean;
   className?: string;
 }) {
@@ -21,22 +21,10 @@ export function ServiceStats({
       className={cx("inline-flex items-center gap-3", className)}
       aria-label="반응 수"
     >
-      <span
-        className={cx(
-          stat,
-          liked ? "font-bold text-like" : "font-medium text-text-3",
-        )}
-        title="좋아요"
-      >
-        <Icon
-          name="heart"
-          size={14}
-          fill={liked}
-          stroke={1.9}
-          className="text-like"
-        />
-        <span className="sr-only">좋아요</span>
-        {fmt(s.likes)}
+      <span className={cx(stat, "font-medium text-text-3")} title="추천">
+        <Icon name="thumbUp" size={14} stroke={1.9} />
+        <span className="sr-only">추천</span>
+        {fmt(recommendations)}
       </span>
       <span
         className={cx(

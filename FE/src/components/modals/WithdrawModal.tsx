@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { checkClass } from "@/components/ui/field";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
+import { DEPARTED_MEMBER_NAME } from "@/domain/policy";
 import { useWt } from "@/providers/context";
 import {
   modalActionButton,
@@ -28,10 +29,10 @@ export function WithdrawModal({ onClose }: { onClose: () => void }) {
           등록한 서비스는 모두 <b>삭제</b>돼요.
         </li>
         <li>
-          작성한 리뷰는 지워지지 않고 <b>“탈퇴한 사용자”</b>로 표시돼요.
+          작성한 리뷰와 댓글은 <b>“{DEPARTED_MEMBER_NAME}”</b> 이름으로 남아요.
         </li>
         <li>
-          좋아요와 저장 기록은 <b>삭제</b>돼요.
+          저장 기록은 <b>삭제</b>돼요.
         </li>
       </ul>
       <label className={`${checkClass} mt-4`}>

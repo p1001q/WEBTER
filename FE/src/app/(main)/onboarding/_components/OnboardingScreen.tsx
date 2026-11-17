@@ -96,7 +96,8 @@ export function OnboardingScreen({
   // 서버가 사용 중이라고 했던 아이디도 바꿀 때마다 다시 확인한다(그 사이 풀렸을 수 있다)
   const staleTaken = hc.state === "taken" && taken.includes(handle);
   const nc = nickCheck(nick);
-  const canNext2 = hc.state === "ok" && nc.state === "ok";
+  const canNext2 =
+    (!handle || hc.state === "ok") && (!nick || nc.state === "ok");
 
   // 실제 로그인: 구글 인증을 마친 가입 대기 상태로만 온보딩을 진행할 수 있다
   const { go } = wt;
@@ -160,7 +161,11 @@ export function OnboardingScreen({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      if (realAuth && !(await checkUsername(handle).catch(() => true))) {
+      if (
+        realAuth &&
+        handle &&
+        !(await checkUsername(handle).catch(() => true))
+      ) {
         setTaken((t) => [...t, handle]);
         return setStep(2);
       }
@@ -330,12 +335,12 @@ export function OnboardingScreen({
         <>
           <h1 style={{ marginTop: 0 }}>아이디와 닉네임을 정해 주세요</h1>
           <p className={authSubClass}>
-            아이디는 프로필 주소에 쓰이고, 닉네임은 화면에 표시돼요. 둘 다
-            나중에 바꿀 수 있어요.
+            비워 둔 아이디나 닉네임은 가입할 때 무작위로 생성돼요. 둘 다 나중에
+            바꿀 수 있어요.
           </p>
           <div className={fieldClass}>
             <label className={labelClass} htmlFor={P + "onb-id"}>
-              아이디 <span className={requiredMarkClass}>*</span>
+              아이디
               <span className={counterClass}>
                 {handle.length}/{POLICY.idMax}
               </span>
@@ -355,7 +360,7 @@ export function OnboardingScreen({
           </div>
           <div className={fieldClass}>
             <label className={labelClass} htmlFor={P + "onb-nick"}>
-              닉네임 <span className={requiredMarkClass}>*</span>
+              닉네임
               <span className={counterClass}>
                 {nickWeight(nick)}/{POLICY.nickMaxWeight}
               </span>
@@ -411,7 +416,7 @@ export function OnboardingScreen({
               disabled={!canNext2}
               onClick={() => setStep(3)}
             >
-              다음
+              {handle || nick ? "다음" : "건너뛰기"}
             </Button>
           </div>
         </>

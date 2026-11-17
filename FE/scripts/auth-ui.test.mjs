@@ -188,7 +188,7 @@ test("설정 저장 후 서버의 링크 정렬·주소를 입력칸에도 반�
   const saved = {
     ...me,
     links: [
-      ["blog", "https://blog.example.com"],
+      ["naver_blog", "https://blog.naver.com/maker"],
       ["github", "https://github.com/maker"],
     ],
   };
@@ -225,8 +225,12 @@ test("설정 저장 후 서버의 링크 정렬·주소를 입력칸에도 반�
   tree = render();
   button(tree, "링크 추가").props.onClick();
   tree = render();
+  nodes(tree, (n) => n.props?.["aria-label"] === "링크 종류")[1].props.onChange(
+    { target: { value: "naver_blog" } },
+  );
+  tree = render();
   nodes(tree, (n) => n.props?.["aria-label"] === "링크 주소")[1].props.onChange(
-    { target: { value: "blog.example.com" } },
+    { target: { value: "blog.naver.com/maker" } },
   );
   tree = render();
   // 화면에 있는 저장 버튼을 찾아 실제 이벤트를 실행한다.
@@ -253,15 +257,15 @@ test("설정 저장 후 서버의 링크 정렬·주소를 입력칸에도 반�
 
 test("프로필 링크는 모든 종류에서 보완한 https:// 포함 300자를 검사한다", () => {
   const h = harness();
-  const { linkCheck } = h.load("domain/validation.ts");
-  for (const kind of ["github", "instagram", "velog", "blog", "portfolio"]) {
-    const base = {
-      github: "github.com/maker/",
-      instagram: "instagram.com/maker/",
-      velog: "velog.io/@maker/",
-      blog: "blog.example.com/",
-      portfolio: "portfolio.example.com/",
-    }[kind];
+  const { linkCheck } = h.load("domain/profileLinks.ts");
+  for (const [kind, base] of Object.entries({
+    github: "github.com/maker/",
+    instagram: "instagram.com/maker/",
+    velog: "velog.io/@maker/",
+    notion: "team.notion.site/",
+    naver_blog: "blog.naver.com/maker?x=",
+    tistory: "maker.tistory.com/",
+  })) {
     const raw = base + "a".repeat(300 - "https://".length - base.length);
     assert.equal(linkCheck(kind, raw), null, kind);
     assert.match(linkCheck(kind, raw + "a"), /300자/, kind);
@@ -556,21 +560,24 @@ test("상태 변경 요청은 CSRF 헤더와 세션 쿠키를 함께 보낸다",
     assert.equal(c.init.headers["X-CSRF-TOKEN"], "t");
 });
 
-test("포트폴리오 링크도 형식을 검사한다(호스트 규칙은 없다)", () => {
+test("플랫폼별 프로필 링크 형식을 검사한다", () => {
   const h = harness();
-  const { linkCheck } = h.load("domain/validation.ts");
-  for (const ok of [
-    "portfolio.example.com/me",
-    "https://한글.example/포트폴리오",
-    "https://localhost:3000",
-  ])
-    assert.equal(linkCheck("portfolio", ok), null, ok);
-  for (const bad of [
-    "user@portfolio.example.com",
-    "https://user:pw@portfolio.example.com",
-    "my site.example.com",
-    "ftp://portfolio.example.com",
-    "javascript:alert(1)",
-  ])
-    assert.match(linkCheck("portfolio", bad), /올바른 주소/, bad);
+  const { linkCheck } = h.load("domain/profileLinks.ts");
+  assert.equal(
+    linkCheck("naver_blog", "https://blog.naver.com/maker123"),
+    null,
+  );
+  assert.equal(linkCheck("tistory", "https://maker-demo.tistory.com/"), null);
+  assert.equal(linkCheck("velog", "https://velog.io/@maker/posts"), null);
+  assert.equal(
+    linkCheck("notion", "https://team.notion.site/portfolio?source=copy_link"),
+    null,
+  );
+  assert.equal(linkCheck("notion", "team.notion.site/"), null);
+  assert.ok(linkCheck("notion", "https://team.notion.site.example.com/page"));
+  assert.ok(linkCheck("notion", "https://www.notion.so/page"));
+  assert.ok(linkCheck("tistory", "https://maker.tistory.com@other.example"));
+  assert.ok(linkCheck("tistory", "https://tistory.com"));
+  assert.ok(linkCheck("naver_blog", "https://blog.naver.com/"));
+  assert.ok(linkCheck("github", "https://other.example/maker"));
 });

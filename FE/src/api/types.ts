@@ -11,7 +11,8 @@ export type Lang = "ko" | "en";
 export type UseState = "live" | "stop";
 /** 공개 상태: 운영자가 정한다. public 일 때는 화면에 표시하지 않는다 */
 export type PubState = "public" | "private" | "temp";
-export type LinkKind = "github" | "instagram" | "velog" | "blog" | "portfolio";
+export type LinkKind =
+  "github" | "instagram" | "velog" | "notion" | "naver_blog" | "tistory";
 export type Grade =
   "vpos" | "pos" | "mpos" | "mixed" | "mneg" | "neg" | "vneg" | "few";
 export type ThumbKind =
@@ -147,7 +148,13 @@ export interface Review {
   rate: Rate | null;
   date: string;
   text: string;
-  reply?: { id?: string; text: string; date: string; edited?: boolean };
+  reply?: {
+    id?: string;
+    text: string;
+    date: string;
+    edited?: boolean;
+    withdrawn?: boolean;
+  };
   permissions?: InteractionPermissions & { canVote: boolean };
   votes?: ReviewVotes;
   fresh?: boolean;

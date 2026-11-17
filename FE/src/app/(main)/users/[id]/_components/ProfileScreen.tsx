@@ -12,9 +12,9 @@ import { Icon } from "@/components/ui/Icon";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { fmtNum } from "@/domain/format";
 import { LINK_ICON, LINK_LABEL } from "@/domain/options";
-import { normalizeLink } from "@/domain/profileLinks";
-import { linkCheck } from "@/domain/validation";
+import { linkCheck, normalizeLink } from "@/domain/profileLinks";
 import { useWt } from "@/providers/context";
+import { MyServiceList } from "../../../mypage/_components/MyServiceList";
 
 /** 제작자 프로필: 소개·외부 링크·등록한 서비스 */
 export function ProfileScreen({ id }: { id: string }) {
@@ -33,10 +33,10 @@ export function ProfileScreen({ id }: { id: string }) {
       />
     );
   const list = wt.publicServices.filter((s) => s.owner === u.id);
-  const likes = list.reduce((a, s) => a + s.likes, 0);
+  const recommendations = list.reduce((total, s) => total + wt.agg(s).up, 0);
   const isMe = !!wt.me && wt.me.id === u.id;
   const links = u.links.filter(
-    ([, url]) => url.trim() && !linkCheck("portfolio", url),
+    ([kind, url]) => url.trim() && !linkCheck(kind, url),
   );
   return (
     <>
@@ -66,9 +66,9 @@ export function ProfileScreen({ id }: { id: string }) {
                 <b className="ml-0.5 font-extrabold text-ink">{list.length}</b>
               </span>
               <span>
-                받은 좋아요
+                받은 추천
                 <b className="ml-0.5 font-extrabold text-ink">
-                  {fmtNum(likes)}
+                  {fmtNum(recommendations)}
                 </b>
               </span>
             </div>
@@ -112,7 +112,11 @@ export function ProfileScreen({ id }: { id: string }) {
         <section className="mt-8">
           <SectionHead title="등록한 서비스" sub={`${list.length}개`} />
           {list.length ? (
-            <ServiceList items={list} />
+            isMe ? (
+              <MyServiceList key={u.id} kind="profile" items={list} />
+            ) : (
+              <ServiceList items={list} />
+            )
           ) : (
             <EmptyState
               title="공개된 서비스가 없어요"

@@ -50,10 +50,34 @@ interface Props {
 type ReactionState = Awaited<ReturnType<typeof interactionApi.reactions>>;
 type Authored<T> = { item: T; author?: User };
 
-function mergeEntries<T extends { id: string }>(previous: T[], incoming: T[]) {
+function mergeEntries<T extends { id: string; fresh?: boolean }>(
+  previous: T[],
+  incoming: T[],
+) {
   const byId = new Map(previous.map((item) => [item.id, item]));
-  for (const item of incoming) byId.set(item.id, item);
+  for (const item of incoming) {
+    byId.set(
+      item.id,
+      byId.get(item.id)?.fresh ? { ...item, fresh: true } : item,
+    );
+  }
   return [...byId.values()];
+}
+
+function rememberFresh<T extends { id: string; fresh?: boolean }>(
+  setEntries: Setter<T[]>,
+  item: T,
+) {
+  setEntries((old) => mergeEntries(old, [{ ...item, fresh: true }]));
+  window.setTimeout(
+    () =>
+      setEntries((old) =>
+        old.map((entry) =>
+          entry.id === item.id ? { ...entry, fresh: false } : entry,
+        ),
+      ),
+    3000,
+  );
 }
 
 function updateSet(set: Set<string>, id: string, on: boolean) {
@@ -122,14 +146,7 @@ export function useRealInteractions({
     async (sid: string, sort: ReviewSort, cursor?: string) => {
       const epoch = viewerEpoch.current;
       const version = reviewVersions.current.get(sid);
-      const [page, mine] = await call(() =>
-        Promise.all([
-          interactionApi.reviews(sid, sort, cursor),
-          !cursor && meId
-            ? interactionApi.myReview(sid)
-            : Promise.resolve(undefined),
-        ]),
-      );
+      const page = await call(() => interactionApi.reviews(sid, sort, cursor));
       if (
         epoch === viewerEpoch.current &&
         version === reviewVersions.current.get(sid)
@@ -141,15 +158,28 @@ export function useRealInteractions({
             page.items.map(({ item }) => item),
           ),
         );
-        if (mine !== undefined)
-          setMyReviews((old) => ({ ...old, [sid]: mine?.item ?? null }));
       }
       return {
         items: page.items.map(({ item }) => item.id),
         nextCursor: page.nextCursor,
       };
     },
-    [call, meId, rememberAuthors, setReviews, viewerEpoch],
+    [call, rememberAuthors, setReviews, viewerEpoch],
+  );
+
+  const loadMyReview = useCallback(
+    async (sid: string) => {
+      if (!realAuth || !meId) return;
+      const epoch = viewerEpoch.current;
+      const version = reviewVersions.current.get(sid);
+      const mine = await call(() => interactionApi.myReview(sid));
+      if (
+        epoch === viewerEpoch.current &&
+        version === reviewVersions.current.get(sid)
+      )
+        setMyReviews((old) => ({ ...old, [sid]: mine?.item ?? null }));
+    },
+    [call, meId, viewerEpoch],
   );
 
   const loadComments = useCallback(
@@ -299,10 +329,10 @@ export function useRealInteractions({
     }
   };
 
-  const refreshCounts = (sid: string) => {
+  const refreshCounts = (sid: string, silent = false) => {
     const version = (serviceRefreshes.current.get(sid) ?? 0) + 1;
     serviceRefreshes.current.set(sid, version);
-    void act("서비스 집계를 불러오지", async () => {
+    const update = async () => {
       const { views, clicks, likes, saves, rv, sc } =
         await interactionApi.service(sid);
       if (serviceRefreshes.current.get(sid) !== version) return;
@@ -311,7 +341,9 @@ export function useRealInteractions({
           s.id === sid ? { ...s, views, clicks, likes, saves, rv, sc } : s,
         ),
       );
-    });
+    };
+    if (silent) void update().catch(() => {});
+    else void act("서비스 집계를 불러오지", update);
   };
 
   const refreshReviews = (sid: string) => {
@@ -326,16 +358,18 @@ export function useRealInteractions({
     setCommentRevisions((old) => ({ ...old, [sid]: version }));
   };
 
-  const rememberReview = (entry: Authored<Review>) => {
+  const rememberReview = (entry: Authored<Review>, fresh = false) => {
     rememberAuthors([entry]);
-    setReviews((old) => mergeEntries(old, [entry.item]));
+    if (fresh) rememberFresh(setReviews, entry.item);
+    else setReviews((old) => mergeEntries(old, [entry.item]));
     if (entry.item.permissions?.mine)
       setMyReviews((old) => ({ ...old, [entry.item.sid]: entry.item }));
   };
 
-  const rememberComment = (entry: Authored<Comment>) => {
+  const rememberComment = (entry: Authored<Comment>, fresh = false) => {
     rememberAuthors([entry]);
-    setComments((old) => mergeEntries(old, [entry.item]));
+    if (fresh) rememberFresh(setComments, entry.item);
+    else setComments((old) => mergeEntries(old, [entry.item]));
   };
 
   const findReview = (id: string) =>
@@ -368,13 +402,9 @@ export function useRealInteractions({
     });
 
   const record = (sid: string, type: "VIEW" | "LAUNCH") => {
-    if (!me) return;
-    void act(
-      type === "VIEW" ? "조회 기록을 남기지" : "이용 기록을 남기지",
-      async () => {
-        await interactionApi.record(sid, type);
-        refreshCounts(sid);
-      },
+    void interactionApi.record(sid, type).then(
+      () => refreshCounts(sid, true),
+      () => {},
     );
   };
 
@@ -397,6 +427,7 @@ export function useRealInteractions({
     | "reviewRevision"
     | "commentRevision"
     | "loadReviews"
+    | "loadMyReview"
     | "loadComments"
     | "loadMypage"
     | "loadProfile"
@@ -431,7 +462,7 @@ export function useRealInteractions({
           const entry = await interactionApi.addReview(s.id, v, guest);
           if (!current()) return;
           if (guest) markGuestReviewed();
-          rememberReview(entry);
+          rememberReview(entry, true);
           refreshReviews(s.id);
           refreshCounts(s.id);
           toast("리뷰를 남겼어요.");
@@ -497,7 +528,7 @@ export function useRealInteractions({
         async (current) => {
           const entry = await interactionApi.addComment(s.id, v, parentId);
           if (!current()) return;
-          rememberComment(entry);
+          rememberComment(entry, true);
           refreshComments(s.id);
           toast(parentId ? "답글을 남겼어요." : "댓글을 남겼어요.");
         },
@@ -566,6 +597,7 @@ export function useRealInteractions({
     reviewRevision: (sid) => reviewRevisions[sid] ?? 0,
     commentRevision: (sid) => commentRevisions[sid] ?? 0,
     loadReviews,
+    loadMyReview,
     loadComments,
     loadMypage,
     loadProfile,

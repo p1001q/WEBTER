@@ -33,16 +33,17 @@ export function MyServiceList({
   kind,
   items,
 }: {
-  kind: "mine" | "saved";
+  kind: "mine" | "saved" | "profile";
   items: Service[];
 }) {
   const st = useListState(null, { shared: false, base: FILTER_DEFAULT_ALL });
   const [sort, setSort] = useState<MySort>("new");
   const mine = kind === "mine";
   const filtered = applyFilter(items, st.f, false);
-  const shown = mine
-    ? sortMine(filtered, sort)
-    : sortSaved(filtered, sort === "old" ? "old" : "new");
+  const shown =
+    kind === "saved"
+      ? sortSaved(filtered, sort === "old" ? "old" : "new")
+      : sortMine(filtered, sort);
   return (
     <>
       <ListToolbar

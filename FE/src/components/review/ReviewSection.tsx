@@ -5,6 +5,7 @@ import { realAuth } from "@/api/auth/config";
 import type { ReviewSort } from "@/api/real/interactionApi";
 import { CursorListControls } from "@/components/ui/CursorListControls";
 import { useCursorList } from "@/lib/useCursorList";
+import { includeFresh } from "@/lib/revealFresh";
 import type { Grade, Service } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
@@ -67,9 +68,7 @@ export function ReviewSection({
   const byId = new Map(
     wt.reviews.filter((r) => r.sid === s.id).map((r) => [r.id, r]),
   );
-  const list = realAuth
-    ? page.ids.flatMap((id) => byId.get(id) ?? [])
-    : [...byId.values()];
+  const list = realAuth ? includeFresh(byId, page.ids) : [...byId.values()];
   const isOwner = isMaker(s, wt.me?.id);
   const myReview = realAuth
     ? wt.myReview(s.id)

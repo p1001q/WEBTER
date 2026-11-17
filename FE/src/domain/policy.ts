@@ -1,5 +1,7 @@
 /* 정책 수치 · 표현 설정. 상수화는 정책 확정을 뜻하지 않는다(출처·구분은 주석 참조). */
 
+export const DEPARTED_MEMBER_NAME = "떠난 나그네";
+
 export const POLICY = {
   trendingDays: 3, // 정책서 5.5 트렌딩 최근 3일 — 확정
   popularPeriods: ["w", "m", "all"] as const,
@@ -16,7 +18,7 @@ export const POLICY = {
   iconMinPx: 512, // 정책서 4.4 권장 — 확정(권장)
   reviewMinForGrade: 5, // 정책서 6.3 — 확정
   gradeBigN: 20, // 정책서 6.3 20개 기준 — 제안값
-  scoreWeights: { click: 1, like: 3, save: 5 }, // 정책서 5.5 — 가중치 제안값
+  scoreWeights: { click: 1, recommend: 3, save: 5 },
   idMax: 30, // 정책서 2.1 — 확정(참고 규칙), 세부 미정
   idMin: 3,
   handleChangeMax: 2, // 인스타그램 방식 따라 하기 — 제안값: 14일 안에 2번까지 바꿀 수 있다

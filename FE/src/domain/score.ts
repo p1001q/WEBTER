@@ -5,7 +5,7 @@ export type ScorePeriod = "d3" | "w" | "m" | "all";
 /** 인기 점수 — R-METRIC (점수 자체는 UI에 노출하지 않음) */
 export const scoreAll = (s: Service) =>
   s.clicks * POLICY.scoreWeights.click +
-  s.likes * POLICY.scoreWeights.like +
+  s.rv.up * POLICY.scoreWeights.recommend +
   s.saves * POLICY.scoreWeights.save;
 export const scoreOf = (s: Service, period: ScorePeriod) =>
   period === "d3"

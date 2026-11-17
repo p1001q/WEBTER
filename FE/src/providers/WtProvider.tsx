@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 import { createApi } from "@/api";
 import {
@@ -109,7 +110,10 @@ export function WtProvider({
   const [toastState, setToastState] = useState<ToastContent | null>(null);
   const [viewPref, setView] = useState<ViewMode | null>(null);
   /** 트렌딩·인기·최신이 함께 쓰는 필터. 탭을 옮겨도, 사이드바에서 골라도 이어진다 */
-  const [listFilter, setListFilter] = useState<FilterState>(FILTER_DEFAULT);
+  const [editedListFilter, setEditedListFilter] = useState<{
+    viewerId: string | null;
+    filter: FilterState;
+  } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     const timer = toastTimer;
@@ -154,6 +158,27 @@ export function WtProvider({
   }, [closeOverlays]);
 
   const me = meId ? (users[meId] ?? null) : null;
+  const defaultListFilter = { ...FILTER_DEFAULT, cats: me?.interests ?? [] };
+  const listFilter =
+    editedListFilter?.viewerId === meId
+      ? editedListFilter.filter
+      : defaultListFilter;
+  const interests = me?.interests;
+  const setListFilter = useCallback(
+    (next: SetStateAction<FilterState>) => {
+      setEditedListFilter((previous) => {
+        const active =
+          previous?.viewerId === meId
+            ? previous.filter
+            : { ...FILTER_DEFAULT, cats: interests ?? [] };
+        return {
+          viewerId: meId,
+          filter: typeof next === "function" ? next(active) : next,
+        };
+      });
+    },
+    [interests, meId],
+  );
 
   const toast = useCallback(
     (msg: ToastContent["msg"], opts: ToastOptions = {}) => {
@@ -855,6 +880,7 @@ export function WtProvider({
     aiSearch: (q) => call(() => api.aiSearch(q)),
     recordAiUse: () => setAiUsed((n) => n + 1),
     myReviewReady: realActions.myReviewReady,
+    loadMyReview: realActions.loadMyReview,
     reviewRevision: realActions.reviewRevision,
     commentRevision: realActions.commentRevision,
     loadReviews: realActions.loadReviews,

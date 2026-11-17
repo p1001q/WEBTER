@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { realAuth } from "@/api/auth/config";
 import { CursorListControls } from "@/components/ui/CursorListControls";
 import { useCursorList } from "@/lib/useCursorList";
+import { includeFresh } from "@/lib/revealFresh";
 import type { Comment, Service } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
@@ -36,9 +37,9 @@ export function CommentSection({
     realAuth && wt.sessionReady,
     load,
   );
-  const byId = new Map(all.map((c) => [c.id, c]));
+  const byId = new Map(all.filter((c) => !c.parent).map((c) => [c.id, c]));
   const tops = realAuth
-    ? page.ids.flatMap((id) => byId.get(id) ?? [])
+    ? includeFresh(byId, page.ids)
     : all.filter((c) => !c.parent);
   const repliesOf = new Map<string, Comment[]>();
   for (const c of all)
