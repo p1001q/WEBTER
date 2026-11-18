@@ -22,6 +22,7 @@ import type { ReviewAgg } from "@/domain/review";
 import type { RouteName, RouteParams } from "@/lib/routes";
 
 export type ViewMode = "card" | "list";
+export type MyReviewStatus = "idle" | "loading" | "ready" | "error";
 
 export type ModalState =
   | { type: "login"; reason?: string }
@@ -109,7 +110,8 @@ export interface WtStore {
   setVote: (sid: string, rate: "up" | "down" | null) => void;
   /** 내가 이 서비스에 남긴 리뷰(의견까지 남긴 평가). 없으면 undefined */
   myReview: (sid: string) => Review | undefined;
-  myReviewReady: (sid: string) => boolean;
+  myReviewStatus: (sid: string) => MyReviewStatus;
+  loadMyReview: (sid: string) => Promise<void>;
   reviewRevision: (sid: string) => number;
   commentRevision: (sid: string) => number;
   loadReviews: (

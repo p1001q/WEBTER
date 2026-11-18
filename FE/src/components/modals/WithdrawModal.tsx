@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { checkClass } from "@/components/ui/field";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
+import { DEPARTED_MEMBER_NAME } from "@/domain/policy";
 import { useWt } from "@/providers/context";
 import {
   modalActionButton,
@@ -25,13 +26,15 @@ export function WithdrawModal({ onClose }: { onClose: () => void }) {
       <h3 id={hid}>정말 탈퇴할까요?</h3>
       <ul className="mt-2 list-disc pl-[18px] text-14 leading-[1.8] text-text-2">
         <li>
-          등록한 서비스는 모두 <b>삭제</b>돼요.
+          팀원이 없는 내 서비스는 <b>삭제</b>돼요. 팀원이 있는 서비스는 가장
+          먼저 합류한 팀원이 등록자가 돼요.
         </li>
         <li>
-          작성한 리뷰는 지워지지 않고 <b>“탈퇴한 사용자”</b>로 표시돼요.
+          남아 있는 서비스에 작성한 리뷰와 댓글은{" "}
+          <b>“{DEPARTED_MEMBER_NAME}”</b> 이름으로 남아요.
         </li>
         <li>
-          좋아요와 저장 기록은 <b>삭제</b>돼요.
+          저장 기록은 <b>삭제</b>돼요.
         </li>
       </ul>
       <label className={`${checkClass} mt-4`}>

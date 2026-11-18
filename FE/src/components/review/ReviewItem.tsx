@@ -12,6 +12,7 @@ import { MakerBadge } from "@/components/ui/MakerBadge";
 import { MiniButton } from "@/components/ui/MiniButton";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { fmtDate } from "@/domain/format";
+import { DEPARTED_MEMBER_NAME } from "@/domain/policy";
 import { authorName, hasLink } from "@/domain/review";
 import { cx } from "@/lib/cx";
 import { isMaker } from "@/domain/maker";
@@ -144,7 +145,11 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
         <div className="ml-8 flex flex-col gap-1.5 rounded-md border border-border bg-card px-4 py-3.5 @max-[560px]/app:ml-4">
           <div className="flex flex-wrap items-center gap-2 text-13">
             <Icon name="reply" size={14} />
-            <b>{wt.users[s.owner]?.nick}</b>
+            <b className={r.reply.withdrawn ? "text-muted" : undefined}>
+              {r.reply.withdrawn
+                ? DEPARTED_MEMBER_NAME
+                : wt.users[s.owner]?.nick}
+            </b>
             <MakerBadge />
             <span className="text-12 text-muted">
               {fmtDate(r.reply.date)}

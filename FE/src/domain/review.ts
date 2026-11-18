@@ -1,5 +1,5 @@
 import type { Grade, Review, ReviewCounts, Service, User } from "@/api/types";
-import { POLICY } from "./policy";
+import { DEPARTED_MEMBER_NAME, POLICY } from "./policy";
 
 export const GRADE_LABEL: Record<Grade, string> = {
   vpos: "매우 긍정적",
@@ -69,7 +69,7 @@ export const authorName = (a: Review["a"], users: Record<string, User>) =>
     : a.kind === "anon"
       ? "익명"
       : a.kind === "left"
-        ? "탈퇴한 사용자"
+        ? DEPARTED_MEMBER_NAME
         : a.uid && users[a.uid]
           ? users[a.uid].nick
           : "알 수 없음";

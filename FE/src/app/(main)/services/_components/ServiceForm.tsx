@@ -84,6 +84,7 @@ export function ServiceForm({
       : { state: "idle" },
   );
   const [tagIn, setTagIn] = useState("");
+  const composingTag = useRef(false);
   const [touched, setTouched] = useState(false);
   /** 진행 중인 접속 검사 번호. 주소를 고치거나 화면을 떠나면 올려서 이전 결과를 버린다 */
   const checkRun = useRef(0);
@@ -168,8 +169,8 @@ export function ServiceForm({
   ];
   const done = required.filter((r) => r[1]).length;
   const canSubmit = done === required.length && !ghErr && !limitHit;
-  const addTag = () => {
-    const t = tagIn.trim().replace(/^#/, "");
+  const addTag = (input: string) => {
+    const t = input.trim().replace(/^#/, "");
     if (!t || f.tags.includes(t) || f.tags.length >= POLICY.maxTags) {
       setTagIn("");
       return;
@@ -589,13 +590,29 @@ export function ServiceForm({
                       className="h-[30px] min-w-[120px] flex-1 border-0 bg-transparent text-14 outline-0"
                       value={tagIn}
                       onChange={(e) => setTagIn(e.target.value)}
+                      onCompositionStart={() => {
+                        composingTag.current = true;
+                      }}
+                      onCompositionEnd={(e) => {
+                        composingTag.current = false;
+                        setTagIn(e.currentTarget.value);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === ",") {
+                          if (
+                            composingTag.current ||
+                            e.nativeEvent.isComposing ||
+                            e.nativeEvent.keyCode === 229
+                          )
+                            return;
                           e.preventDefault();
-                          addTag();
+                          addTag(e.currentTarget.value);
                         }
                       }}
-                      onBlur={addTag}
+                      onBlur={(e) => {
+                        if (!composingTag.current)
+                          addTag(e.currentTarget.value);
+                      }}
                       placeholder="예: 2인용"
                     />
                   )}

@@ -77,7 +77,7 @@ export function ServiceRow({ s, rank, reason, hover }: ServiceItemProps) {
         </div>
         <ServiceStats
           s={s}
-          liked={wt.likes.has(s.id)}
+          recommendations={agg.up}
           saved={wt.saves.has(s.id)}
           className="@max-[560px]/app:hidden"
         />

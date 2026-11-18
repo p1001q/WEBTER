@@ -269,6 +269,29 @@ class AuthApiTests extends IntegrationTest {
 	}
 
 	@Test
+	void emptyProfileFieldsAreGeneratedIndependently() throws Exception {
+		mockMvc.perform(post("/api/auth/signup").with(pending("sub-random-both"))
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(body("", "", "[]", CONSENTS))).andExpect(status().isCreated());
+		mockMvc.perform(post("/api/auth/signup").with(pending("sub-random-handle"))
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(body("", "내 닉네임", "[]", CONSENTS))).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.member.nickname").value("내 닉네임"));
+		mockMvc.perform(post("/api/auth/signup").with(pending("sub-random-nick"))
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(body("my_handle", "", "[]", CONSENTS))).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.member.username").value("my_handle"));
+
+		assertThat(jdbc.queryForList("SELECT DISTINCT username FROM users WHERE username <> 'my_handle'", String.class))
+			.hasSize(2).allMatch(username -> username.matches("user[a-f0-9]{24}"));
+		assertThat(jdbc.queryForList("SELECT nickname FROM users WHERE nickname <> '내 닉네임'", String.class))
+			.hasSize(2).allMatch(nickname -> nickname.matches("유저[0-9]{6}"));
+	}
+
+	@Test
 	void usernameAndNicknameFormatsAreValidated() throws Exception {
 		for (String username : List.of("ab", "has space", ".lead", "trail.", "dou..ble", "___", "한글아이디",
 				"a".repeat(31))) {

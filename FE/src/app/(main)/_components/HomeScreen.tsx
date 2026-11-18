@@ -46,7 +46,7 @@ export function HomeScreen() {
       items: prio(
         [...live].sort((a, b) => scoreOf(b, "d3") - scoreOf(a, "d3")),
       ).slice(0, n),
-      rank: !interests.length,
+      rank: true,
     },
     popular: {
       title: "이번 달 인기 서비스",
@@ -55,7 +55,7 @@ export function HomeScreen() {
       items: prio(
         [...live].sort((a, b) => scoreOf(b, "m") - scoreOf(a, "m")),
       ).slice(0, n),
-      rank: !interests.length,
+      rank: true,
     },
     latest: {
       title: "새로 등록된 서비스",

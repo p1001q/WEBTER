@@ -187,9 +187,9 @@ export function ManageScreen() {
                       <Icon name="click" size={14} />
                       {fmt(s.clicks)}
                     </span>
-                    <span title="좋아요" className="w-[54px]">
-                      <Icon name="heart" size={14} />
-                      {fmt(s.likes)}
+                    <span title="추천" className="w-[54px]">
+                      <Icon name="thumbUp" size={14} />
+                      {fmt(agg.up)}
                     </span>
                     <span title="저장" className="w-[54px]">
                       <Icon name="bookmark" size={14} />

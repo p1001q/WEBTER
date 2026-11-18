@@ -5,6 +5,7 @@ import { realAuth } from "@/api/auth/config";
 import type { ReviewSort } from "@/api/real/interactionApi";
 import { CursorListControls } from "@/components/ui/CursorListControls";
 import { useCursorList } from "@/lib/useCursorList";
+import { includeFresh } from "@/lib/revealFresh";
 import type { Grade, Service } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { boxClass } from "@/components/ui/box";
@@ -17,7 +18,7 @@ import { cx } from "@/lib/cx";
 import { useTween } from "@/lib/useTween";
 import { isMaker } from "@/domain/maker";
 import { useWt } from "@/providers/context";
-import { RatingVote } from "./RatingVote";
+import { RatingVote, RetryMyReview } from "./RatingVote";
 import { ReviewListSkeleton } from "./ReviewListSkeleton";
 import { RatioBar } from "./RatioBar";
 import { ReviewForm } from "./ReviewForm";
@@ -67,9 +68,7 @@ export function ReviewSection({
   const byId = new Map(
     wt.reviews.filter((r) => r.sid === s.id).map((r) => [r.id, r]),
   );
-  const list = realAuth
-    ? page.ids.flatMap((id) => byId.get(id) ?? [])
-    : [...byId.values()];
+  const list = realAuth ? includeFresh(byId, page.ids) : [...byId.values()];
   const isOwner = isMaker(s, wt.me?.id);
   const myReview = realAuth
     ? wt.myReview(s.id)
@@ -77,7 +76,15 @@ export function ReviewSection({
   const guestDone = !wt.me && wt.guestReviewed.has(s.id);
   const formBox = `${boxClass} my-6 flex flex-col gap-3 p-6`;
   let form;
-  if (realAuth && (!wt.sessionReady || !wt.myReviewReady(s.id))) form = null;
+  const myReviewStatus = realAuth ? wt.myReviewStatus(s.id) : "ready";
+  if (myReviewStatus === "error")
+    form = (
+      <div className="my-5">
+        <RetryMyReview sid={s.id} />
+      </div>
+    );
+  else if (realAuth && (!wt.sessionReady || myReviewStatus !== "ready"))
+    form = null;
   else if (myReview)
     form = (
       <Note tone="navy" className="my-5">

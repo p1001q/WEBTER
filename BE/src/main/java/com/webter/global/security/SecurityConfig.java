@@ -67,6 +67,8 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.requestMatchers(HttpMethod.POST, "/api/services/*/reviews/guest").anonymous()
+				.requestMatchers(HttpMethod.POST, "/api/services/*/events/VIEW", "/api/services/*/events/LAUNCH")
+				.permitAll()
 				.requestMatchers("/api/auth/signup", "/api/auth/username-available")
 				.hasRole(SessionPrincipal.ROLE_SIGNUP_PENDING)
 				// 그 밖의 API는 가입을 완료한 회원만 쓴다. 가입 대기 상태는 회원 권한이 없다.

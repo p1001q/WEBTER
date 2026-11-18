@@ -1,9 +1,9 @@
 package com.webter.domain.stats.controller;
 
-import static com.webter.domain.reaction.service.ServiceInteractionAccess.viewerId;
-
 import com.webter.domain.stats.entity.EventType;
 import com.webter.domain.stats.service.ServiceEventService;
+import com.webter.global.exception.BusinessException;
+import com.webter.global.exception.CommonErrorCode;
 import com.webter.global.response.ApiResponse;
 import com.webter.global.security.SessionPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,8 +23,12 @@ public class ServiceEventController {
 
 	@PostMapping("/{type}")
 	public ApiResponse<Void> record(@PathVariable long serviceId, @PathVariable EventType type,
-			@AuthenticationPrincipal SessionPrincipal.Member member, HttpServletRequest request) {
-		events.record(serviceId, viewerId(member), type, request.getRemoteAddr());
+			@AuthenticationPrincipal SessionPrincipal principal, HttpServletRequest request) {
+		if (principal instanceof SessionPrincipal.PendingSignup) {
+			throw new BusinessException(CommonErrorCode.FORBIDDEN);
+		}
+		events.record(serviceId, principal instanceof SessionPrincipal.Member member ? member.userId() : null,
+			type, request.getRemoteAddr());
 		return ApiResponse.ok();
 	}
 

@@ -136,17 +136,20 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       return clone({ users, session });
     },
     signup: async ({ handle, nick, interests }) => {
-      const key = handle.toLowerCase();
-      if (
+      const exists = (key: string) =>
         takenHandles.includes(key) ||
-        Object.values(users).some((x) => x.handle.toLowerCase() === key)
-      )
-        throw new Error("이미 사용 중인 아이디예요.");
+        Object.values(users).some((x) => x.handle.toLowerCase() === key);
+      let key = handle.toLowerCase();
+      if (key && exists(key)) throw new Error("이미 사용 중인 아이디예요.");
+      while (!key || exists(key))
+        key = `user${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`;
       const id = "u_new";
       users[id] = {
         id,
-        nick,
-        handle: handle.toLowerCase(),
+        nick:
+          nick ||
+          `유저${String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0")}`,
+        handle: key,
         color: "#E3E8F0",
         bio: "",
         links: [],

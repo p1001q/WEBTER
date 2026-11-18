@@ -1,6 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import type { Service } from "@/api/types";
+import {
+  RetryMyReview,
+  useServiceRating,
+} from "@/components/review/RatingVote";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -16,7 +21,7 @@ const meta =
   "mr-3 inline-flex items-center gap-1 border-r border-border pr-3 last:border-r-0";
 const ctaButton = "h-10! rounded-md! px-2.5!";
 
-/** 상세 상단: 아이콘·이름·분류·메타·제작자와 이용하기·좋아요·저장 */
+/** 상세 상단: 아이콘·이름·분류·메타·제작자와 이용하기·추천·저장 */
 export function ServiceOverview({
   s,
   isOwner,
@@ -26,19 +31,20 @@ export function ServiceOverview({
 }) {
   const wt = useWt();
   const owner = wt.users[s.owner];
-  const liked = wt.likes.has(s.id);
   const saved = wt.saves.has(s.id);
   const down = s.use === "stop";
-  const react = (kind: "like" | "save") => {
+  const rating = useServiceRating(s);
+  const recommended = rating.current === "up";
+  const count = wt.agg(s).up;
+  const { loadMyReview } = wt;
+  useEffect(() => {
+    void loadMyReview(s.id);
+  }, [loadMyReview, s.id]);
+  const save = () => {
     if (isOwner) return;
     wt.requireLogin(
-      () => {
-        if (kind === "like") wt.toggleLike(s.id);
-        else wt.toggleSave(s.id);
-      },
-      kind === "like"
-        ? "좋아요는 로그인한 회원만 누를 수 있어요."
-        : "저장은 로그인한 회원만 할 수 있어요.",
+      () => wt.toggleSave(s.id),
+      "저장은 로그인한 회원만 할 수 있어요.",
     );
   };
   return (
@@ -131,18 +137,16 @@ export function ServiceOverview({
             variant="ghost"
             className={cx(
               ctaButton,
-              liked && "border-like! bg-wine-50! text-like!",
+              recommended && "border-navy! bg-navy-50! text-navy!",
             )}
-            aria-label={`좋아요 ${s.likes.toLocaleString("ko-KR")}개`}
-            aria-pressed={liked}
-            disabled={isOwner}
-            title={
-              isOwner ? "본인 서비스에는 좋아요를 할 수 없어요" : undefined
-            }
-            onClick={() => react("like")}
+            aria-label={`추천 ${fmt(count)}개`}
+            aria-pressed={recommended}
+            disabled={!!rating.disabledReason}
+            title={rating.disabledReason}
+            onClick={() => rating.select("up")}
           >
-            <Icon name="heart" size={16} fill={liked} />
-            {fmt(s.likes)}
+            <Icon name="thumbUp" size={16} />
+            추천 {fmt(count)}
           </Button>
           <Button
             variant="ghost"
@@ -153,7 +157,7 @@ export function ServiceOverview({
             aria-pressed={saved}
             disabled={isOwner}
             title={isOwner ? "본인 서비스는 저장할 수 없어요" : undefined}
-            onClick={() => react("save")}
+            onClick={save}
           >
             <Icon name="bookmark" size={16} fill={saved} />
             {saved ? "저장됨" : "저장"}
@@ -177,9 +181,12 @@ export function ServiceOverview({
             </IconButton>
           ) : null}
         </div>
+        {wt.me && wt.myReviewStatus(s.id) === "error" && (
+          <RetryMyReview sid={s.id} />
+        )}
         {isOwner && (
           <p className="m-0 text-12 text-muted">
-            본인 서비스에는 좋아요·저장을 할 수 없어요.
+            본인 서비스에는 평가와 저장을 할 수 없어요.
           </p>
         )}
         <p className="mt-0.5 mb-0 text-12 leading-[1.5] text-muted">

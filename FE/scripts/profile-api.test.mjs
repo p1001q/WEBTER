@@ -26,6 +26,7 @@ test("프로필의 웹 링크를 새 탭으로 연결하고 지원하지 않는 
     links: [
       { kind: "github", url: "https://github.com/example-user" },
       { kind: "velog", url: "velog.io/@example-user/posts" },
+      { kind: "github", url: "https://example.org/profile" },
       { kind: "portfolio", url: "javascript:alert(1)" },
     ],
   });
@@ -60,8 +61,9 @@ test("서버 프로필을 화면용 사용자로 바꾼다(소개·외부 링크
     avatarUrl: "https://images.example.test/uploads/photo.png",
     bio: "작은 도구를 만들어요",
     links: [
-      { kind: "blog", url: "https://blog.example.test" },
       { kind: "github", url: "https://github.com/maker" },
+      { kind: "blog", url: "https://maker.tistory.com" },
+      { kind: "portfolio", url: "https://other.example" },
     ],
     serviceCount: 2,
     receivedLikes: 5,
@@ -72,8 +74,8 @@ test("서버 프로필을 화면용 사용자로 바꾼다(소개·외부 링크
   assert.equal(u.bio, "작은 도구를 만들어요");
   assert.equal(u.avatarImg, "https://images.example.test/uploads/photo.png");
   assert.deepEqual(u.links, [
-    ["blog", "https://blog.example.test"],
     ["github", "https://github.com/maker"],
+    ["tistory", "https://maker.tistory.com"],
   ]);
 });
 

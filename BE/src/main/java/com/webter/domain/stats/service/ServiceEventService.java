@@ -26,23 +26,26 @@ public class ServiceEventService {
 
 	@Transactional
 	public void record(long serviceId, UUID viewerId, EventType type, String remoteAddress) {
-		var context = access.write(serviceId, viewerId);
+		var member = viewerId == null ? null : access.write(serviceId, viewerId);
+		var service = member == null ? access.lockPublic(serviceId) : member.service();
 		Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
 		String ipKey = ipHmac.hash(remoteAddress);
-		String actorKey = "user:" + viewerId;
+		String ipActor = "ip:" + ipKey;
+		String actorKey = viewerId == null ? ipActor : "user:" + viewerId;
 		String reason = null;
-		if (context.maker()) {
+		if (member != null && member.maker()) {
 			reason = "SELF";
 		}
 		else if (type == EventType.LAUNCH) {
 			// 회원과 IP는 별도 주체다. 한쪽이 제한 중이어도 다른 쪽의 기준 도달은 따로 판단한다.
-			boolean actorBlocked = blocked(serviceId, Key.ACTOR, actorKey, actorKey, now);
-			boolean ipBlocked = blocked(serviceId, Key.IP, ipKey, "ip:" + ipKey, now);
+			boolean actorBlocked = viewerId != null && blocked(serviceId, Key.ACTOR, actorKey, actorKey, now);
+			boolean ipBlocked = blocked(serviceId, Key.IP, ipKey, ipActor, now);
 			if (actorBlocked || ipBlocked) {
 				reason = "LAUNCH_RATE_LIMIT";
 			}
 		}
-		events.save(ServiceEvent.record(context.service(), context.member(), actorKey, ipKey, type, now, reason));
+		events.save(ServiceEvent.record(service, member == null ? null : member.member(), actorKey, ipKey, type, now,
+			reason));
 	}
 
 	private boolean blocked(long serviceId, Key key, String value, String blockKey, Instant now) {
