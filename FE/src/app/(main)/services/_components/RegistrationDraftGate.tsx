@@ -81,7 +81,20 @@ export function RegistrationDraftGate({
                   setDraft(null);
                   setReady(true);
                 } catch (error) {
-                  setError(toApiError(error).message);
+                  const failure = toApiError(error);
+                  if (failure.code === "DRAFT_409_01") {
+                    setDraft(undefined);
+                    try {
+                      const latest = await api.get();
+                      setDraft(latest);
+                      setError(
+                        "다른 화면에서 초안이 변경됐어요. 최신 내용을 확인하고 다시 선택해 주세요.",
+                      );
+                      if (!latest) setReady(true);
+                    } catch (reloadError) {
+                      setError(toApiError(reloadError).message);
+                    }
+                  } else setError(failure.message);
                 } finally {
                   setDiscarding(false);
                 }

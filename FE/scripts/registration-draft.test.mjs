@@ -190,3 +190,86 @@ test("새로 작성은 삭제 성공 후 열고, 삭제 실패 때는 기존 임
   assert.deepEqual(discarded, ["v1", "v1"]);
   h.dispose();
 });
+
+test("제출 대기 중 값을 바꿔도 검증했던 주소와 동의 스냅샷을 사용", async (t) => {
+  const restore = browser(t);
+  const pending = deferred();
+  const { h, render, form } = draftHook({ save: () => pending.promise });
+  t.after(() => {
+    h.dispose();
+    restore();
+  });
+  render();
+  const verified = { ...form, url: "https://verified.example", agree: true };
+  const controller = render(verified);
+  const saving = controller.save();
+  await settle();
+  const preparing = controller.prepare(verified);
+  render({ ...verified, url: "https://unverified.example", agree: false });
+  pending.resolve({ revision: "saved-v1" });
+  await saving;
+  const result = await preparing;
+  assert.equal(result.form.url, "https://verified.example");
+  assert.equal(result.form.agree, true);
+  assert.equal(result.revision, "saved-v1");
+});
+
+test("목업 저장소 조회 오류도 동기 예외 대신 Promise rejection으로 전달", async (t) => {
+  const before = globalThis.localStorage;
+  globalThis.localStorage = {
+    getItem() {
+      throw new Error("저장소 접근 불가");
+    },
+  };
+  t.after(() => {
+    globalThis.localStorage = before;
+  });
+  const h = harness({
+    "../auth/config": { realAuth: false },
+    "../auth/http": {},
+    "./imageUpload": {},
+  });
+  const { registrationDraftApi } = h.load("api/real/registrationDraftApi.ts");
+  let result;
+  assert.doesNotThrow(() => {
+    result = registrationDraftApi("u1").get();
+  });
+  await assert.rejects(result, /저장소 접근 불가/);
+});
+
+test("초안 삭제 충돌은 최신 초안을 다시 보여주고 재선택 전에 삭제하지 않음", async () => {
+  const old = { revision: "v1", payload: { name: "이전 초안" } };
+  const latest = { revision: "v2", payload: { name: "최신 초안" } };
+  let reads = 0,
+    deletes = 0;
+  const h = harness({
+    "@/api/real/registrationDraftApi": {
+      registrationDraftApi: () => ({
+        get: async () => (++reads === 1 ? old : latest),
+        discard: async () => {
+          deletes++;
+          throw new ApiError("rule", "충돌", "DRAFT_409_01");
+        },
+      }),
+    },
+    "@/providers/context": { useWt: () => ({ back() {} }) },
+  });
+  const { ApiError } = h.load("api/errors.ts");
+  const { RegistrationDraftGate } = h.load(
+    folder + "RegistrationDraftGate.tsx",
+  );
+  const props = {
+    userId: "u1",
+    children: ({ initial }) => ({ type: "editor", props: { initial } }),
+  };
+  const render = () => h.render(RegistrationDraftGate, props);
+  render();
+  await settle();
+  await button(render(), "새로 작성").props.onClick();
+  assert.match(text(render()), /최신 초안/);
+  assert.equal(reads, 2);
+  assert.equal(deletes, 1);
+  button(render(), "이어서 작성").props.onClick();
+  assert.equal(render().props.initial.revision, "v2");
+  h.dispose();
+});

@@ -218,7 +218,7 @@ export function ServiceFormEditor({
     let draftRevision: string | undefined;
     if (draft) {
       try {
-        const prepared = await draftSave.prepare();
+        const prepared = await draftSave.prepare(f);
         readyForm = prepared.form;
         draftRevision = prepared.revision;
       } catch (error) {

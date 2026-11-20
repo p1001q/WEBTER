@@ -152,18 +152,16 @@ export function useRegistrationDraft(
     automatic,
     error,
     save,
-    prepare: async () => {
+    prepare: async (snapshot: FormState) => {
       paused.current = true;
       await request.current;
       try {
-        const payload = await resolveImages(
-          payloadOf(live.current.form, live.current.tagInput),
-        );
+        const payload = await resolveImages(payloadOf(snapshot, ""));
         const { tagInput: _tag, scrollY: _scroll, ...fields } = payload;
         void _tag;
         void _scroll;
         return {
-          form: { ...fields, agree: live.current.form.agree },
+          form: { ...fields, agree: snapshot.agree },
           revision: revision.current ?? undefined,
         };
       } catch (error) {

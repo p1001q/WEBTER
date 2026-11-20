@@ -34,7 +34,7 @@ export function registrationDraftApi(userId: string): RegistrationDraftApi {
       "DRAFT_409_01",
     );
   return {
-    get: () =>
+    get: async () =>
       realAuth
         ? getJson<RegistrationDraft | null>(path)
         : Promise.resolve(read()),
