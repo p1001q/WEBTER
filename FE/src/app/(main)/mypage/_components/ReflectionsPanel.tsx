@@ -45,7 +45,7 @@ export function ReflectionsPanel({ active = true }: { active?: boolean }) {
           }}
         />
       </div>
-      <div hidden={tab !== "list"}>
+      <div hidden={tab !== "list"} className="pt-6">
         <ReflectionsHome
           key={userId}
           userId={userId}
