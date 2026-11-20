@@ -71,7 +71,7 @@ test("서비스 등록 화면은 당일 3·4개까지 추가 등록을 허용하
   const wt = { todayCount: 3, svc: () => service(), me: { id: "u-1" } };
   const h = harness({ "@/providers/context": { useWt: () => wt } });
   t.after(() => h.dispose());
-  const { ServiceForm } = h.load(
+  const { ServiceFormEditor: ServiceForm } = h.load(
     "app/(main)/services/_components/ServiceForm.tsx",
   );
   const { RegisteredScreen } = h.load(

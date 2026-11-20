@@ -48,6 +48,7 @@ export function toServiceRequest(s: ServiceFields) {
     allowAnonymousComments: s.allowAnonComment,
     // 등록 화면은 동의 확인을 마쳐야 제출할 수 있다
     agreeRegistration: true,
+    registrationDraftRevision: s.registrationDraftRevision,
   };
 }
 

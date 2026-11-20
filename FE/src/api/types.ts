@@ -213,7 +213,37 @@ export type ServiceInput = Pick<
   | "allowGuest"
   | "allowAnon"
   | "allowAnonComment"
-> & { iconImg: string | null; thumbImg: string | null };
+> & {
+  iconImg: string | null;
+  thumbImg: string | null;
+  registrationDraftRevision?: string;
+};
+
+/** 등록 화면의 미완성 입력. 실제 서비스 등록 DTO와 달리 빈 값을 허용한다. */
+export interface RegistrationFormState {
+  name: string;
+  tagline: string;
+  url: string;
+  cats: CategoryId[];
+  type: ProjectType | "";
+  devices: Device[];
+  price: Price | "";
+  owner: OwnerKind | "";
+  team: string;
+  desc: string;
+  tags: string[];
+  github: string;
+  langs: Lang[];
+  iconImg: string | null;
+  thumbImg: string | null;
+  pv: string[];
+  pvRatio: "land" | "port";
+  pvFit: "cover" | "contain";
+  allowGuest: boolean;
+  allowAnon: boolean;
+  allowAnonComment: boolean;
+  agree: boolean;
+}
 
 export interface SessionState {
   meId: string | null;
