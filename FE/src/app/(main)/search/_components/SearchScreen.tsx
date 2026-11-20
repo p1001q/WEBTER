@@ -13,6 +13,7 @@ import { helpClass } from "@/components/ui/field";
 import { Icon } from "@/components/ui/Icon";
 import { Note } from "@/components/ui/Note";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Tabs } from "@/components/ui/Tabs";
 import { applyFilter } from "@/domain/filter";
 import { POLICY } from "@/domain/policy";
 import { isNatural, keywordSearch } from "@/domain/search";
@@ -22,6 +23,7 @@ import { ListHead } from "../../_components/ListHead";
 import { ListToolbar } from "../../_components/ListToolbar";
 import { SearchExamples } from "../../_components/SearchExamples";
 import { useListState, type ListState } from "../../_components/useListState";
+import { MemberResults } from "./MemberResults";
 
 type Sort = "rel" | "pop" | "new";
 type Ai = AiSearchResult & { left: number };
@@ -63,6 +65,37 @@ export function SearchScreen({ q }: { q: string }) {
 }
 
 function SearchResults({
+  q,
+  ...props
+}: {
+  q: string;
+  st: ListState;
+  sort: Sort;
+  setSort: (s: Sort) => void;
+}) {
+  const [tab, setTab] = useState<"services" | "members">("services");
+  return (
+    <>
+      <ListHead title={<>“{q}” 검색 결과</>} variant="result" />
+      <div className="mb-5">
+        <Tabs
+          value={tab}
+          onChange={setTab}
+          items={[
+            ["services", "서비스"],
+            ["members", "회원"],
+          ]}
+        />
+      </div>
+      <div hidden={tab !== "services"}>
+        <ServiceResults q={q} {...props} />
+      </div>
+      {tab === "members" && <MemberResults q={q} />}
+    </>
+  );
+}
+
+function ServiceResults({
   q,
   st,
   sort,
@@ -174,7 +207,6 @@ function SearchResults({
   if (!mode) return null;
   return (
     <>
-      <ListHead title={<>“{q}” 검색 결과</>} variant="result" />
       {mode === "ai" && ai && (
         <div
           className="mb-6 flex flex-col gap-2.5 rounded-md border border-border bg-card px-[18px] py-4"
