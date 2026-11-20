@@ -39,13 +39,13 @@ export function SearchBar({
     >
       <Icon name="search" size={20} className="text-muted" />
       <label htmlFor={id} className="sr-only">
-        서비스 검색
+        서비스·회원 검색
       </label>
       <input
         id={id}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="어떤 웹 서비스를 찾고 계신가요?"
+        placeholder="서비스, 회원 아이디·닉네임 검색"
         autoFocus={autoFocus}
         className={cx(
           "min-w-0 flex-1 bg-transparent px-0.5 py-px text-ink outline-none placeholder:text-placeholder",

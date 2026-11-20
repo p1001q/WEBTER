@@ -14,7 +14,7 @@ import { RouteLink } from "@/components/ui/RouteLink";
 import { commentAuthorName } from "@/domain/comment";
 import { fmtDate } from "@/domain/format";
 import { cx } from "@/lib/cx";
-import { useRevealWhenFresh } from "@/lib/revealFresh";
+import { includeFresh, useRevealWhenFresh } from "@/lib/revealFresh";
 import { useWt } from "@/providers/context";
 import { CommentForm } from "./CommentForm";
 
@@ -64,7 +64,7 @@ export function CommentItem({
       .map((comment) => [comment.id, comment]),
   );
   const loadedReplies = realAuth
-    ? page.ids.flatMap((id) => byId.get(id) ?? [])
+    ? includeFresh(byId, page.ids)
     : (replies ?? []);
   const u = c.a.uid ? wt.users[c.a.uid] : undefined;
   const showUser = c.a.kind === "member" && !!u;
@@ -135,9 +135,11 @@ export function CommentItem({
                   삭제
                 </MiniButton>
               )}
-              <ReportButton
-                target={{ targetType: "COMMENT", targetId: c.id }}
-              />
+              {!mine && (
+                <ReportButton
+                  target={{ targetType: "COMMENT", targetId: c.id }}
+                />
+              )}
             </span>
           </div>
           <p className={text}>{c.text}</p>

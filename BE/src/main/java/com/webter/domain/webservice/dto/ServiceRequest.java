@@ -28,7 +28,7 @@ public record ServiceRequest(
 		List<LanguageCode> languages, String iconUrl, String thumbnailUrl, PreviewRatio previewRatio,
 		PreviewFit previewFit, @Size(max = 8, message = "미리보기 이미지는 최대 8장입니다.") List<String> previewImages,
 		Boolean allowGuestReviews, Boolean allowAnonymousReviews, Boolean allowAnonymousComments,
-		Boolean agreeRegistration) {
+		Boolean agreeRegistration, java.util.UUID registrationDraftRevision) {
 
 	// 보내지 않은 항목은 허용하지 않음(false)으로 본다
 	public boolean guestReviews() {

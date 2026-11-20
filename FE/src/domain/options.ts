@@ -87,15 +87,17 @@ export const LINK_ICON: Record<LinkKind, string> = {
   github: "github",
   instagram: "instagram",
   velog: "pen",
-  blog: "globe",
-  portfolio: "briefcase",
+  notion: "list",
+  naver_blog: "globe",
+  tistory: "pen",
 };
 export const LINK_LABEL: Record<LinkKind, string> = {
   github: "GitHub",
   instagram: "Instagram",
   velog: "Velog",
-  blog: "블로그",
-  portfolio: "포트폴리오",
+  notion: "Notion",
+  naver_blog: "네이버 블로그",
+  tistory: "티스토리",
 };
 
 export const STATE_LABEL: Record<UseState | PubState, string> = {

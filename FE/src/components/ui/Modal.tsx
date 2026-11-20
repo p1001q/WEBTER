@@ -26,15 +26,17 @@ export function Modal({
   const ref = useRef<HTMLDivElement>(null);
   // Esc 핸들러는 열릴 때 한 번만 걸리므로 최신 값은 ref 로 읽는다
   const lockedRef = useRef(locked);
+  const closeRef = useRef(onClose);
   useEffect(() => {
     lockedRef.current = locked;
+    closeRef.current = onClose;
   });
   const dismiss = () => {
     if (!locked) onClose();
   };
   useEffect(() => {
     const h = (e: KeyboardEvent) =>
-      e.key === "Escape" && !lockedRef.current && onClose();
+      e.key === "Escape" && !lockedRef.current && closeRef.current();
     window.addEventListener("keydown", h);
     const prev = document.activeElement as HTMLElement | null;
     ref.current
@@ -48,7 +50,6 @@ export function Modal({
       prev?.focus?.();
     };
     // 열릴 때 한 번만 포커스를 옮기고 키 핸들러를 건다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { harness } from "./helpers/uiHarness.mjs";
+import { harness, nodes, text } from "./helpers/uiHarness.mjs";
 
 const calls = [];
 const respond = { value: {} };
@@ -65,6 +65,31 @@ const service = (over = {}) => ({
   allowAnonComment: true,
   versions: [],
   ...over,
+});
+
+test("서비스 등록 화면은 당일 3·4개까지 추가 등록을 허용하고 5개부터 안내한다", (t) => {
+  const wt = { todayCount: 3, svc: () => service(), me: { id: "u-1" } };
+  const h = harness({ "@/providers/context": { useWt: () => wt } });
+  t.after(() => h.dispose());
+  const { ServiceFormEditor: ServiceForm } = h.load(
+    "app/(main)/services/_components/ServiceForm.tsx",
+  );
+  const { RegisteredScreen } = h.load(
+    "app/(main)/services/[id]/registered/_components/RegisteredScreen.tsx",
+  );
+  for (const count of [3, 4]) {
+    wt.todayCount = count;
+    const tree = h.render(ServiceForm, { mode: "new" });
+    assert.equal(
+      nodes(tree, (n) => n.props?.["data-component"] === "daily-limit").length,
+      0,
+    );
+  }
+  wt.todayCount = 5;
+  const limit = h.render(ServiceForm, { mode: "new" });
+  assert.match(text(limit), /오늘은 서비스를 5개까지 등록할 수/);
+  wt.todayCount = 3;
+  assert.match(text(h.render(RegisteredScreen, { id: "7" })), /오늘 2개를 더/);
 });
 
 test("서비스 값을 등록 요청으로 바꾼다(코드값·이미지 주소 걸러내기)", () => {

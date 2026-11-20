@@ -46,11 +46,11 @@ export function RankedListScreen({
   if (kind === "trending") {
     items = [...list].sort((a, b) => scoreOf(b, "d3") - scoreOf(a, "d3"));
     title = "트렌딩";
-    desc = `최근 ${POLICY.trendingDays}일 동안 반응(이용하기·좋아요·저장)이 많이 늘어난 순서예요.`;
+    desc = `최근 ${POLICY.trendingDays}일 동안 반응(이용하기·추천·저장)이 많이 늘어난 순서예요.`;
   } else if (kind === "popular") {
     items = [...list].sort((a, b) => scoreOf(b, chosen) - scoreOf(a, chosen));
     title = "인기";
-    desc = "선택한 기간 동안 받은 반응(이용하기·좋아요·저장)이 많은 순서예요.";
+    desc = "선택한 기간 동안 받은 반응(이용하기·추천·저장)이 많은 순서예요.";
     right = (
       <SegmentedControl
         label="인기 기간"

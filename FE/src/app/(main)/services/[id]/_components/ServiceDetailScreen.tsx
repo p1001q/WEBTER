@@ -16,7 +16,6 @@ import { ReportButton } from "@/components/modals/ReportButton";
 import { Icon } from "@/components/ui/Icon";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { Tabs } from "@/components/ui/Tabs";
-import { tagClass } from "@/components/ui/Tag";
 import { boxClass } from "@/components/ui/box";
 import { helpClass } from "@/components/ui/field";
 import { buttonClass } from "@/components/ui/Button";
@@ -29,8 +28,9 @@ import { isMaker } from "@/domain/maker";
 import { useWt } from "@/providers/context";
 import { ServiceOverview } from "./ServiceOverview";
 import { ServiceVersions } from "./ServiceVersions";
+import { ServiceIntroduction } from "./ServiceIntroduction";
 
-type Tab = "about" | "reviews" | "comments";
+type Tab = "reviews" | "comments";
 
 const banner = "mb-6 flex items-center gap-2.5 rounded-md px-4 py-3 text-14";
 const statCell =
@@ -49,17 +49,17 @@ export function ServiceDetailScreen({
 }) {
   const wt = useWt();
   const s = wt.svc(id);
-  const [tab, setTab] = useState<Tab>(tabParam ?? "about");
+  const [tab, setTab] = useState<Tab>(tabParam ?? "reviews");
   // 탭이 오른쪽으로 가면 본문도 오른쪽에서, 왼쪽으로 가면 왼쪽에서 들어온다
   const [slide, setSlide] = useState<"r" | "l">("r");
   const changeTab = (next: Tab) => {
-    const order: Tab[] = ["about", "reviews", "comments"];
+    const order: Tab[] = ["reviews", "comments"];
     setSlide(order.indexOf(next) >= order.indexOf(tab) ? "r" : "l");
     setTab(next);
   };
   const counted = useRef<string>(undefined);
   useEffect(() => {
-    if (realAuth && (!wt.sessionReady || !wt.me)) return;
+    if (realAuth && !wt.sessionReady) return;
     if (s && s.pub === "public" && counted.current !== s.id) {
       counted.current = s.id;
       wt.countView(s);
@@ -102,18 +102,18 @@ export function ServiceDetailScreen({
     )
     .sort((a, b) => scoreOf(b, "m") - scoreOf(a, "m"))
     .slice(0, 4);
-  /** [값, 이름, 아이콘] 조회수·이용하기 클릭 · 리뷰(아래 평가 칸) · 좋아요·저장 순서 */
+  /** [값, 이름, 아이콘] 조회수·이용하기 클릭 · 평가 요약 · 추천·저장 순서 */
   const stats = {
     views: [fmtNum(s.views), "조회수", "eye"],
     clicks: [fmtNum(s.clicks), "이용하기 클릭", "click"],
-    likes: [fmtNum(s.likes), "좋아요", "heart"],
+    recommendations: [fmtNum(agg.up), "추천", "thumbUp"],
     saves: [fmtNum(s.saves), "저장", "bookmark"],
   } as const;
   const cells = [
     stats.views,
     stats.clicks,
     "review",
-    stats.likes,
+    stats.recommendations,
     stats.saves,
   ] as const;
   return (
@@ -159,7 +159,7 @@ export function ServiceDetailScreen({
             data-component="owner-banner"
           >
             <Icon name="info" size={16} />
-            내가 제작자인 서비스예요. 본인 서비스에는 좋아요·저장을 할 수 없고,
+            내가 제작자인 서비스예요. 본인 서비스에는 평가와 저장을 할 수 없고,
             리뷰는 “제작자” 표시로 남겨지며 평가 집계에서 빠져요.
             <RouteLink
               to="edit"
@@ -214,11 +214,15 @@ export function ServiceDetailScreen({
         <Gallery s={s} />
         <div className="mt-6 grid grid-cols-[minmax(0,1fr)_var(--spacing-detail-cta)] items-start gap-12 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-6">
           <div className="min-w-0">
+            <ServiceIntroduction
+              key={s.id}
+              description={s.desc}
+              tags={s.tags}
+            />
             <Tabs
               value={tab}
               onChange={changeTab}
               items={[
-                ["about", "소개"],
                 ["reviews", "리뷰", realAuth ? undefined : agg.total],
                 ["comments", "댓글", realAuth ? undefined : commentCount],
               ]}
@@ -229,32 +233,7 @@ export function ServiceDetailScreen({
                 slide === "r" ? "animate-slide-in-r" : "animate-slide-in-l"
               }
             >
-              {tab === "about" ? (
-                <div className="pt-6">
-                  <p
-                    className={cx(
-                      "m-0 mb-4 text-[15.5px] leading-[1.75] text-pretty whitespace-pre-line",
-                      s.desc ? "text-[#3a3a3a]" : "text-muted",
-                    )}
-                  >
-                    {s.desc || "상세 설명이 아직 없어요."}
-                  </p>
-                  {s.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5" aria-label="태그">
-                      {s.tags.map((t) => (
-                        <RouteLink
-                          key={t}
-                          to="search"
-                          params={{ q: t }}
-                          className={tagClass}
-                        >
-                          #{t}
-                        </RouteLink>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : tab === "reviews" ? (
+              {tab === "reviews" ? (
                 <ReviewSection s={s} />
               ) : (
                 <CommentSection s={s} />
@@ -262,7 +241,7 @@ export function ServiceDetailScreen({
             </div>
             <ServiceVersions s={s} />
           </div>
-          <aside className="flex flex-col gap-3 pt-[49px] @max-[860px]/app:pt-0">
+          <aside className="flex flex-col gap-3">
             <div
               className={`${boxClass} flex flex-col gap-3 p-6`}
               data-component="maker-card"
@@ -303,12 +282,18 @@ export function ServiceDetailScreen({
                 프로필 보기
               </RouteLink>
             </div>
-            <ReportButton
-              className="self-start"
-              target={{ targetType: "SERVICE", targetId: s.id, label: s.name }}
-            >
-              이 서비스 신고
-            </ReportButton>
+            {!isOwner && (
+              <ReportButton
+                className="self-start"
+                target={{
+                  targetType: "SERVICE",
+                  targetId: s.id,
+                  label: s.name,
+                }}
+              >
+                이 서비스 신고
+              </ReportButton>
+            )}
           </aside>
         </div>
         {firstCategory && similar.length > 0 && (

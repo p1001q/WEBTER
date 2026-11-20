@@ -125,6 +125,52 @@ test("서버 서비스를 화면용 서비스로 바꾼다(코드값·집계·�
   ]);
 });
 
+test("상세는 소개 다음 리뷰를 기본 표시하고 댓글로 바꿔도 소개를 유지한다", (t) => {
+  const response = backend({ visibility: "PUBLIC" });
+  const service = mapService(response);
+  const wt = {
+    svc: () => service,
+    users: Object.fromEntries(makersOf(response).map((u) => [u.id, u])),
+    agg: () => ({ up: 0, down: 0, none: 0 }),
+    comments: [],
+    publicServices: [],
+    countView() {},
+  };
+  const h = harness({
+    "@/api/auth/config": { realAuth: true },
+    "@/providers/context": { useWt: () => wt },
+    "./ServiceOverview": { ServiceOverview: "ServiceOverview" },
+    "./ServiceVersions": { ServiceVersions: "ServiceVersions" },
+    "./ServiceIntroduction": { ServiceIntroduction: "ServiceIntroduction" },
+  });
+  t.after(() => h.dispose());
+  const { ServiceDetailScreen } = h.load(
+    "app/(main)/services/[id]/_components/ServiceDetailScreen.tsx",
+  );
+  const tree = h.render(ServiceDetailScreen, { id: service.id });
+  const tabs = nodes(tree, (n) => n.type === "Tabs")[0];
+  assert.equal(tabs.props.value, "reviews");
+  assert.deepEqual(
+    tabs.props.items.map(([key]) => key),
+    ["reviews", "comments"],
+  );
+  const flow = nodes(tree, (n) =>
+    ["ServiceIntroduction", "Tabs", "ReviewSection"].includes(n.type),
+  );
+  assert.deepEqual(
+    flow.map((n) => n.type),
+    ["ServiceIntroduction", "Tabs", "ReviewSection"],
+  );
+  tabs.props.onChange("comments");
+  const comments = h.render(ServiceDetailScreen, { id: service.id });
+  assert.equal(
+    nodes(comments, (n) => n.type === "ServiceIntroduction").length,
+    1,
+  );
+  assert.equal(nodes(comments, (n) => n.type === "CommentSection").length, 1);
+  assert.equal(nodes(comments, (n) => n.type === "ReviewSection").length, 0);
+});
+
 test("날짜는 한국 시간 기준이다", () => {
   assert.equal(ymd("2026-11-09T16:30:00Z"), "2026-11-10");
   assert.equal(ymd("2026-11-09T14:59:59Z"), "2026-11-09");

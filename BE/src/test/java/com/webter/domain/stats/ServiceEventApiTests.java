@@ -48,6 +48,24 @@ class ServiceEventApiTests extends DomainFixtureTest {
 	PlatformTransactionManager transactions;
 
 	@Test
+	void guestViewsCountAndGuestLaunchesShareTheIpLimit() throws Exception {
+		var owner = createUser("ev_guest_owner");
+		long sid = createService(owner, "https://example.com/ev-guest").getId();
+		String ip = "203.0.113.11";
+		mvc.perform(post("/api/services/{sid}/events/VIEW", sid)).andExpect(status().isForbidden());
+		mvc.perform(post("/api/services/{sid}/events/LAUNCH", sid)).andExpect(status().isForbidden());
+		guestRecord(sid, "VIEW", ip);
+		for (int i = 0; i < 10; i++) {
+			guestRecord(sid, "LAUNCH", ip);
+		}
+		assertThat(count(sid, "user_id IS NULL AND event_type = 'VIEW' AND is_counted")).isEqualTo(1);
+		assertThat(count(sid, "user_id IS NULL AND event_type = 'LAUNCH' AND is_counted")).isEqualTo(9);
+		assertThat(count(sid, "excluded_reason = 'LAUNCH_RATE_LIMIT'")).isEqualTo(1);
+		assertThat(jdbc.queryForList("SELECT DISTINCT actor_key FROM service_events WHERE service_id = ?",
+			String.class, sid)).containsExactly("ip:" + hmac.hash(ip));
+	}
+
+	@Test
 	void blocksTenthLaunchByIpWithoutBlockingViewsOrOtherService() throws Exception {
 		var owner = createUser("ev_owner");
 		var first = createUser("ev_first");
@@ -145,6 +163,13 @@ class ServiceEventApiTests extends DomainFixtureTest {
 				request.addHeader("X-Forwarded-For", "198.51.100.200");
 				return request;
 			})).andExpect(status().isOk());
+	}
+
+	private void guestRecord(long sid, String type, String ip) throws Exception {
+		mvc.perform(post("/api/services/{sid}/events/{type}", sid, type).with(csrf()).with(request -> {
+			request.setRemoteAddr(ip);
+			return request;
+		})).andExpect(status().isOk());
 	}
 
 	private long count(long sid, String condition) {

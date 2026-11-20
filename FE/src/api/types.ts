@@ -11,7 +11,8 @@ export type Lang = "ko" | "en";
 export type UseState = "live" | "stop";
 /** 공개 상태: 운영자가 정한다. public 일 때는 화면에 표시하지 않는다 */
 export type PubState = "public" | "private" | "temp";
-export type LinkKind = "github" | "instagram" | "velog" | "blog" | "portfolio";
+export type LinkKind =
+  "github" | "instagram" | "velog" | "notion" | "naver_blog" | "tistory";
 export type Grade =
   "vpos" | "pos" | "mpos" | "mixed" | "mneg" | "neg" | "vneg" | "few";
 export type ThumbKind =
@@ -147,7 +148,13 @@ export interface Review {
   rate: Rate | null;
   date: string;
   text: string;
-  reply?: { id?: string; text: string; date: string; edited?: boolean };
+  reply?: {
+    id?: string;
+    text: string;
+    date: string;
+    edited?: boolean;
+    withdrawn?: boolean;
+  };
   permissions?: InteractionPermissions & { canVote: boolean };
   votes?: ReviewVotes;
   fresh?: boolean;
@@ -206,7 +213,37 @@ export type ServiceInput = Pick<
   | "allowGuest"
   | "allowAnon"
   | "allowAnonComment"
-> & { iconImg: string | null; thumbImg: string | null };
+> & {
+  iconImg: string | null;
+  thumbImg: string | null;
+  registrationDraftRevision?: string;
+};
+
+/** 등록 화면의 미완성 입력. 실제 서비스 등록 DTO와 달리 빈 값을 허용한다. */
+export interface RegistrationFormState {
+  name: string;
+  tagline: string;
+  url: string;
+  cats: CategoryId[];
+  type: ProjectType | "";
+  devices: Device[];
+  price: Price | "";
+  owner: OwnerKind | "";
+  team: string;
+  desc: string;
+  tags: string[];
+  github: string;
+  langs: Lang[];
+  iconImg: string | null;
+  thumbImg: string | null;
+  pv: string[];
+  pvRatio: "land" | "port";
+  pvFit: "cover" | "contain";
+  allowGuest: boolean;
+  allowAnon: boolean;
+  allowAnonComment: boolean;
+  agree: boolean;
+}
 
 export interface SessionState {
   meId: string | null;

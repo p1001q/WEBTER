@@ -34,7 +34,7 @@ export interface WebterApi {
   adoptMember(
     user: User | null,
   ): Promise<{ users: Record<string, User>; session: SessionState }>;
-  /** 등록한 서비스 삭제, 작성한 리뷰는 “탈퇴한 사용자”로 남긴다 */
+  /** 탈퇴 시 다른 서비스에 작성한 리뷰와 댓글에서 회원 연결을 해제한다 */
   withdraw(): Promise<
     Pick<Snapshot, "services" | "reviews" | "comments" | "session">
   >;

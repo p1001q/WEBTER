@@ -61,12 +61,14 @@ public class SecurityConfig {
 				.requestMatchers("/health", "/health/**", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
 				.permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/auth/session", "/api/auth/login/google",
-						"/api/policies/current", "/api/policies/*", "/api/categories", "/api/services/**",
+						"/api/policies/current", "/api/policies/*", "/api/categories", "/api/services/**", "/api/users/search",
 						"/api/users/{id:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}", "/oauth2/authorization/google",
 						"/login/oauth2/code/google")
 				.permitAll()
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.requestMatchers(HttpMethod.POST, "/api/services/*/reviews/guest").anonymous()
+				.requestMatchers(HttpMethod.POST, "/api/services/*/events/VIEW", "/api/services/*/events/LAUNCH")
+				.permitAll()
 				.requestMatchers("/api/auth/signup", "/api/auth/username-available")
 				.hasRole(SessionPrincipal.ROLE_SIGNUP_PENDING)
 				// 그 밖의 API는 가입을 완료한 회원만 쓴다. 가입 대기 상태는 회원 권한이 없다.

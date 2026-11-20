@@ -125,6 +125,24 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 	}
 
 	@Test
+	void successfulRegistrationConsumesOnlyTheDraftUsedByThatRequest() throws Exception {
+		var first = java.util.UUID.randomUUID();
+		jdbc.update("INSERT INTO service_registration_drafts(user_id, revision, payload) VALUES (?, ?, '{}'::jsonb)", maker.getId(), first);
+		create(maker, body("https://draft-used.example.test").replace("\"agreeRegistration\":true", "\"agreeRegistration\":true,\"registrationDraftRevision\":\"" + first + "\""))
+			.andExpect(status().isCreated());
+		assertThatNoDraft();
+		var newer = java.util.UUID.randomUUID();
+		jdbc.update("INSERT INTO service_registration_drafts(user_id, revision, payload) VALUES (?, ?, '{}'::jsonb)", maker.getId(), newer);
+		create(maker, body("https://draft-newer.example.test").replace("\"agreeRegistration\":true", "\"agreeRegistration\":true,\"registrationDraftRevision\":\"" + first + "\""))
+			.andExpect(status().isCreated());
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT revision FROM service_registration_drafts WHERE user_id = ?", java.util.UUID.class, maker.getId())).isEqualTo(newer);
+	}
+
+	private void assertThatNoDraft() {
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT count(*) FROM service_registration_drafts WHERE user_id = ?", Integer.class, maker.getId())).isZero();
+	}
+
+	@Test
 	void invalidInputIsRejectedWithSpecificCodes() throws Exception {
 		create(maker, body("a", "http://insecure.example.test", "[\"PLAY\"]", "[]", "true"))
 			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SERVICE_400_02"));

@@ -1,37 +1,6 @@
-import type {
-  CategoryId,
-  Device,
-  Lang,
-  OwnerKind,
-  Price,
-  ProjectType,
-  Service,
-} from "@/api/types";
+import type { RegistrationFormState, Service } from "@/api/types";
 
-export interface FormState {
-  name: string;
-  tagline: string;
-  url: string;
-  cats: CategoryId[];
-  type: ProjectType | "";
-  devices: Device[];
-  price: Price | "";
-  owner: OwnerKind | "";
-  team: string;
-  desc: string;
-  tags: string[];
-  github: string;
-  langs: Lang[];
-  iconImg: string | null;
-  thumbImg: string | null;
-  pv: string[];
-  pvRatio: "land" | "port";
-  pvFit: "cover" | "contain";
-  allowGuest: boolean;
-  allowAnon: boolean;
-  allowAnonComment: boolean;
-  agree: boolean;
-}
+export type FormState = RegistrationFormState;
 
 export const EMPTY_FORM: FormState = {
   name: "",

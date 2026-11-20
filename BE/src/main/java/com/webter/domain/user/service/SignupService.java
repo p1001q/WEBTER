@@ -19,9 +19,12 @@ import com.webter.domain.user.repository.UserInterestRepository;
 import com.webter.domain.user.repository.UserRepository;
 import com.webter.global.exception.BusinessException;
 import com.webter.global.security.SessionPrincipal;
+import java.security.SecureRandom;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class SignupService {
+
+	private static final SecureRandom RANDOM = new SecureRandom();
 
 	/** 가입 때 반드시 동의받는 문서. SERVICE_REGISTRATION은 서비스 등록 때 받는다. */
 	private static final List<DocumentType> REQUIRED = List.of(DocumentType.TERMS, DocumentType.PRIVACY,
@@ -55,7 +60,8 @@ public class SignupService {
 	public User signup(SessionPrincipal.PendingSignup pending, SignupRequest request) {
 		List<PolicyDocument> agreed = validateConsents(request.consents());
 		List<Category> selected = categories.resolveActive(request.interests());
-		if (users.existsByUsernameIgnoreCase(request.username())) {
+		String username = request.username() == null ? generateUsername() : request.username();
+		if (request.username() != null && users.existsByUsernameIgnoreCase(username)) {
 			throw new BusinessException(UserErrorCode.USERNAME_DUPLICATED);
 		}
 		if (identities.findByProviderAndProviderSubject(OAuthProvider.GOOGLE, pending.googleSubject()).isPresent()) {
@@ -63,8 +69,9 @@ public class SignupService {
 		}
 		try {
 			User user = users.saveAndFlush(User.builder()
-				.username(request.username())
-				.nickname(request.nickname())
+				.username(username)
+				.nickname(request.nickname() == null
+						? String.format(Locale.ROOT, "유저%06d", RANDOM.nextInt(1_000_000)) : request.nickname())
 				.email(pending.email())
 				.build());
 			identities.saveAndFlush(OAuthIdentity.builder().user(user).providerSubject(pending.googleSubject()).build());
@@ -87,6 +94,15 @@ public class SignupService {
 			}
 			throw e;
 		}
+	}
+
+	private String generateUsername() {
+		String candidate;
+		do {
+			candidate = "user" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
+		}
+		while (users.existsByUsernameIgnoreCase(candidate));
+		return candidate;
 	}
 
 	// 필수 3종이 각각 한 번씩, 현재 버전으로 들어왔는지 확인한다

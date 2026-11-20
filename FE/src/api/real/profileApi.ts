@@ -1,5 +1,6 @@
 import { getJson } from "../auth/http";
-import type { LinkKind, User } from "../types";
+import { mapProfileLinks } from "@/domain/profileLinks";
+import type { User } from "../types";
 import { mapComment, mapReview } from "./interactionApi";
 
 type BackendReview = Parameters<typeof mapReview>[0];
@@ -26,7 +27,7 @@ export const profileToUser = (p: BackendProfile): User => ({
   bio: p.bio ?? "",
   avatarImg: p.avatarUrl ?? null,
   profileModerated: p.moderated,
-  links: p.links.map((l): [LinkKind, string] => [l.kind as LinkKind, l.url]),
+  links: mapProfileLinks(p.links),
 });
 
 /** 프로필·마이페이지가 쓰는 서버 조회 */

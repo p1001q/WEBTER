@@ -1,74 +1,92 @@
 "use client";
 
 import type { Service } from "@/api/types";
+import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { isMaker } from "@/domain/maker";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 
-/**
- * 의견 없이 추천·비추천만 남기는 버튼. 누르면 집계에 들어가고 아래 리뷰 폼의 평가에도 반영되지만,
- * 리뷰 목록에는 오르지 않는다. 고른 쪽은 진한 색으로 살짝 커지고 고르지 않은 쪽은 뒤로 물러난다.
- */
-export function RatingVote({ s }: { s: Service }) {
+export function useServiceRating(s: Service) {
   const wt = useWt();
-  const my = wt.myVote(s.id);
-  const reason = !wt.me
-    ? "로그인하면 평가할 수 있어요"
-    : !wt.myReviewReady(s.id)
-      ? "내 평가를 불러오고 있어요"
-      : wt.me.id === s.owner
-        ? "내 서비스는 평가할 수 없어요"
-        : s.use === "stop"
-          ? "운영 중지된 서비스는 평가할 수 없어요"
-          : undefined;
-  const item = (
-    rate: "up" | "down",
-    label: string,
-    icon: "thumbUp" | "thumbDown",
-    on: string,
-  ) => {
-    const sel = my === rate;
-    return (
-      <button
-        type="button"
-        aria-pressed={sel}
-        aria-label={label}
-        title={reason ?? label}
-        disabled={!!reason}
-        onClick={() => {
-          const mine = wt.myReview(s.id);
-          // 리뷰가 있으면 바로 바꾸지 않고 리뷰를 수정할지 묻는다. 고른 평가를 다시 누르면 미설정으로 바꾸는 수정이다
-          if (mine)
-            wt.setModal({
-              type: "confirm-review-edit",
-              sid: s.id,
-              review: mine,
-              rate: my === rate ? "none" : rate,
-            });
-          else wt.vote(s.id, rate);
-        }}
-        className={cx(
-          "grid size-12 place-items-center rounded-full transition-[transform,color,opacity] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:cursor-not-allowed disabled:opacity-35",
-          sel
-            ? cx("scale-[1.18]", on)
-            : my
-              ? "scale-[0.88] text-muted opacity-45"
-              : "text-muted not-disabled:hover:scale-110 not-disabled:hover:text-ink",
-        )}
-      >
-        <Icon name={icon} size={26} stroke={2} />
-      </button>
-    );
+  const current = wt.myVote(s.id);
+  const status = wt.me ? wt.myReviewStatus(s.id) : "ready";
+  const disabledReason = isMaker(s, wt.me?.id)
+    ? "내 서비스는 평가할 수 없어요"
+    : s.use === "stop"
+      ? "운영 중지된 서비스는 평가할 수 없어요"
+      : status === "loading"
+        ? "내 평가를 불러오고 있어요"
+        : status === "error"
+          ? "내 평가를 불러오지 못했어요"
+          : status === "idle"
+            ? "내 평가를 확인한 뒤 평가할 수 있어요"
+            : undefined;
+  const select = (rate: "up" | "down") => {
+    if (disabledReason) return;
+    wt.requireLogin(() => {
+      const mine = wt.myReview(s.id);
+      if (mine) {
+        wt.setModal({
+          type: "confirm-review-edit",
+          sid: s.id,
+          review: mine,
+          rate: current === rate ? "none" : rate,
+        });
+      } else {
+        wt.vote(s.id, rate);
+      }
+    }, "서비스를 평가하려면 로그인이 필요해요.");
   };
+  return { current, disabledReason, select };
+}
+
+export function RetryMyReview({ sid }: { sid: string }) {
+  const { loadMyReview } = useWt();
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-13 text-muted">
+      <span role="status">내 평가를 불러오지 못했어요.</span>
+      <Button size="sm" variant="ghost" onClick={() => void loadMyReview(sid)}>
+        다시 시도
+      </Button>
+    </div>
+  );
+}
+
+/** 상세 상단 추천과 같은 서비스 평가를 사용한다. 두 위치 어디에서 바꿔도 상태가 함께 갱신된다. */
+export function RatingVote({ s }: { s: Service }) {
+  const rating = useServiceRating(s);
   return (
     <div
-      className="flex items-center gap-2 justify-self-end @max-[860px]/app:justify-self-start"
-      role="group"
-      aria-label="이 서비스 평가"
+      className="flex justify-self-end gap-2 @max-[860px]/app:justify-self-start"
       data-component="rating-vote"
     >
-      {item("up", "추천", "thumbUp", "text-navy")}
-      {item("down", "비추천", "thumbDown", "text-wine")}
+      {(
+        [
+          ["up", "추천", "thumbUp"],
+          ["down", "비추천", "thumbDown"],
+        ] as const
+      ).map(([rate, label, icon]) => (
+        <button
+          key={rate}
+          type="button"
+          aria-pressed={rating.current === rate}
+          aria-label={label}
+          title={rating.disabledReason ?? label}
+          disabled={!!rating.disabledReason}
+          onClick={() => rating.select(rate)}
+          className={cx(
+            "grid size-11 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-35",
+            rating.current === rate
+              ? rate === "up"
+                ? "bg-navy-50 text-navy"
+                : "bg-wine-50 text-wine"
+              : "text-muted hover:text-ink",
+          )}
+        >
+          <Icon name={icon} size={24} />
+        </button>
+      ))}
     </div>
   );
 }
