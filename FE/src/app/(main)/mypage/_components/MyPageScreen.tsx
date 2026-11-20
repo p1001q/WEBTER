@@ -17,6 +17,7 @@ import { MYPAGE_TABS, type MyPageTab as Tab } from "../tabs";
 import { isMaker } from "@/domain/maker";
 import { MyServiceList } from "./MyServiceList";
 import { SettingsPanel } from "./SettingsPanel";
+import { ReflectionsPanel } from "./ReflectionsPanel";
 
 const reviewText =
   "m-0 mt-1.5 text-14 leading-[1.7] whitespace-pre-line text-[#3a3a3a] [overflow-wrap:anywhere]";
@@ -28,15 +29,20 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   const [slide, setSlide] = useState<"r" | "l">("r");
   // 탭은 바로 바뀌고(주소 갱신을 기다리지 않는다), 주소가 바뀌면 그 값을 따른다
   const [tab, setTab] = useState<Tab>(tabParam);
+  const [hasReflections, setHasReflections] = useState(
+    tabParam === "reflections",
+  );
   const goTab = (t: Tab) => {
     setSlide(MYPAGE_TABS.indexOf(t) >= MYPAGE_TABS.indexOf(tab) ? "r" : "l");
     setTab(t);
+    if (t === "reflections") setHasReflections(true);
     wt.go("mypage", { tab: t }, { replace: true });
   };
   const [prevParam, setPrevParam] = useState(tabParam);
   if (prevParam !== tabParam) {
     setPrevParam(tabParam);
     setTab(tabParam);
+    if (tabParam === "reflections") setHasReflections(true);
   }
   const me = wt.me!;
   const { loadMypage } = wt;
@@ -95,9 +101,11 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
           // 리뷰와 댓글은 한 탭("리뷰·댓글")으로 묶고, 안에서 하위 탭으로 나눈다
           value={tab === "comments" ? "reviews" : tab}
           onChange={goTab}
+          groupStarts={["reflections", "settings"]}
           items={[
             ["services", "내 서비스", mine.length],
             ["saved", "저장한 서비스", saved.length],
+            ["reflections", "회고"],
             ["reviews", "리뷰·댓글", myReviews.length + myComments.length],
             ["settings", "계정 설정"],
           ]}
@@ -286,6 +294,11 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
               />
             ))}
           {tab === "settings" && <SettingsPanel />}
+        </div>
+        <div hidden={tab !== "reflections"} className="pt-6">
+          {hasReflections && (
+            <ReflectionsPanel key={me.id} active={tab === "reflections"} />
+          )}
         </div>
       </div>
       <Footer />

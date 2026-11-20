@@ -73,6 +73,8 @@ public class ServiceCommandService {
 
 	private final ServiceMemberRepository members;
 
+	private final RegistrationDraftService drafts;
+
 	/**
 	 * 서비스를 등록한다. 이미지는 저장소에서 확인해야 하므로(외부 호출) 트랜잭션 밖에서 먼저 확인한 뒤 저장한다.
 	 */
@@ -126,6 +128,7 @@ public class ServiceCommandService {
 			.build());
 		writes.replaceCategories(saved.getId(), f.categories());
 		writes.replaceTags(saved.getId(), f.tags());
+		drafts.consume(userId, request.registrationDraftRevision());
 		return saved.getId();
 	}
 

@@ -9,7 +9,7 @@ export const POLICY = {
   aiLimitGuest: 3, // 정책서 5.4 — 제안값
   aiLimitMember: 20, // 정책서 5.4 — 제안값
   reportThreshold: 3, // 정책서 8 자동 임시 비공개 — 제안값
-  dailyRegisterLimit: 3, // 정책서 4.7 — 제안값
+  dailyRegisterLimit: 5, // 정책서 4.7 — 확정: 회원당 하루 5개, 서버 제한과 동일
   maxCategories: 3, // 정책서 4.8 — 제안값
   maxTags: 5, // 정책서 4.1 — 확정
   maxPreviewImages: 8, // 정책서 4.4 — 확정

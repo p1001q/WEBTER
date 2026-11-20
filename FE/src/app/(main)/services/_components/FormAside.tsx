@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Service } from "@/api/types";
 import { ServiceCard } from "@/components/service/ServiceCard";
 import { Icon } from "@/components/ui/Icon";
@@ -11,19 +12,26 @@ import { FloatAside } from "./FloatAside";
 export function FormAside({
   preview,
   required,
+  draftSave,
+  draftError,
 }: {
   preview: Service;
   /** [항목 이름, 채웠는지] */
   required: [string, boolean][];
+  draftSave?: ReactNode;
+  draftError?: string;
 }) {
   const done = required.filter((r) => r[1]).length;
   return (
     <aside className="self-stretch">
       <FloatAside className={stickyAsideClass}>
         <div className={cx(helpClass, "font-bold")}>카드 미리보기</div>
-        <div className="pointer-events-none" inert>
-          <ServiceCard s={preview} />
-        </div>
+        <ServiceCard s={preview} previewOnly footerStart={draftSave} />
+        {draftError && (
+          <p className="text-12 text-wine" role="alert">
+            임시 저장하지 못했어요. {draftError}
+          </p>
+        )}
         <div
           className={`${boxClass} flex flex-col gap-2.5 px-[18px] py-4`}
           data-component="required-progress"

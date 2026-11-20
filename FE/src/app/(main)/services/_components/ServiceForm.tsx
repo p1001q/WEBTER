@@ -46,6 +46,12 @@ import {
 import { FormAside } from "./FormAside";
 import { ImageFields } from "./ImageFields";
 import {
+  RegistrationDraftGate,
+  type DraftSession,
+} from "./RegistrationDraftGate";
+import { useRegistrationDraft } from "./useRegistrationDraft";
+import { DraftSaveButton } from "./DraftSaveButton";
+import {
   BLANK_PREVIEW,
   EMPTY_FORM,
   URL_MSG,
@@ -69,11 +75,34 @@ export function ServiceForm({
   id?: string;
 }) {
   const wt = useWt();
+  if (mode === "edit") return <ServiceFormEditor mode={mode} id={id} />;
+  if (!wt.me) return <Restricted title="로그인 후 서비스를 등록할 수 있어요" />;
+  return (
+    <RegistrationDraftGate key={wt.me.id} userId={wt.me.id}>
+      {(draft) => <ServiceFormEditor mode="new" draft={draft} />}
+    </RegistrationDraftGate>
+  );
+}
+
+export function ServiceFormEditor({
+  mode,
+  id,
+  draft,
+}: {
+  mode: "new" | "edit";
+  id?: string;
+  draft?: DraftSession;
+}) {
+  const wt = useWt();
   const P = useId();
   const editing = mode === "edit";
   const src = editing ? wt.svc(id) : undefined;
   const [f, setF] = useState<FormState>(() =>
-    src ? fromService(src) : { ...EMPTY_FORM },
+    src
+      ? fromService(src)
+      : draft?.initial
+        ? restoredForm(draft)
+        : { ...EMPTY_FORM },
   );
   const [urlSt, setUrlSt] = useState<UrlSt>(() =>
     editing
@@ -83,7 +112,8 @@ export function ServiceForm({
         }
       : { state: "idle" },
   );
-  const [tagIn, setTagIn] = useState("");
+  const [tagIn, setTagIn] = useState(draft?.initial?.payload.tagInput ?? "");
+  const draftSave = useRegistrationDraft(draft, f, tagIn);
   const composingTag = useRef(false);
   const [touched, setTouched] = useState(false);
   /** 진행 중인 접속 검사 번호. 주소를 고치거나 화면을 떠나면 올려서 이전 결과를 버린다 */
@@ -181,33 +211,55 @@ export function ServiceForm({
   const submit = async () => {
     setTouched(true);
     if (!canSubmit || submitting.current) return;
-    const data: ServiceInput = {
-      name: f.name.trim(),
-      tagline: f.tagline.trim(),
-      url: f.url.trim(),
-      cats: f.cats,
-      type: f.type as ProjectType,
-      devices: f.devices,
-      price: f.price as Price,
-      team: f.owner === "team" ? f.team.trim() : null,
-      desc: f.desc.trim(),
-      tags: f.tags,
-      github: f.github.trim() || null,
-      langs: f.langs.length ? f.langs : ["ko"],
-      iconImg: f.iconImg,
-      thumbImg: f.thumbImg,
-      hasIcon: !!f.iconImg,
-      hasThumb: !!f.thumbImg,
-      previews: f.pv.length
-        ? { ratio: f.pvRatio, fit: f.pvFit, count: f.pv.length, imgs: f.pv }
-        : null,
-      allowGuest: f.allowGuest,
-      allowAnon: f.allowAnon,
-      allowAnonComment: f.allowAnonComment,
-    };
     submitting.current = true;
     setSaveFailed(false);
     setSending(true);
+    let readyForm = f;
+    let draftRevision: string | undefined;
+    if (draft) {
+      try {
+        const prepared = await draftSave.prepare(f);
+        readyForm = prepared.form;
+        draftRevision = prepared.revision;
+      } catch (error) {
+        wt.toast(failureText("등록을 준비하지", toApiError(error)));
+        submitting.current = false;
+        setSending(false);
+        setSaveFailed(true);
+        draftSave.resume();
+        return;
+      }
+    }
+    const data: ServiceInput = {
+      name: readyForm.name.trim(),
+      tagline: readyForm.tagline.trim(),
+      url: readyForm.url.trim(),
+      cats: readyForm.cats,
+      type: readyForm.type as ProjectType,
+      devices: readyForm.devices,
+      price: readyForm.price as Price,
+      team: readyForm.owner === "team" ? readyForm.team.trim() : null,
+      desc: readyForm.desc.trim(),
+      tags: readyForm.tags,
+      github: readyForm.github.trim() || null,
+      langs: readyForm.langs.length ? readyForm.langs : ["ko"],
+      iconImg: readyForm.iconImg,
+      thumbImg: readyForm.thumbImg,
+      hasIcon: !!readyForm.iconImg,
+      hasThumb: !!readyForm.thumbImg,
+      previews: readyForm.pv.length
+        ? {
+            ratio: readyForm.pvRatio,
+            fit: readyForm.pvFit,
+            count: readyForm.pv.length,
+            imgs: readyForm.pv,
+          }
+        : null,
+      allowGuest: readyForm.allowGuest,
+      allowAnon: readyForm.allowAnon,
+      allowAnonComment: readyForm.allowAnonComment,
+      registrationDraftRevision: draftRevision,
+    };
     if (src) {
       const keep = {
         hasIcon: f.iconImg ? true : src.iconImg ? false : src.hasIcon,
@@ -226,6 +278,11 @@ export function ServiceForm({
     } else {
       const s = await wt.createService(data);
       if (s) {
+        await draftSave
+          .complete()
+          .catch(() =>
+            wt.toast("등록은 완료했지만 임시 저장 정리를 마치지 못했어요."),
+          );
         wt.go("registered", { id: s.id });
         return;
       }
@@ -234,6 +291,7 @@ export function ServiceForm({
     submitting.current = false;
     setSending(false);
     setSaveFailed(true);
+    draftSave.resume();
   };
   const base = src ?? BLANK_PREVIEW;
   const preview: Service = {
@@ -781,10 +839,33 @@ export function ServiceForm({
               </Button>
             </div>
           </div>
-          <FormAside preview={preview} required={required} />
+          <FormAside
+            preview={preview}
+            required={required}
+            draftError={draftSave.error}
+            draftSave={
+              draft && (
+                <DraftSaveButton
+                  status={draftSave.status}
+                  automatic={draftSave.automatic}
+                  disabled={sending}
+                  onSave={() => {
+                    void draftSave.save();
+                  }}
+                />
+              )
+            }
+          />
         </div>
       </div>
       <Footer />
     </>
   );
+}
+
+function restoredForm(draft: DraftSession): FormState {
+  const { tagInput, scrollY, ...fields } = draft.initial!.payload;
+  void tagInput;
+  void scrollY;
+  return { ...EMPTY_FORM, ...fields, agree: false };
 }

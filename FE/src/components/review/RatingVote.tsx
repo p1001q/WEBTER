@@ -53,28 +53,40 @@ export function RetryMyReview({ sid }: { sid: string }) {
   );
 }
 
-/** 비추천은 리뷰 탭에서 남긴다. 추천은 상세 상단에서 누를 수 있다. */
+/** 상세 상단 추천과 같은 서비스 평가를 사용한다. 두 위치 어디에서 바꿔도 상태가 함께 갱신된다. */
 export function RatingVote({ s }: { s: Service }) {
   const rating = useServiceRating(s);
-  const selected = rating.current === "down";
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      aria-label="비추천"
-      title={rating.disabledReason ?? "비추천"}
-      disabled={!!rating.disabledReason}
-      onClick={() => rating.select("down")}
+    <div
+      className="flex justify-self-end gap-2 @max-[860px]/app:justify-self-start"
       data-component="rating-vote"
-      className={cx(
-        "flex items-center gap-1.5 justify-self-end rounded-full px-3 py-2 text-13 transition-colors disabled:cursor-not-allowed disabled:opacity-35 @max-[860px]/app:justify-self-start",
-        selected
-          ? "bg-wine-50 font-bold text-wine"
-          : "text-muted hover:text-ink",
-      )}
     >
-      <Icon name="thumbDown" size={18} />
-      비추천
-    </button>
+      {(
+        [
+          ["up", "추천", "thumbUp"],
+          ["down", "비추천", "thumbDown"],
+        ] as const
+      ).map(([rate, label, icon]) => (
+        <button
+          key={rate}
+          type="button"
+          aria-pressed={rating.current === rate}
+          aria-label={label}
+          title={rating.disabledReason ?? label}
+          disabled={!!rating.disabledReason}
+          onClick={() => rating.select(rate)}
+          className={cx(
+            "grid size-11 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-35",
+            rating.current === rate
+              ? rate === "up"
+                ? "bg-navy-50 text-navy"
+                : "bg-wine-50 text-wine"
+              : "text-muted hover:text-ink",
+          )}
+        >
+          <Icon name={icon} size={24} />
+        </button>
+      ))}
+    </div>
   );
 }

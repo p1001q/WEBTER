@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { Price, Service } from "@/api/types";
 import { GradeBadge } from "@/components/review/GradeBadge";
 import { Icon } from "@/components/ui/Icon";
@@ -32,6 +33,8 @@ const reveal =
 interface ServiceCardProps extends ServiceItemProps {
   /** 서비스 이름의 제목 수준. 앞에 h2 가 없는 화면(h1 바로 아래)에서는 h2 로 둔다 */
   heading?: "h2" | "h3";
+  previewOnly?: boolean;
+  footerStart?: ReactNode;
 }
 
 /** 카드형 서비스 항목 */
@@ -41,6 +44,8 @@ export function ServiceCard({
   reason,
   hover,
   heading: Heading = "h3",
+  previewOnly,
+  footerStart,
 }: ServiceCardProps) {
   const wt = useWt();
   const agg = wt.agg(s);
@@ -53,6 +58,7 @@ export function ServiceCard({
       data-sid={s.id}
     >
       <RouteLink
+        inert={previewOnly}
         to="detail"
         params={{ id: s.id }}
         className="order-2 flex flex-1 flex-col text-inherit focus-visible:outline-offset-[-2px]"
@@ -89,7 +95,7 @@ export function ServiceCard({
           )}
         </div>
       </RouteLink>
-      <div className="relative order-1 block">
+      <div className="relative order-1 block" inert={previewOnly}>
         <RouteLink
           to="detail"
           params={{ id: s.id }}
@@ -127,6 +133,7 @@ export function ServiceCard({
         </button>
       </div>
       <div className="order-3 flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
+        {footerStart}
         {rank != null && (
           <span
             className={cx(

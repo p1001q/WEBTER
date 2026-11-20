@@ -135,9 +135,11 @@ export function CommentItem({
                   삭제
                 </MiniButton>
               )}
-              <ReportButton
-                target={{ targetType: "COMMENT", targetId: c.id }}
-              />
+              {!mine && (
+                <ReportButton
+                  target={{ targetType: "COMMENT", targetId: c.id }}
+                />
+              )}
             </span>
           </div>
           <p className={text}>{c.text}</p>
