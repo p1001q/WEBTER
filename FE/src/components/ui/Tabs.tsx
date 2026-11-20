@@ -16,6 +16,8 @@ interface TabsProps<T extends string> {
   onChange: (v: T) => void;
   /** 탭 줄 오른쪽 끝에 두는 동작(밑줄 링크 등) */
   aside?: ReactNode;
+  /** 해당 탭 앞에 여백을 추가해 탭 묶음을 구분한다. */
+  groupStarts?: readonly T[];
 }
 
 /**
@@ -27,6 +29,7 @@ export function Tabs<T extends string>({
   items,
   onChange,
   aside,
+  groupStarts,
 }: TabsProps<T>) {
   const root = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
@@ -78,6 +81,7 @@ export function Tabs<T extends string>({
               className={cx(
                 "relative inline-flex h-12 items-center gap-1.5 px-4 text-15 whitespace-nowrap transition-colors duration-200 hover:text-ink",
                 on ? "font-bold text-ink" : "font-semibold text-muted",
+                groupStarts?.includes(v) && "ml-6 @max-[560px]/app:ml-3",
               )}
               onClick={() => onChange(v)}
             >

@@ -1,6 +1,7 @@
 export const MYPAGE_TABS = [
   "services",
   "saved",
+  "reflections",
   "reviews",
   "comments",
   "settings",

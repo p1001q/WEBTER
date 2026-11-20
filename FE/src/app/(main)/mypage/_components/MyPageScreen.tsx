@@ -17,6 +17,7 @@ import { MYPAGE_TABS, type MyPageTab as Tab } from "../tabs";
 import { isMaker } from "@/domain/maker";
 import { MyServiceList } from "./MyServiceList";
 import { SettingsPanel } from "./SettingsPanel";
+import { ReflectionsPanel } from "./ReflectionsPanel";
 
 const reviewText =
   "m-0 mt-1.5 text-14 leading-[1.7] whitespace-pre-line text-[#3a3a3a] [overflow-wrap:anywhere]";
@@ -95,9 +96,11 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
           // 리뷰와 댓글은 한 탭("리뷰·댓글")으로 묶고, 안에서 하위 탭으로 나눈다
           value={tab === "comments" ? "reviews" : tab}
           onChange={goTab}
+          groupStarts={["reflections", "settings"]}
           items={[
             ["services", "내 서비스", mine.length],
             ["saved", "저장한 서비스", saved.length],
+            ["reflections", "회고"],
             ["reviews", "리뷰·댓글", myReviews.length + myComments.length],
             ["settings", "계정 설정"],
           ]}
@@ -285,6 +288,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
                 icon="reply"
               />
             ))}
+          {tab === "reflections" && <ReflectionsPanel />}
           {tab === "settings" && <SettingsPanel />}
         </div>
       </div>
