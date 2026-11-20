@@ -31,3 +31,5 @@ jobs:
           terraform test
       - name: Check shell syntax
         run: bash -n IN/runtime/deploy.sh IN/runtime/backup.sh IN/runtime/init-db.sh
+      - name: Check runtime deployment validation
+        run: python3 -m unittest discover -s IN/runtime/tests -v
