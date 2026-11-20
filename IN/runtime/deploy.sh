@@ -27,7 +27,7 @@ aws ssm get-parameter --region "$AWS_REGION" --name "$RUNTIME_ENV_NAME" \
   --with-decryption --query Parameter.Value --output text > "$staging/runtime.env"
 
 python3 - "$staging/runtime.env" "$config/runtime.env" "$staging/app.env" <<'PY'
-import pathlib, re, sys
+import os, pathlib, re, subprocess, sys
 
 def parse(path):
     values = {}
@@ -56,6 +56,31 @@ if previous.exists():
         raise SystemExit('Database/Redis password rotation requires a separate maintenance procedure')
     if old.get(hmac_key) and old[hmac_key] != new[hmac_key]:
         raise SystemExit('IP HMAC key rotation requires a separate maintenance procedure')
+
+# 미리 서명한 URL은 잘못된 키로도 만들어진다. 앱 교체 전에 실제 AWS 인증을 확인한다.
+if new.get('IMAGE_BUCKET'):
+    access_key = new.get('IMAGE_S3_ACCESS_KEY', '')
+    secret_key = new.get('IMAGE_S3_SECRET_KEY', '')
+    if bool(access_key) != bool(secret_key):
+        raise SystemExit('Set IMAGE_S3_ACCESS_KEY and IMAGE_S3_SECRET_KEY together')
+    if access_key and not new.get('IMAGE_S3_ENDPOINT'):
+        if any(value != value.strip() or value.startswith(('"', "'")) for value in (access_key, secret_key)):
+            raise SystemExit('Image credentials must not contain surrounding whitespace or quotes')
+        env = os.environ.copy()
+        for key in ('AWS_PROFILE', 'AWS_DEFAULT_PROFILE', 'AWS_SESSION_TOKEN', 'AWS_SECURITY_TOKEN'):
+            env.pop(key, None)
+        env.update(AWS_ACCESS_KEY_ID=access_key, AWS_SECRET_ACCESS_KEY=secret_key,
+                   AWS_EC2_METADATA_DISABLED='true', AWS_MAX_ATTEMPTS='2')
+        try:
+            result = subprocess.run(
+                ['aws', 'sts', 'get-caller-identity', '--region', new.get('IMAGE_REGION', 'ap-northeast-2'),
+                 '--output', 'json', '--no-cli-pager'],
+                env=env, capture_output=True, timeout=20,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            raise SystemExit('Image credential verification could not complete; current release preserved')
+        if result.returncode:
+            raise SystemExit('Image credentials failed AWS authentication; current release preserved')
 pathlib.Path(sys.argv[3]).write_text(''.join(f'{k}={v}\n' for k, v in new.items() if k not in protected))
 PY
 
