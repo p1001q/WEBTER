@@ -29,15 +29,20 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   const [slide, setSlide] = useState<"r" | "l">("r");
   // 탭은 바로 바뀌고(주소 갱신을 기다리지 않는다), 주소가 바뀌면 그 값을 따른다
   const [tab, setTab] = useState<Tab>(tabParam);
+  const [hasReflections, setHasReflections] = useState(
+    tabParam === "reflections",
+  );
   const goTab = (t: Tab) => {
     setSlide(MYPAGE_TABS.indexOf(t) >= MYPAGE_TABS.indexOf(tab) ? "r" : "l");
     setTab(t);
+    if (t === "reflections") setHasReflections(true);
     wt.go("mypage", { tab: t }, { replace: true });
   };
   const [prevParam, setPrevParam] = useState(tabParam);
   if (prevParam !== tabParam) {
     setPrevParam(tabParam);
     setTab(tabParam);
+    if (tabParam === "reflections") setHasReflections(true);
   }
   const me = wt.me!;
   const { loadMypage } = wt;
@@ -288,8 +293,12 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
                 icon="reply"
               />
             ))}
-          {tab === "reflections" && <ReflectionsPanel />}
           {tab === "settings" && <SettingsPanel />}
+        </div>
+        <div hidden={tab !== "reflections"} className="pt-6">
+          {hasReflections && (
+            <ReflectionsPanel key={me.id} active={tab === "reflections"} />
+          )}
         </div>
       </div>
       <Footer />

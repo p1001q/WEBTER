@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   reflectionApi,
   type ReflectionApi,
@@ -18,7 +18,7 @@ import { ReflectionWritePanel } from "./ReflectionWritePanel";
 import { inputClass, labelClass, selectClass } from "@/components/ui/field";
 import { useWt } from "@/providers/context";
 
-export function ReflectionsPanel() {
+export function ReflectionsPanel({ active = true }: { active?: boolean }) {
   const wt = useWt();
   const [tab, setTab] = useState<"write" | "list">("write");
   const [revision, setRevision] = useState(0);
@@ -47,8 +47,10 @@ export function ReflectionsPanel() {
       </div>
       <div hidden={tab !== "list"}>
         <ReflectionsHome
-          key={`${userId}|${revision}`}
+          key={userId}
           userId={userId}
+          active={active && tab === "list"}
+          refreshKey={revision}
           onWrite={() => setTab("write")}
         />
       </div>
@@ -56,12 +58,16 @@ export function ReflectionsPanel() {
   );
 }
 
-function ReflectionsHome({
+export function ReflectionsHome({
   userId,
   onWrite,
+  active,
+  refreshKey,
 }: {
   userId: string;
   onWrite: () => void;
+  active: boolean;
+  refreshKey: number;
 }) {
   const wt = useWt();
   const services = wt.services.filter((service) => service.owner === userId);
@@ -69,7 +75,7 @@ function ReflectionsHome({
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState("");
   const [refresh, setRefresh] = useState(0);
-  const key = `${page}|${filter}|${refresh}`;
+  const key = `${page}|${filter}|${refresh}|${refreshKey}`;
   const [result, setResult] = useState<{
     key: string;
     data?: ReflectionPage;
@@ -78,11 +84,23 @@ function ReflectionsHome({
   const [editor, setEditor] = useState<ReflectionEntry | "new" | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
   const [openError, setOpenError] = useState("");
+  const openingRun = useRef(0);
+  useEffect(
+    () => () => {
+      openingRun.current++;
+      setOpening(null);
+    },
+    [active],
+  );
   useEffect(() => {
+    if (!active) return;
     let alive = true;
     api.list(page, filter).then(
       (data) => {
-        if (alive) setResult({ key, data });
+        if (!alive) return;
+        const last = Math.max(0, Math.ceil(data.total / data.size) - 1);
+        if (page > last) setPage(last);
+        else setResult({ key, data });
       },
       (error: unknown) => {
         if (alive) setResult({ key, error: toApiError(error).message });
@@ -91,7 +109,7 @@ function ReflectionsHome({
     return () => {
       alive = false;
     };
-  }, [api, page, filter, key]);
+  }, [active, api, page, filter, key]);
   const data = result?.key === key ? result.data : undefined;
   const error = result?.key === key ? result.error : undefined;
   return (
@@ -163,14 +181,18 @@ function ReflectionsHome({
                   className="w-full rounded-md px-3 py-5 text-left hover:bg-light disabled:opacity-60"
                   disabled={!!opening}
                   onClick={async () => {
+                    if (!active) return;
+                    const run = ++openingRun.current;
                     setOpening(note.id);
                     setOpenError("");
                     try {
-                      setEditor(await api.get(note.id));
+                      const loaded = await api.get(note.id);
+                      if (openingRun.current === run) setEditor(loaded);
                     } catch (error) {
-                      setOpenError(toApiError(error).message);
+                      if (openingRun.current === run)
+                        setOpenError(toApiError(error).message);
                     } finally {
-                      setOpening(null);
+                      if (openingRun.current === run) setOpening(null);
                     }
                   }}
                 >
@@ -259,6 +281,9 @@ export function ReflectionModal({
   const [body, setBody] = useState(note?.body ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [baseNote, setBaseNote] = useState(note);
+  const [conflict, setConflict] = useState(false);
+  const [latest, setLatest] = useState<ReflectionEntry | null>(null);
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const dirty =
     editing &&
@@ -280,12 +305,19 @@ export function ReflectionModal({
     else onClose();
   };
   const save = async () => {
-    if (busy || !title.trim() || !body.trim() || (!note && !serviceId)) return;
+    if (
+      busy ||
+      conflict ||
+      !title.trim() ||
+      !body.trim() ||
+      (!note && !serviceId)
+    )
+      return;
     setBusy(true);
     setError("");
     try {
       await api.save(
-        note,
+        baseNote,
         { serviceId: serviceId || null, title, body },
         services.find((s) => s.id === serviceId)?.name ??
           note?.serviceName ??
@@ -293,7 +325,18 @@ export function ReflectionModal({
       );
       onDone();
     } catch (error) {
-      setError(toApiError(error).message);
+      const failure = toApiError(error);
+      setError(failure.message);
+      if (failure.code === "REFLECTION_409_01" && note) {
+        setConflict(true);
+        try {
+          setLatest(await api.get(note.id));
+        } catch (reloadError) {
+          setError(
+            `최신 회고를 불러오지 못했어요. ${toApiError(reloadError).message}`,
+          );
+        }
+      }
     } finally {
       setBusy(false);
     }
@@ -343,7 +386,7 @@ export function ReflectionModal({
                 setBusy(true);
                 setError("");
                 try {
-                  await api.remove(note);
+                  await api.remove(baseNote ?? note);
                   onDone();
                 } catch (error) {
                   setError(toApiError(error).message);
@@ -408,13 +451,68 @@ export function ReflectionModal({
               저장하지 못했어요. {error}
             </p>
           )}
+          {conflict && (
+            <section
+              aria-label="최신 회고 확인"
+              className="rounded-md border border-border bg-light p-4"
+            >
+              <p className="text-13!">
+                작성 중인 입력은 유지했어요. 최신 내용을 확인한 뒤 다시 저장해
+                주세요.
+              </p>
+              {latest ? (
+                <>
+                  <h4 className="mt-3 font-bold">{latest.title}</h4>
+                  <div className="mt-2 max-h-60 overflow-auto rounded-sm bg-card p-3">
+                    <MarkdownContent>{latest.body}</MarkdownContent>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      setBaseNote(latest);
+                      setLatest(null);
+                      setConflict(false);
+                      setError("");
+                    }}
+                  >
+                    최신 내용 확인했어요
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  onClick={async () => {
+                    if (!note) return;
+                    setBusy(true);
+                    try {
+                      setLatest(await api.get(note.id));
+                    } catch (reloadError) {
+                      setError(toApiError(reloadError).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  최신 내용 다시 조회
+                </Button>
+              )}
+            </section>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" disabled={busy} onClick={close}>
               취소
             </Button>
             <Button
               disabled={
-                busy || !title.trim() || !body.trim() || (!note && !serviceId)
+                busy ||
+                conflict ||
+                !title.trim() ||
+                !body.trim() ||
+                (!note && !serviceId)
               }
               onClick={() => {
                 void save();

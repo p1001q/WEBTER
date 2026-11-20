@@ -53,6 +53,7 @@ export function reflectionApi(userId: string) {
       throw new ApiError(
         "rule",
         "다른 화면에서 회고가 변경됐어요. 다시 불러와 주세요.",
+        "REFLECTION_409_01",
       );
     return note;
   };
