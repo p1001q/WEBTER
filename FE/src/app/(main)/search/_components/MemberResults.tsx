@@ -90,7 +90,7 @@ export function MemberPage({
         </div>
       </div>
     );
-  if (!data.total)
+  if (!data.total && page === 0)
     return (
       <EmptyState
         title="검색된 회원이 없어요"
@@ -131,7 +131,7 @@ export function MemberPage({
           </li>
         ))}
       </ul>
-      {data.total > data.size && (
+      {(page > 0 || data.total > data.size) && (
         <nav
           className="mt-6 flex items-center justify-center gap-4"
           aria-label="회원 검색 페이지"

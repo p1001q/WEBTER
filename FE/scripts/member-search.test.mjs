@@ -165,3 +165,36 @@ test("회원 결과 페이지를 바꾸면 이전 요청의 늦은 응답은 버
   prev.props.onClick();
   assert.equal(selected, 0);
 });
+
+for (const total of [20, 0]) {
+  test(`회원 수가 ${total}명으로 줄어 빈 2페이지가 되어도 이전 페이지로 이동`, async (t) => {
+    let selected;
+    const h = harness({
+      "@/api/auth/config": { realAuth: true },
+      "@/providers/context": { useWt: () => ({ users: {} }) },
+      "@/api/real/memberSearchApi": {
+        searchMembers: async () => ({ items: [], total, size: 20, page: 1 }),
+      },
+    });
+    t.after(() => h.dispose());
+    const { MemberPage } = h.load(
+      "app/(main)/search/_components/MemberResults.tsx",
+    );
+    const props = {
+      q: "maker",
+      page: 1,
+      retry() {},
+      onPage: (p) => {
+        selected = p;
+      },
+    };
+    h.render(MemberPage, props);
+    await settle();
+    const tree = h.render(MemberPage, props);
+    const [prev, next] = nodes(tree, (n) => n.type === "Button");
+    assert.equal(next.props.disabled, true);
+    assert.equal(prev.props.disabled, false);
+    prev.props.onClick();
+    assert.equal(selected, 0);
+  });
+}
