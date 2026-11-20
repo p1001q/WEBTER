@@ -136,6 +136,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
         )}
         <div
           key={tab}
+          hidden={tab === "reflections"}
           className={cx(
             tab === "services" || tab === "saved" ? "pt-2" : "pt-6",
             slide === "r" ? "animate-slide-in-r" : "animate-slide-in-l",
@@ -295,7 +296,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
             ))}
           {tab === "settings" && <SettingsPanel />}
         </div>
-        <div hidden={tab !== "reflections"} className="pt-6">
+        <div hidden={tab !== "reflections"} className="mt-2">
           {hasReflections && (
             <ReflectionsPanel key={me.id} active={tab === "reflections"} />
           )}
