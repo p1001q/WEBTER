@@ -282,12 +282,18 @@ export function ServiceDetailScreen({
                 프로필 보기
               </RouteLink>
             </div>
-            <ReportButton
-              className="self-start"
-              target={{ targetType: "SERVICE", targetId: s.id, label: s.name }}
-            >
-              이 서비스 신고
-            </ReportButton>
+            {!isOwner && (
+              <ReportButton
+                className="self-start"
+                target={{
+                  targetType: "SERVICE",
+                  targetId: s.id,
+                  label: s.name,
+                }}
+              >
+                이 서비스 신고
+              </ReportButton>
+            )}
           </aside>
         </div>
         {firstCategory && similar.length > 0 && (

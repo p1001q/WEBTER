@@ -107,7 +107,9 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
               삭제
             </MiniButton>
           )}
-          <ReportButton target={{ targetType: "REVIEW", targetId: r.id }} />
+          {!mine && (
+            <ReportButton target={{ targetType: "REVIEW", targetId: r.id }} />
+          )}
         </span>
       </div>
       <p className={text}>{r.text}</p>
@@ -185,12 +187,14 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
                   </MiniButton>
                 </>
               )}
-              <ReportButton
-                target={{
-                  targetType: "REVIEW_REPLY",
-                  targetId: r.reply.id ?? r.id,
-                }}
-              />
+              {!canReply && (
+                <ReportButton
+                  target={{
+                    targetType: "REVIEW_REPLY",
+                    targetId: r.reply.id ?? r.id,
+                  }}
+                />
+              )}
             </span>
           </div>
           <p className={`${text} text-14!`}>{r.reply.text}</p>
