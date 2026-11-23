@@ -12,6 +12,7 @@ import com.webter.IntegrationTest;
 import com.webter.domain.policy.entity.DocumentType;
 import com.webter.domain.policy.entity.PolicyDocument;
 import com.webter.domain.policy.repository.PolicyDocumentRepository;
+import com.webter.domain.user.validation.NicknamePolicy;
 import com.webter.global.security.SessionPrincipal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -288,7 +289,7 @@ class AuthApiTests extends IntegrationTest {
 		assertThat(jdbc.queryForList("SELECT DISTINCT username FROM users WHERE username <> 'my_handle'", String.class))
 			.hasSize(2).allMatch(username -> username.matches("user[a-f0-9]{24}"));
 		assertThat(jdbc.queryForList("SELECT nickname FROM users WHERE nickname <> '내 닉네임'", String.class))
-			.hasSize(2).allMatch(nickname -> nickname.matches("유저[0-9]{6}"));
+			.hasSize(2).allMatch(nickname -> nickname.endsWith(" 주인장") && NicknamePolicy.isValid(nickname));
 	}
 
 	@Test
@@ -306,10 +307,10 @@ class AuthApiTests extends IntegrationTest {
 	}
 
 	@Test
-	void nicknameIsMeasuredByWeightedLengthAndAllowsOneCharacter() throws Exception {
-		// 완성형 한글 2칸, 영문·숫자·공백 1칸, 합계 16칸까지. 한 글자도 허용한다.
+	void nicknameAllowsOneToNineCharactersIncludingSpaces() throws Exception {
+		// 한글·영문·숫자·공백을 모두 한 글자로 세고 최대 9글자까지 허용한다.
 		List<String> accepted = List.of("가", "a", "7", "사과먹는 개발자", "사과먹는개발자님", "가".repeat(8),
-				"a".repeat(16), "가나다라abcdefgh", "Mixed 닉네임 99");
+				"가".repeat(9), "a".repeat(9), "ABC 가나다12", "사과먹는 개발자님");
 		for (int i = 0; i < accepted.size(); i++) {
 			mockMvc.perform(post("/api/auth/signup").with(pending("sub-nick-" + i))
 				.with(csrf())
@@ -322,8 +323,8 @@ class AuthApiTests extends IntegrationTest {
 	}
 
 	@Test
-	void nicknameOverWeightOrWithForbiddenCharactersIsRejected() throws Exception {
-		List<String> rejected = List.of("사과먹는 개발자님", "가".repeat(9), "a".repeat(17), "가나다라abcdefghi", " 앞공백",
+	void nicknameOverNineCharactersOrWithForbiddenCharactersIsRejected() throws Exception {
+		List<String> rejected = List.of("사과먹는 개발자님요", "가".repeat(10), "a".repeat(10), "abcde 가나다라", " 앞공백",
 				"뒷공백 ", "두  칸", " ", "기호!", "ㅋㅋ", "ㅏㅏ", "개발ㅋㅋ", "이모지😀", "탭\\t포함", "줄\\n바꿈", "full　width");
 		for (String nickname : rejected) {
 			mockMvc.perform(post("/api/auth/signup").with(pending("sub-nick-bad"))
