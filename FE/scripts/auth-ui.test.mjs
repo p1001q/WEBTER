@@ -21,6 +21,8 @@ async function onboarding({
   signup,
   checkUsername = async () => true,
   fetchPolicies = async () => policies("v1"),
+  handle = "new.maker",
+  nick = "새내기",
 }) {
   const wt = { go() {}, takenHandles: [], signup };
   const h = harness({
@@ -39,6 +41,7 @@ async function onboarding({
   render();
   await settle();
   let tree = render();
+  const termsTree = tree;
   nodes(
     tree,
     (n) => n.type === "input" && n.props.type === "checkbox",
@@ -49,17 +52,18 @@ async function onboarding({
   nodes(
     tree,
     (n) => n.props?.placeholder === "예: dawn.code",
-  )[0].props.onChange({ target: { value: "new.maker" } });
+  )[0].props.onChange({ target: { value: handle } });
   nodes(tree, (n) => n.props?.placeholder === "예: 새벽코딩")[0].props.onChange(
-    { target: { value: "새내기" } },
+    { target: { value: nick } },
   );
   tree = render();
-  button(tree, "다음").props.onClick();
+  const profileTree = tree;
+  button(tree, handle || nick ? "다음" : "건너뛰기").props.onClick();
   tree = render();
-  return { h, render, tree };
+  return { h, render, tree, termsTree, profileTree };
 }
 
-test("온보딩의 시작·건너뛰기 광클은 중복 확인부터 가입 응답까지 한 요청만 보낸다", async (t) => {
+test("온보딩 시작하기 광클은 중복 확인부터 가입 응답까지 한 요청만 보낸다", async (t) => {
   const checked = deferred(),
     submitted = deferred();
   let checks = 0,
@@ -76,7 +80,7 @@ test("온보딩의 시작·건너뛰기 광클은 중복 확인부터 가입 응
   });
   t.after(() => h.dispose());
   const first = button(tree, "시작하기").props.onClick();
-  button(tree, "건너뛰기").props.onClick();
+  button(tree, "시작하기").props.onClick();
   assert.equal(checks, 1);
   assert.equal(signups, 0);
   checked.resolve(true);
@@ -89,6 +93,77 @@ test("온보딩의 시작·건너뛰기 광클은 중복 확인부터 가입 응
   await first;
   await settle();
   assert.equal(button(render(), "시작하기").props.disabled, false);
+});
+
+test("약관 초안 버전은 숨기고 동의 제출에는 실제 버전을 유지한다", async (t) => {
+  let sent;
+  const { h, tree, termsTree } = await onboarding({
+    fetchPolicies: async () => policies("draft-1"),
+    signup: async (input) => {
+      sent = input;
+      return false;
+    },
+  });
+  t.after(() => h.dispose());
+  assert.doesNotMatch(text(termsTree), /draft-1/);
+  assert.equal(
+    nodes(termsTree, (n) => n.props?.["aria-label"]?.endsWith("자세히 보기"))
+      .length,
+    2,
+  );
+  await button(tree, "시작하기").props.onClick();
+  await settle();
+  assert.deepEqual(
+    sent.consents.map((c) => c.version),
+    ["draft-1", "draft-1", "draft-1"],
+  );
+});
+
+test("프로필과 관심 카테고리를 비워도 시작하며 마지막 단계에는 건너뛰기가 없다", async (t) => {
+  let sent;
+  const { h, tree } = await onboarding({
+    handle: "",
+    nick: "",
+    checkUsername: async () => assert.fail("빈 아이디는 중복 검사하지 않는다"),
+    signup: async (input) => {
+      sent = input;
+      return false;
+    },
+  });
+  t.after(() => h.dispose());
+  assert.equal(button(tree, "건너뛰기"), undefined);
+  assert.match(text(tree), /선택하지 않아도 시작할 수 있어요/);
+  assert.equal(button(tree, "시작하기").props.disabled, false);
+  await button(tree, "시작하기").props.onClick();
+  assert.deepEqual(sent.interests, []);
+  assert.equal(sent.nick, "");
+  assert.equal(sent.handle, "");
+});
+
+test("시작하기는 선택한 관심 카테고리와 9글자 닉네임을 유지한다", async (t) => {
+  let sent;
+  const { h, tree, render, profileTree } = await onboarding({
+    nick: "가나다라마바사아자",
+    signup: async (input) => {
+      sent = input;
+      return false;
+    },
+  });
+  t.after(() => h.dispose());
+  assert.match(text(profileTree), /9\/9/);
+  assert.equal(
+    nodes(profileTree, (n) => n.props?.placeholder === "예: 새벽코딩")[0].props
+      .maxLength,
+    9,
+  );
+  nodes(
+    tree,
+    (n) => n.type === "button" && text(n) === "놀이",
+  )[0].props.onClick();
+  await button(render(), "시작하기").props.onClick();
+  await settle();
+  assert.deepEqual(sent.interests, ["play"]);
+  assert.equal(sent.nick, "가나다라마바사아자");
 });
 
 test("약관 변경 응답은 최신 버전을 다시 받고 체크 해제·약관 단계로 복구한다", async (t) => {
@@ -110,7 +185,7 @@ test("약관 변경 응답은 최신 버전을 다시 받고 체크 해제·약�
   assert.equal(loads, 2);
   assert.equal(signups, 1);
   assert.match(text(recovered), /약관이 변경/);
-  assert.match(text(recovered), /v2/);
+  assert.doesNotMatch(text(recovered), /v2/);
   assert.ok(
     nodes(recovered, (n) => n.type === "input").every(
       (n) => n.props.checked === false,
@@ -175,6 +250,61 @@ test("약관 조회 실패는 동의·다음을 막고 재시도로 복구한다
     nodes(tree, (n) => n.type === "input").every((n) => !n.props.disabled),
   );
   assert.equal(button(tree, "다음").props.disabled, true);
+});
+
+test("기존 9글자 초과 닉네임은 유지하며 다른 프로필을 수정할 수 있다", async (t) => {
+  const me = {
+    id: "legacy",
+    handle: "legacy.user",
+    nick: "abcdefghijklmnop",
+    links: [],
+    interests: [],
+    bio: "",
+  };
+  let sent;
+  const wt = {
+    me,
+    takenHandles: [],
+    updateMe: async (input) => {
+      sent = input;
+      return { ...me, ...input };
+    },
+  };
+  const h = harness({
+    "@/api/auth/config": { realAuth: true },
+    "@/providers/context": { useWt: () => wt },
+  });
+  t.after(() => h.dispose());
+  const { SettingsPanel } = h.load(
+    "app/(main)/mypage/_components/SettingsPanel.tsx",
+  );
+  const render = () => h.render(SettingsPanel);
+  let tree = render();
+  assert.match(text(tree), /기존 닉네임은 유지할 수 있어요/);
+  nodes(
+    tree,
+    (n) => n.type === "input" && n.props.maxLength === 80,
+  )[0].props.onChange({ target: { value: "새 소개" } });
+  tree = render();
+  const save = nodes(
+    tree,
+    (n) => n.type === "Button" && text(n).includes("저장"),
+  )[0];
+  assert.equal(save.props.disabled, false);
+  await save.props.onClick();
+  assert.equal(sent.nick, me.nick);
+  assert.equal(sent.bio, "새 소개");
+  nodes(
+    tree,
+    (n) => n.type === "input" && n.props.value === me.nick,
+  )[0].props.onChange({ target: { value: "1234567890" } });
+  tree = render();
+  assert.equal(
+    nodes(tree, (n) => n.type === "Button" && text(n).includes("저장"))[0].props
+      .disabled,
+    true,
+  );
+  assert.match(text(tree), /공백 포함 9글자/);
 });
 
 test("설정 저장 후 서버의 링크 정렬·주소를 입력칸에도 반영한다", async (t) => {

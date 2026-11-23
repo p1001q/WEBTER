@@ -10,6 +10,7 @@ import com.webter.domain.user.entity.UserInterest;
 import com.webter.domain.user.exception.UserErrorCode;
 import com.webter.domain.user.repository.UserInterestRepository;
 import com.webter.domain.user.repository.UserRepository;
+import com.webter.domain.user.validation.NicknamePolicy;
 import com.webter.global.exception.BusinessException;
 import com.webter.global.exception.CommonErrorCode;
 import java.util.List;
@@ -38,6 +39,9 @@ public class AccountService {
 	@Transactional
 	public MemberResponse updateProfile(UUID userId, UpdateProfileRequest request) {
 		User user = users.findLockedById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+		if (!request.nickname().equals(user.getNickname()) && !NicknamePolicy.isValid(request.nickname())) {
+			throw new BusinessException(UserErrorCode.INVALID_NICKNAME);
+		}
 		var links = ProfileLinks.toMap(request.links());
 		List<Category> selected = categories.resolveActive(request.interests());
 		// 대소문자만 바꾸는 경우는 본인 아이디라 중복이 아니다
