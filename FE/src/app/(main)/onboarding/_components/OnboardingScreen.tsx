@@ -28,7 +28,6 @@ import {
   msgState,
   NICK_RULE_HINT,
   nickCheck,
-  nickWeight,
   type FieldState,
 } from "@/domain/validation";
 import { cx } from "@/lib/cx";
@@ -362,11 +361,12 @@ export function OnboardingScreen({
             <label className={labelClass} htmlFor={P + "onb-nick"}>
               닉네임
               <span className={counterClass}>
-                {nickWeight(nick)}/{POLICY.nickMaxWeight}
+                {nick.length}/{POLICY.nickMax}
               </span>
             </label>
             <input
               id={P + "onb-nick"}
+              maxLength={POLICY.nickMax}
               className={cx(inputClass, inputState(nc.state))}
               value={nick}
               onChange={(e) => setNick(e.target.value)}

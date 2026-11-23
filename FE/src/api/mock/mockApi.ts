@@ -1,5 +1,6 @@
 import { reportKey } from "@/domain/report";
 import { DISPLAY, POLICY } from "@/domain/policy";
+import { generateNickname } from "@/domain/nickname";
 import { CAT } from "@/domain/options";
 import { handleChangeStatus, normUrl } from "@/domain/validation";
 import type {
@@ -146,9 +147,7 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
       const id = "u_new";
       users[id] = {
         id,
-        nick:
-          nick ||
-          `유저${String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0")}`,
+        nick: nick || generateNickname(),
         handle: key,
         color: "#E3E8F0",
         bio: "",
