@@ -123,9 +123,9 @@ class MemberApiTests extends DomainFixtureTest {
 	}
 
 	@Test
-	void profileNicknameUsesWeightedLengthAndAllowsOneCharacter() throws Exception {
+	void profileNicknameAllowsOneToNineCharactersIncludingSpaces() throws Exception {
 		User user = createUser("nickedit");
-		for (String nickname : List.of("가", "a", "사과먹는개발자님", "a".repeat(16), "가나다라abcdefgh")) {
+		for (String nickname : List.of("가", "a", "사과먹는개발자님", "사과먹는 개발자님", "가".repeat(9), "a".repeat(9), "ABC 가나다12")) {
 			mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profile("nickedit", nickname, "\"\"", "[]", "[]")))
@@ -134,19 +134,42 @@ class MemberApiTests extends DomainFixtureTest {
 		}
 		flushAndClear();
 		assertThat(jdbc.queryForObject("SELECT nickname FROM users WHERE user_id = ?", String.class, user.getId()))
-			.isEqualTo("가나다라abcdefgh");
+			.isEqualTo("ABC 가나다12");
 
-		for (String nickname : List.of("사과먹는 개발자님", "가".repeat(9), "a".repeat(17), " 앞", "뒤 ", "두  칸", "ㅋㅋ",
+		for (String nickname : List.of("사과먹는 개발자님요", "가".repeat(10), "a".repeat(10), " 앞", "뒤 ", "두  칸", "ㅋㅋ",
 				"개발ㅋㅋ", "기호!", "이모지😀")) {
 			mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profile("nickedit", nickname, "\"\"", "[]", "[]")))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.data.nickname").exists());
+				.andExpect(jsonPath("$.success").value(false));
 		}
 		flushAndClear();
 		assertThat(jdbc.queryForObject("SELECT nickname FROM users WHERE user_id = ?", String.class, user.getId()))
-			.isEqualTo("가나다라abcdefgh");
+			.isEqualTo("ABC 가나다12");
+	}
+
+	@Test
+	void unchangedLegacyNicknameAllowsOtherProfileChangesButCannotBeReplacedWithAnotherLongName() throws Exception {
+		User user = createUser("legacy_nick");
+		String legacy = "abcdefghijklmnop";
+		flushAndClear();
+		jdbc.update("UPDATE users SET nickname = ? WHERE user_id = ?", legacy, user.getId());
+		flushAndClear();
+		mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(profile("legacy_nick", legacy, "\"새 소개\"", "[]", "[]")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.nickname").value(legacy))
+			.andExpect(jsonPath("$.data.bio").value("새 소개"));
+		mockMvc.perform(put("/api/users/me").with(as(user)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(profile("legacy_nick", "abcdefghijklmnoq", "\"\"", "[]", "[]")))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("USER_400_04"));
+		flushAndClear();
+		assertThat(jdbc.queryForObject("SELECT nickname FROM users WHERE user_id = ?", String.class, user.getId()))
+			.isEqualTo(legacy);
 	}
 
 	@Test

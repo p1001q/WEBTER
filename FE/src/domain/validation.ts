@@ -10,7 +10,7 @@ export interface FieldCheck {
 }
 
 /** 닉네임 길이 안내 — 입력칸 도움말과 길이 오류 메시지가 함께 쓴다 */
-export const NICK_RULE_HINT = `한글은 2칸, 영문·숫자·공백은 1칸으로 세어 ${POLICY.nickMaxWeight}칸까지 입력할 수 있어요.`;
+export const NICK_RULE_HINT = `공백 포함 ${POLICY.nickMax}글자까지 입력할 수 있어요. 한글·영문·숫자·공백을 각각 1글자로 세어요.`;
 
 /* 서비스 주소 — R-URL. 형식 검사는 클라이언트, 접속·중복 검사는 서버(api.checkServiceUrl) */
 const SOURCE_HOSTS = ["github.com", "gitlab.com", "bitbucket.org"];
@@ -94,15 +94,6 @@ export function handleCheck(
     return { state: "taken", msg: "이미 사용 중인 아이디예요." };
   return { state: "ok", msg: "사용할 수 있는 아이디예요." };
 }
-/** 닉네임 가중 길이: 완성형 한글(가~힣) 2칸, 그 밖의 문자 1칸. 허용 문자만 들어온 값에 쓴다 */
-export function nickWeight(v: string): number {
-  let w = 0;
-  for (let i = 0; i < v.length; i++) {
-    const c = v.charCodeAt(i);
-    w += c >= 0xac00 && c <= 0xd7a3 ? POLICY.nickHangulWeight : 1;
-  }
-  return w;
-}
 export function nickCheck(
   v: string,
   opts: { required?: boolean } = {},
@@ -123,11 +114,10 @@ export function nickCheck(
       state: "format",
       msg: "한글·영문·숫자와 중간 공백만 쓸 수 있어요. 자음·모음만 쓴 글자, 기호, 이모지는 쓸 수 없어요.",
     };
-  const w = nickWeight(v);
-  if (w < POLICY.nickMin || w > POLICY.nickMaxWeight)
+  if (v.length < POLICY.nickMin || v.length > POLICY.nickMax)
     return {
       state: "format",
-      msg: `너무 길어요(${w}칸). ${NICK_RULE_HINT}`,
+      msg: `너무 길어요(${v.length}글자). ${NICK_RULE_HINT}`,
     };
   return {
     state: "ok",

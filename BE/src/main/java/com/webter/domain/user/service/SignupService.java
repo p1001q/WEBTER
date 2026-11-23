@@ -17,12 +17,11 @@ import com.webter.domain.user.repository.OAuthIdentityRepository;
 import com.webter.domain.user.repository.UserConsentRepository;
 import com.webter.domain.user.repository.UserInterestRepository;
 import com.webter.domain.user.repository.UserRepository;
+import com.webter.domain.user.validation.NicknamePolicy;
 import com.webter.global.exception.BusinessException;
 import com.webter.global.security.SessionPrincipal;
-import java.security.SecureRandom;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class SignupService {
-
-	private static final SecureRandom RANDOM = new SecureRandom();
 
 	/** 가입 때 반드시 동의받는 문서. SERVICE_REGISTRATION은 서비스 등록 때 받는다. */
 	private static final List<DocumentType> REQUIRED = List.of(DocumentType.TERMS, DocumentType.PRIVACY,
@@ -70,8 +67,7 @@ public class SignupService {
 		try {
 			User user = users.saveAndFlush(User.builder()
 				.username(username)
-				.nickname(request.nickname() == null
-						? String.format(Locale.ROOT, "유저%06d", RANDOM.nextInt(1_000_000)) : request.nickname())
+				.nickname(request.nickname() == null ? NicknamePolicy.generate() : request.nickname())
 				.email(pending.email())
 				.build());
 			identities.saveAndFlush(OAuthIdentity.builder().user(user).providerSubject(pending.googleSubject()).build());

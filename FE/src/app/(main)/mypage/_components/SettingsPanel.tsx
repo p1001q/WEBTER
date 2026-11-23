@@ -33,7 +33,6 @@ import {
   imgSize,
   msgState,
   nickCheck,
-  nickWeight,
   readAsURL,
 } from "@/domain/validation";
 import { cx } from "@/lib/cx";
@@ -73,7 +72,10 @@ export function SettingsPanel() {
   const hc = handleCheck(handle, wt.takenHandles, me.handle, {
     required: true,
   });
-  const nc = nickCheck(nick, { required: true });
+  const nc =
+    nick === me.nick
+      ? { state: "ok" as const, msg: "현재 닉네임이에요." }
+      : nickCheck(nick, { required: true });
   const hs = handleChangeStatus(me.handleChanges, DISPLAY.demoToday);
   // 아이디 변경 횟수 제한은 서버 규칙이 정해지기 전이라 실제 로그인에서는 걸지 않는다
   const handleLocked = !realAuth && hs.left === 0;
@@ -222,15 +224,24 @@ export function SettingsPanel() {
               <label className={labelClass} htmlFor={P + "set-nick"}>
                 닉네임
                 <span className={counterClass}>
-                  {nickWeight(nick)}/{POLICY.nickMaxWeight}
+                  {nick === me.nick && nick.length > POLICY.nickMax
+                    ? `${nick.length}글자 · 기존 닉네임`
+                    : `${nick.length}/${POLICY.nickMax}`}
                 </span>
               </label>
               <input
                 id={P + "set-nick"}
                 className={cx(inputClass, errBorder(nc.state))}
                 value={nick}
+                maxLength={POLICY.nickMax}
                 onChange={(e) => setNick(e.target.value)}
               />
+              {nick === me.nick && nick.length > POLICY.nickMax && (
+                <FieldMessage state="idle">
+                  기존 닉네임은 유지할 수 있어요. 변경할 때는 공백 포함{" "}
+                  {POLICY.nickMax}글자까지 입력해 주세요.
+                </FieldMessage>
+              )}
               {nc.state !== "ok" && (
                 <FieldMessage state={msgState(nc.state)}>{nc.msg}</FieldMessage>
               )}

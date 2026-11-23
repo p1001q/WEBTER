@@ -28,7 +28,6 @@ import {
   msgState,
   NICK_RULE_HINT,
   nickCheck,
-  nickWeight,
   type FieldState,
 } from "@/domain/validation";
 import { cx } from "@/lib/cx";
@@ -153,7 +152,7 @@ export function OnboardingScreen({
   }, [handle, hc.state, staleTaken]);
 
   // ?step= 으로 앞 단계를 건너뛰고 들어와도, 가입 전에 빠진 단계로 되돌린다
-  const finish = async (skip: boolean) => {
+  const finish = async () => {
     if (submittingRef.current) return;
     if (!all || !policiesReady) return setStep(1);
     if (!canNext2) return setStep(2);
@@ -173,7 +172,7 @@ export function OnboardingScreen({
         {
           handle,
           nick,
-          interests: skip ? [] : cats,
+          interests: cats,
           consents: policies ?? undefined,
         },
         back,
@@ -288,24 +287,9 @@ export function OnboardingScreen({
                   <RouteLink
                     to={doc}
                     className={linkClass}
-                    aria-label={`${l} 보기`}
+                    aria-label={`${l} 자세히 보기`}
                   >
-                    보기
-                    {policies?.find(
-                      (p) =>
-                        p.documentType ===
-                        (doc === "terms" ? "TERMS" : "PRIVACY"),
-                    )?.version && (
-                      <span className="ml-1 font-mono text-11">
-                        {
-                          policies.find(
-                            (p) =>
-                              p.documentType ===
-                              (doc === "terms" ? "TERMS" : "PRIVACY"),
-                          )?.version
-                        }
-                      </span>
-                    )}
+                    자세히 보기
                   </RouteLink>
                 )}
               </div>
@@ -362,11 +346,12 @@ export function OnboardingScreen({
             <label className={labelClass} htmlFor={P + "onb-nick"}>
               닉네임
               <span className={counterClass}>
-                {nickWeight(nick)}/{POLICY.nickMaxWeight}
+                {nick.length}/{POLICY.nickMax}
               </span>
             </label>
             <input
               id={P + "onb-nick"}
+              maxLength={POLICY.nickMax}
               className={cx(inputClass, inputState(nc.state))}
               value={nick}
               onChange={(e) => setNick(e.target.value)}
@@ -428,6 +413,10 @@ export function OnboardingScreen({
             최대 {POLICY.maxCategories}개까지 고를 수 있어요. 홈에서 해당 용도의
             트렌딩·인기를 먼저 보여 드려요.
           </p>
+          <p className={authSubClass}>
+            선택하지 않아도 시작할 수 있어요. 관심 카테고리는 마이페이지에서
+            언제든 설정할 수 있어요.
+          </p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
               <button
@@ -465,18 +454,10 @@ export function OnboardingScreen({
               이전
             </Button>
             <Button
-              variant="ghost"
-              size="lg"
-              disabled={submitting}
-              onClick={() => void finish(true)}
-            >
-              건너뛰기
-            </Button>
-            <Button
               size="lg"
               className="flex-1"
               disabled={submitting}
-              onClick={() => void finish(false)}
+              onClick={() => void finish()}
             >
               {submitting ? "가입 중…" : "시작하기"}
             </Button>
