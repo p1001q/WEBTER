@@ -14,6 +14,7 @@ import {
 import { Icon } from "@/components/ui/Icon";
 import { MiniButton } from "@/components/ui/MiniButton";
 import { helpClass } from "@/components/ui/field";
+import { skipUnsaveConfirm } from "@/domain/unsave";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 
@@ -81,15 +82,44 @@ export function HiddenServiceRow({ s }: { s: Service }) {
   );
 }
 
+/** 저장한 서비스 목록에서 저장을 해제한다. 목록에서 사라지므로 "다시 묻지 않기"를 고르지 않았으면 먼저 묻는다 */
+function useUnsave(s: Service) {
+  const wt = useWt();
+  return () => {
+    if (skipUnsaveConfirm()) void wt.toggleSave(s.id);
+    else wt.setModal({ type: "unsave", sid: s.id });
+  };
+}
+
+/** 이미지 대신 보여 주는 비공개 표시 */
+function PrivateThumb({ compact }: { compact?: boolean }) {
+  return (
+    <div
+      className={cx(
+        "grid place-items-center bg-light text-muted",
+        compact ? "size-12 shrink-0 rounded-sm" : "aspect-[16/10]",
+      )}
+      aria-hidden="true"
+    >
+      <span className="flex flex-col items-center gap-1.5">
+        <Icon name="lock" size={compact ? 18 : 26} />
+        {!compact && (
+          <span className="text-12 font-semibold">비공개 서비스</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
 /** 저장했지만 비공개로 바뀐 서비스: 이름과 저장 해제만 보여 준다(이미지·사유는 가린다) */
 export function SavedHiddenCard({ s }: { s: Service }) {
-  const wt = useWt();
+  const unsave = useUnsave(s);
   return (
     <article
       className="relative flex min-w-0 flex-col overflow-hidden rounded-sm bg-card shadow-card"
       data-saved-hidden={s.id}
     >
-      <div className="aspect-[16/10] bg-light" />
+      <PrivateThumb />
       <div className="flex flex-1 flex-col gap-1.5 px-4 pt-4 pb-3.5">
         <div className="flex min-w-0 items-center gap-2 text-12 text-muted">
           <StatusBadge kind={s.pub as HiddenKind} />
@@ -103,7 +133,7 @@ export function SavedHiddenCard({ s }: { s: Service }) {
         </p>
       </div>
       <div className="flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
-        <MiniButton onClick={() => wt.toggleSave(s.id)}>
+        <MiniButton onClick={unsave}>
           <Icon name="bookmark" size={13} />
           저장 해제
         </MiniButton>
@@ -114,10 +144,10 @@ export function SavedHiddenCard({ s }: { s: Service }) {
 
 /** 목록형의 저장했지만 비공개로 바뀐 서비스 행(이미지·사유는 가린다) */
 export function SavedHiddenRow({ s }: { s: Service }) {
-  const wt = useWt();
+  const unsave = useUnsave(s);
   return (
     <div className={rowClass} data-saved-hidden={s.id}>
-      <div className="size-12 shrink-0 rounded-sm bg-light" />
+      <PrivateThumb compact />
       <div className={rowMainClass}>
         <div className={cx(rowTitleClass, "text-muted")}>
           <span className="truncate">{s.name}</span>
@@ -126,7 +156,7 @@ export function SavedHiddenRow({ s }: { s: Service }) {
         <div className={rowDescClass}>지금은 볼 수 없는 서비스예요</div>
       </div>
       <div className={rowSideClass}>
-        <MiniButton onClick={() => wt.toggleSave(s.id)}>
+        <MiniButton onClick={unsave}>
           <Icon name="bookmark" size={13} />
           저장 해제
         </MiniButton>

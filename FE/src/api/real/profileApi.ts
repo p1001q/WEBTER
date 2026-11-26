@@ -38,9 +38,25 @@ export const profileApi = {
     ),
   /** 내가 좋아요한 서비스 id */
   liked: () => getJson<string[]>("/api/users/me/liked"),
-  /** 내가 저장한 서비스(저장한 순서, 먼저 저장한 것이 앞) */
+  /** 내가 저장한 서비스(저장한 순서, 먼저 저장한 것이 앞). 저장 뒤 비공개된 서비스는 이름과 공개 상태로 알아본다 */
   saved: () =>
-    getJson<{ serviceId: string; savedAt: string }[]>("/api/users/me/saved"),
+    getJson<
+      {
+        serviceId: string;
+        savedAt: string;
+        name: string;
+        visibility: "PUBLIC" | "TEMP_HIDDEN" | "HIDDEN";
+      }[]
+    >("/api/users/me/saved"),
+  /** 내가 남긴 추천·비추천(목록 카드의 내 평가 표시용). written은 본문이 있는 리뷰인지 */
+  ratings: () =>
+    getJson<
+      {
+        serviceId: string;
+        rate: "RECOMMEND" | "NOT_RECOMMEND";
+        written: boolean;
+      }[]
+    >("/api/users/me/ratings"),
   myReviews: async () =>
     (await getJson<BackendReview[]>("/api/users/me/reviews")).map(mapReview),
   myComments: async () =>

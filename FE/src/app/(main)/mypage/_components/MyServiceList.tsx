@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Service } from "@/api/types";
 import { ServiceCard } from "@/components/service/ServiceCard";
 import { ServiceList } from "@/components/service/ServiceList";
+import { ServiceRow } from "@/components/service/ServiceRow";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { FILTER_DEFAULT_ALL, applyFilter } from "@/domain/filter";
@@ -68,7 +69,11 @@ export function MyServiceList({
           view={st.view}
           renderItem={(s) =>
             s.pub === "public" ? (
-              <ServiceCard s={s} heading="h2" />
+              <ServiceCard
+                s={s}
+                heading="h2"
+                confirmUnsave={kind === "saved"}
+              />
             ) : mine ? (
               <HiddenServiceCard s={s} />
             ) : (
@@ -76,7 +81,11 @@ export function MyServiceList({
             )
           }
           renderRow={(s) =>
-            s.pub === "public" ? null : mine ? (
+            s.pub === "public" ? (
+              kind === "saved" ? (
+                <ServiceRow s={s} confirmUnsave />
+              ) : null
+            ) : mine ? (
               <HiddenServiceRow s={s} />
             ) : (
               <SavedHiddenRow s={s} />

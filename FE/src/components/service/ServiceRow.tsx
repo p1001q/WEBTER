@@ -8,7 +8,7 @@ import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
 import type { ServiceItemProps } from "./ServiceCard";
 import { ServiceIcon } from "./ServiceIcon";
-import { ServiceStats } from "./ServiceStats";
+import { ServiceReactions } from "./ServiceReactions";
 import {
   rowClass,
   rowDescClass,
@@ -25,7 +25,13 @@ const reveal =
   "group-hover/row:opacity-100 group-focus-within/row:opacity-100 group-data-[hover]/row:opacity-100";
 
 /** 목록형 서비스 항목 */
-export function ServiceRow({ s, rank, reason, hover }: ServiceItemProps) {
+export function ServiceRow({
+  s,
+  rank,
+  reason,
+  hover,
+  confirmUnsave,
+}: ServiceItemProps) {
   const wt = useWt();
   const agg = wt.agg(s);
   const down = s.use === "stop";
@@ -75,10 +81,9 @@ export function ServiceRow({ s, rank, reason, hover }: ServiceItemProps) {
             이용하기 <Icon name="external" size={13} stroke={2} />
           </Button>
         </div>
-        <ServiceStats
+        <ServiceReactions
           s={s}
-          recommendations={agg.up}
-          saved={wt.saves.has(s.id)}
+          confirmUnsave={confirmUnsave}
           className="@max-[560px]/app:hidden"
         />
       </div>

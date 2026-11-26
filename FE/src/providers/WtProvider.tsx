@@ -562,6 +562,7 @@ export function WtProvider({
       });
     },
     myReview: (sid) => myReviewOf(sid),
+    ensureMyReview: async (sid) => myReviewOf(sid) ?? null,
     requireLogin: (fn, reason) => {
       if (me) fn();
       else setModal({ type: "login", reason });
