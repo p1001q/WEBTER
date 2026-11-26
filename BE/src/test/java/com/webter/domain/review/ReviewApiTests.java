@@ -99,11 +99,75 @@ class ReviewApiTests extends DomainFixtureTest {
 		em.clear();
 		mvc.perform(put(base + "/rating").with(as(member)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"rate\":\"RECOMMEND\"}")).andExpect(status().isConflict());
-		String makerId = write(base, owner, "제작자 리뷰");
+		mvc.perform(post(base + "/reviews").with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content("{\"text\":\"제작자 리뷰\"}")).andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("INTERACTION_403_01"));
+		String memberId = write(base, member, "중지된 서비스도 미설정 리뷰는 가능");
 		mvc.perform(get(base + "/reviews")).andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.items[0].id").value(makerId))
-			.andExpect(jsonPath("$.data.items[0].creatorReview").value(true))
+			.andExpect(jsonPath("$.data.items[0].id").value(memberId))
 			.andExpect(jsonPath("$.data.items[0].rate").value("NONE"));
+	}
+
+	@Test
+	void ownerAndAcceptedMemberCannotWriteOrEditReviewsButCanReply() throws Exception {
+		var owner = createUser("rv_maker_owner");
+		var teammate = createUser("rv_teammate");
+		var reader = createUser("rv_reader");
+		long sid = createService(owner, "https://example.com/rv-makers").getId();
+		String base = "/api/services/" + sid;
+		// 팀원이 되기 전에 남긴 리뷰도 팀 수락 뒤에는 수정할 수 없다.
+		String oldReview = write(base, teammate, "참여 전 리뷰");
+		String readerReview = write(base, reader, "사용자 리뷰");
+		String invitation = mvc.perform(post(base + "/team/invitations").with(as(owner)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"rv_teammate\"}"))
+			.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		mvc.perform(post("/api/invitations/" + JsonPath.read(invitation, "$.data.id") + "/accept")
+			.with(as(teammate)).with(csrf())).andExpect(status().isOk());
+		flushAndClear();
+
+		for (User maker : java.util.List.of(owner, teammate)) {
+			for (String body : new String[] {"{\"text\":\"작성 시도\"}",
+				"{\"text\":\"작성 시도\",\"rate\":\"NONE\"}",
+				"{\"text\":\"작성 시도\",\"rate\":\"RECOMMEND\",\"anon\":true}"}) {
+				mvc.perform(post(base + "/reviews").with(as(maker)).with(csrf())
+					.contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden())
+					.andExpect(jsonPath("$.code").value("INTERACTION_403_01"));
+			}
+			mvc.perform(put(base + "/reviews/" + readerReview + "/reply").with(as(maker)).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"제작자 답글\"}"))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.data.reply.text").value("제작자 답글"));
+		}
+		mvc.perform(patch(base + "/reviews/" + oldReview).with(as(teammate)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"수정 시도\"}"))
+			.andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("INTERACTION_403_01"));
+		mvc.perform(get(base + "/reviews/me").with(as(teammate))).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.canEdit").value(false)).andExpect(jsonPath("$.data.canDelete").value(true));
+		mvc.perform(get("/api/users/me/reviews").with(as(teammate))).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[0].canEdit").value(false));
+		assertThat(countReviews(sid)).isEqualTo(2);
+		mvc.perform(delete(base + "/reviews/" + oldReview).with(as(teammate)).with(csrf()))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void legacyCreatorReviewCanBeReadAndDeletedButNotEdited() throws Exception {
+		var owner = createUser("rv_legacy_owner");
+		long sid = createService(owner, "https://example.com/rv-legacy").getId();
+		em.flush();
+		Long id = jdbc.queryForObject("""
+			INSERT INTO reviews (service_id, author_id, author_kind, rating, content, is_creator_review)
+			VALUES (?, ?, 'MEMBER', 'NONE', '기존 제작자 리뷰', TRUE) RETURNING review_id
+			""", Long.class, sid, owner.getId());
+		em.clear();
+		String base = "/api/services/" + sid;
+		mvc.perform(get(base + "/reviews").with(as(owner))).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.items[0].text").value("기존 제작자 리뷰"))
+			.andExpect(jsonPath("$.data.items[0].canEdit").value(false))
+			.andExpect(jsonPath("$.data.items[0].canDelete").value(true));
+		mvc.perform(patch(base + "/reviews/" + id).with(as(owner)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"수정 시도\"}"))
+			.andExpect(status().isForbidden());
+		mvc.perform(delete(base + "/reviews/" + id).with(as(owner)).with(csrf())).andExpect(status().isOk());
 	}
 
 	@Test
@@ -155,7 +219,7 @@ class ReviewApiTests extends DomainFixtureTest {
 			.content("{\"text\":\"제작자가 아님\"}")).andExpect(status().isForbidden());
 		mvc.perform(put(base + suffix).with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"text\":\"［링크］（https：／／example.com）\"}")).andExpect(status().isBadRequest());
-		mvc.perform(post(base + "/reviews").with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			mvc.perform(post(base + "/reviews").with(as(member)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"text\":\"example.com에서 확인\"}")).andExpect(status().isBadRequest());
 		mvc.perform(put(base + suffix).with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"text\":\"감사합니다\"}")).andExpect(status().isOk())
