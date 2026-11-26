@@ -33,7 +33,8 @@ final class DemoContent {
 
 	private static final String[] RATER_NAMES = { "초코칩", "산책러", "밤하늘", "고등어", "토마토", "해바라기", "레몬티", "감자칩",
 			"구름빵", "모래시계", "파도소리", "새싹", "별똥별", "호두", "단풍잎", "눈사람", "다람쥐", "귤껍질", "솜사탕", "연필깎이", "체리",
-			"바닐라", "소나무", "고양이손", "만두" };
+			"바닐라", "소나무", "고양이손", "만두", "보름달", "단팥빵", "오렌지", "라떼", "도토리", "청포도", "해질녘", "유자차", "밤톨", "호빵",
+			"찹쌀떡", "살구", "박하사탕", "꽃게", "갈매기" };
 
 	private static void members(DemoPlan p) {
 		p.member("adm2", "webter.ops", "운영지기").admin().joined(200);
@@ -58,6 +59,9 @@ final class DemoContent {
 			.interests("PRODUCTIVITY", "DESIGN");
 		p.member("k", "hello.world", "헬로월드").avatar("avatar-6").joined(100).interests("PLAY", "UTILITY");
 		p.member("l", "night.owl", "올빼미").joined(95).interests("PLAY", "LEARNING");
+		for (String[] m : EXTRA_MAKERS) {
+			p.member(m[0], m[1], m[2]).joined(Double.parseDouble(m[3])).bio(m[4]);
+		}
 		p.member("n", "bori.dev", "보리").joined(85).interests("LIFE");
 		p.member("w", "goodbye.w", "떠날사람").joined(100).withdraw();
 		p.member("w2", "leaving.dev", "출석팀장").joined(95).withdraw();
@@ -101,7 +105,6 @@ final class DemoContent {
 		habit.review("h3", "guest", "NONE", "비회원인데도 리뷰를 남길 수 있어서 좋네요. 화면이 깔끔해요.", 15).guestIp("203.0.113.24");
 		habit.review("h4", "n", "DOWN", "알림 시간을 직접 정할 수 있으면 좋겠어요. 지금은 아침 9시 고정이라 아쉬워요.", 9).edited(8)
 			.reply("a", "의견 감사합니다! 알림 시간 설정은 다음 버전에서 열어 둘게요.", 7).replyEdited(6.5).up("c").down("r03");
-		habit.review("h5", "a", "NONE", "팀원으로 참여 중이에요. 습관 카드 디자인을 맡았습니다.", 30);
 		habit.review("h6", "r16", "UP", "어제부터 쓰기 시작했는데 벌써 습관이 될 것 같아요.", 0.4);
 		habit.ratings(10, 1, 2, 60);
 		habit.comment("hc1", "b", "다크 모드도 계획 있나요?", 25)
@@ -265,7 +268,7 @@ final class DemoContent {
 		// A3: 주간 1위
 		Svc budget = p.service("budget", "h", "가계부 한 장", "한 달 수입과 지출을 한 장으로 정리해요")
 			.price("FREEMIUM").cats("LIFE").tags("가계부", "절약", "자취").icon("icon-budget").thumb("budget-1")
-			.previews("budget-1", "budget-2").created(33)
+			.previews("budget-1", "budget-2").created(33).desc(BUDGET_DESC)
 			.likes(14, 3.5, 30).saves(3, 4, 6.5).launches(130, 3.5, 6.5).launches(8, 10, 30).views(600, 0.5, 32)
 			.mine(false, true);
 		budget.review("bu1", "c", "UP", "카테고리별 그래프가 한눈에 보여서 좋아요.", 6).up("l", "n");
@@ -277,7 +280,7 @@ final class DemoContent {
 		// A3: 월간 1위, I7 세로 원본 + 9:16 COVER(자연스러운 사례)
 		Svc recipe = p.service("recipe", "e", "냠냠 레시피", "냉장고 재료로 만드는 자취생 10분 레시피")
 			.devices("MOBILE").cats("LIFE").tags("요리", "레시피", "자취").icon("icon-recipe").thumb("recipe-1")
-			.previews("recipe-1", "recipe-2", "recipe-3").portrait().allow(true, true, true).created(45)
+			.previews("recipe-1", "recipe-2", "recipe-3").portrait().allow(true, true, true).created(45).desc(RECIPE_DESC)
 			.likes(20, 8, 40).saves(6, 9, 27).launches(170, 8, 27).views(800, 0.3, 44).mine(true, true);
 		recipe.review("re1", "c", "UP", "냉장고 재료만 고르면 레시피가 나와서 편해요.", 20)
 			.reply("e", "자주 쓰는 재료를 더 늘려 볼게요!", 19.5);
@@ -286,6 +289,8 @@ final class DemoContent {
 		recipe.review("re4", "n", "UP", "조리 시간이 짧은 순으로 볼 수 있어서 좋아요.", 9)
 			.reply("e", "감사합니다. 1인분 기준 레시피도 더 올릴게요.", 8.5);
 		recipe.comment("rec1", "b", "채식 레시피도 있나요?", 14).with("rec1r1", "e", "채식 필터를 준비하고 있어요.", 13.5);
+		rich(recipe, "rr", "e", RECIPE_REVIEWS, RECIPE_COMMENTS, 1, 43, 3.2);
+		rich(budget, "br", "h", BUDGET_REVIEWS, BUDGET_COMMENTS, 15, 32, 3.6);
 
 		// I5 16:9 COVER 가로 원본
 		Svc pixel = p.service("pixel", "f", "픽셀 캔버스", "브라우저에서 바로 그리는 16x16 도트 그림판")
@@ -361,6 +366,8 @@ final class DemoContent {
 		p.service("colorpick", "f", "사진 색감 추출기", "사진의 분위기 색을 코드로 뽑아 줘요")
 			.cats("DESIGN").tags("색상", "사진").created(9).launches(8, 0.5, 8).views(50, 0.2, 8);
 
+		extraServices(p);
+
 		// R12·T4: 본계정이 남긴 리뷰에 제작자 답글
 		Svc quiz = p.service("quiz", "g", "한국사 퀴즈", "하루 10문제로 끝내는 한국사 복습")
 			.cats("LEARNING", "PLAY").tags("한국사", "퀴즈", "시험").icon("icon-quiz").thumb("square-quiz")
@@ -371,6 +378,281 @@ final class DemoContent {
 		quiz.review("qz2", "c", "UP", "출퇴근길에 풀기 딱 좋아요.", 12);
 		quiz.comment("qzc1", "r12", "문제 틀리면 바보 인증이네요.", 3);
 		quiz.comment("qzc2", "l", "조선 후기 문제가 어려워요.", 5).anonymous();
+	}
+
+	// ---------------------------------------------------------------- 리뷰·댓글이 많은 서비스
+
+	/**
+	 * 리뷰·댓글을 많이 단다. 리뷰는 평가 회원(firstRater부터)이 fromDays~toDays 사이에 남기고, 일부는 익명·제작자 답글·투표를 붙인다.
+	 * 텍스트가 "-"로 시작하면 비추천이다. 댓글은 평가 회원과 이름 있는 회원이 남기고 제작자가 답한다.
+	 */
+	private static void rich(Svc s, String prefix, String maker, String[] reviews, String[][] comments, int firstRater,
+			double fromDays, double toDays) {
+		String[] voters = { "c", "l", "n", "b", "d", "k", "g" };
+		for (int i = 0; i < reviews.length; i++) {
+			String text = reviews[i];
+			boolean down = text.startsWith("-");
+			double days = fromDays - (fromDays - toDays) * i / Math.max(1, reviews.length - 1);
+			var r = s.review(prefix + i, "r%02d".formatted(firstRater + i), down ? "DOWN" : "UP",
+					down ? text.substring(1) : text, days);
+			if (s.anonReview && i % 5 == 2) {
+				r.anonymous();
+			}
+			if (i % 4 == 1) {
+				r.reply(maker, MAKER_REPLIES[i % MAKER_REPLIES.length], days - 0.3);
+			}
+			if (i % 6 == 0) {
+				r.edited(days - 0.2);
+			}
+			// 오래된 리뷰 몇 개에 추천을 몰아 추천순과 최신순이 달라지게 한다
+			int ups = i < 3 ? 5 - i : (i % 3 == 0 ? 1 : 0);
+			for (int v = 0; v < ups; v++) {
+				r.up(voters[v]);
+			}
+			if (i % 7 == 3) {
+				r.down(voters[6]);
+			}
+		}
+		for (int i = 0; i < comments.length; i++) {
+			String[] c = comments[i];
+			double days = fromDays - 1 - (fromDays - toDays - 1) * i / Math.max(1, comments.length - 1);
+			var top = s.comment(prefix + "c" + i, c[0], c[1], days);
+			if (s.anonComment && i % 4 == 3) {
+				top.anonymous();
+			}
+			for (int j = 2; j + 1 < c.length; j += 2) {
+				top.with(prefix + "c" + i + "r" + j, c[j], c[j + 1], days - 0.1 * j);
+			}
+		}
+	}
+
+	private static final String[] MAKER_REPLIES = { "자세한 후기 감사해요! 말씀하신 부분 바로 반영해 볼게요.",
+			"꾸준히 써 주셔서 감사합니다. 다음 업데이트 소식도 알려 드릴게요.", "불편을 드려 죄송해요. 원인을 확인하고 있어요.",
+			"좋은 아이디어예요. 기능 목록에 올려 두었어요." };
+
+	private static final String RECIPE_DESC = """
+			## 냉장고 속 재료로 10분 요리
+
+			**냠냠 레시피**는 자취생이 가진 재료만으로 바로 만들 수 있는 레시피를 찾아 주는 모바일 웹이에요.
+			냉장고에 있는 재료를 고르면 *만들 수 있는 순서*대로 레시피를 보여 줘요.
+
+			### 이렇게 써요
+			1. 냉장고 화면에서 가진 재료를 체크해요.
+			2. 조리 시간·인분·난이도로 레시피를 좁혀요.
+			3. 단계별 타이머를 켜고 따라 만들어요.
+
+			### 주요 기능
+			- 재료 체크 한 번으로 **만들 수 있는 레시피** 추천
+			- 1인분 기준 분량 자동 계산
+			- 장보기 목록으로 부족한 재료 옮기기
+			- 즐겨 찾는 레시피 모아 보기
+
+			| 구분 | 내용 |
+			| --- | --- |
+			| 레시피 수 | 420개(매주 추가) |
+			| 평균 조리 시간 | 12분 |
+			| 지원 기기 | 모바일 브라우저 |
+
+			> 다음 업데이트: 채식 필터와 남은 재료 활용 추천을 준비하고 있어요.
+
+			문의와 제안은 [피드백 페이지](https://example.com/webter-demo/recipe-feedback)에 남겨 주세요.
+			""";
+
+	private static final String BUDGET_DESC = """
+			## 한 달 돈 흐름을 한 장으로
+
+			**가계부 한 장**은 수입·지출·남은 돈을 한 화면에 정리하는 가계부예요.
+			복잡한 분류 대신 *자주 쓰는 카테고리 8개*만 두고, 입력은 세 번 누르면 끝나요.
+
+			### 이런 분께 추천해요
+			- 가계부를 여러 번 시작했다가 그만둔 분
+			- 월급날부터 다음 월급날까지 남은 돈이 궁금한 분
+			- 친구와 나눠 낸 돈을 따로 정리하고 싶은 분
+
+			### 기능
+			1. **빠른 입력**: 금액 → 카테고리 → 저장
+			2. **월간 리포트**: 카테고리별 그래프와 지난달 비교
+			3. **목표 예산**: 카테고리별 한도와 초과 알림
+			4. **정산 메모**: 함께 낸 돈을 사람별로 기록
+
+			| 요금제 | 내용 |
+			| --- | --- |
+			| 무료 | 기본 입력·월간 리포트 |
+			| 플러스(월 2,900원) | 목표 예산·CSV 내보내기·정산 메모 |
+
+			> 개인 금융 정보는 기기 밖으로 보내지 않아요. 백업은 직접 내려받는 파일로만 해요.
+			""";
+
+	private static final String[] RECIPE_REVIEWS = {
+			"자취 3년 차인데 이 서비스 쓰고 나서 배달 횟수가 확 줄었어요. 냉장고에 있는 재료만 체크하면 바로 만들 수 있는 게 나오는 게 제일 좋아요.",
+			"1인분 기준으로 분량을 자동 계산해 주는 게 생각보다 유용해요. 예전엔 레시피 따라 하다 늘 양이 너무 많았거든요.",
+			"단계별 타이머가 있어서 요리 초보도 따라 하기 쉬워요. 계란말이 처음으로 성공했어요.",
+			"-레시피는 좋은데 사진이 없는 레시피가 꽤 있어요. 완성 사진이 있으면 훨씬 따라 하기 쉬울 것 같아요.",
+			"장보기 목록으로 부족한 재료를 옮겨 주는 기능 덕분에 마트에서 헤매지 않아요.",
+			"두부 스테이크 레시피 최고예요. 10분이라고 써 있는데 정말 10분 걸렸어요.",
+			"즐겨찾기 모아 보기가 있어서 자주 해 먹는 메뉴를 바로 찾을 수 있어요.",
+			"-검색어에 오타가 있으면 결과가 하나도 안 나와요. 비슷한 재료 이름도 찾아 주면 좋겠어요.",
+			"자취생 맞춤이라 재료가 다 동네 편의점에서 살 수 있는 것들이에요. 실용적이에요.",
+			"냉장고 정리할 때 유통기한 임박한 재료부터 쓰는 레시피를 보여 줘서 버리는 음식이 줄었어요.",
+			"조리 시간 짧은 순 정렬이 있어서 아침에 급할 때 자주 써요.",
+			"모바일 화면이 깔끔하고 글씨가 커서 요리하면서 보기 편해요.",
+			"-난이도 표시가 좀 후한 것 같아요. 쉬움이라고 써 있는데 저한테는 꽤 어려웠어요.",
+			"토마토 달걀볶음 레시피 따라 했는데 중국집 맛이 나요. 강추합니다.",
+			"재료를 세 개만 골라도 만들 수 있는 게 생각보다 많아서 놀랐어요.",
+			"매주 새 레시피가 올라와서 질리지 않아요.",
+			"친구 집들이 메뉴를 여기서 골랐는데 반응이 좋았어요.",
+			"양념 비율을 숟가락 단위로 알려 줘서 계량컵이 없어도 돼요.",
+			"-레시피를 인쇄하거나 PC에서 크게 보는 기능은 없나요? 모바일만 돼서 아쉬워요.",
+			"남은 밥으로 만드는 레시피 모음이 따로 있어서 좋아요.",
+			"요리 끝나고 사진 올리는 기능이 생기면 더 재밌을 것 같아요. 지금도 충분히 만족해요.",
+			"자취 시작하는 동생한테도 추천했어요.",
+			"전자레인지만으로 되는 레시피가 있어서 기숙사에서도 쓸 수 있어요.",
+			"식비가 한 달에 10만 원 넘게 줄었어요. 진심으로 감사합니다.",
+			"-가끔 재료 체크한 게 초기화돼요. 새로고침하면 다시 골라야 해서 불편해요.",
+			"레시피마다 칼로리가 나와서 다이어트할 때도 참고하고 있어요.",
+			"짧은 소개 영상 대신 단계별 사진이라 데이터 걱정이 없어요.",
+			"매운 정도 조절 팁까지 적혀 있어서 좋았어요."
+	};
+
+	private static final String[][] RECIPE_COMMENTS = {
+			{ "r30", "냉장고에 양배추만 반 통 남았는데 추천해 주실 레시피 있나요?", "e", "양배추 계란전이나 양배추 볶음밥을 추천해요! 검색에 양배추를 넣어 보세요.", "r31", "양배추 계란전 해 먹었는데 맛있어요." },
+			{ "c", "에어프라이어 전용 레시피도 모아 주시면 좋겠어요.", "e", "에어프라이어 필터를 다음 달에 추가할게요." },
+			{ "r32", "재료 체크 상태가 기기마다 따로 저장되나요?", "e", "지금은 브라우저마다 따로 저장돼요. 계정 동기화를 준비 중이에요." },
+			{ "l", "1인분 계산할 때 소수점 숟가락은 반올림인가요?", "e", "0.5 단위로 반올림해서 보여 드려요." },
+			{ "r33", "레시피 제보는 어디서 하나요?", "e", "상세 설명 아래 피드백 페이지에서 받고 있어요!" },
+			{ "n", "자취생 장보기 서비스랑 같이 쓰면 좋겠네요.", "r34", "저도 둘이 연동되면 좋겠어요." },
+			{ "r35", "비건 레시피 몇 개나 있어요?", "e", "현재 38개 있고 계속 늘리고 있어요." },
+			{ "b", "아침 5분 레시피 모음 만들어 주세요!" },
+			{ "r36", "라면 응용 레시피가 너무 좋아요.", "r37", "라면 카르보나라 추천합니다.", "e", "라면 모음도 따로 만들어 볼게요." },
+			{ "d", "다크 모드도 지원하나요? 밤에 보기 눈부셔서요." },
+			{ "r38", "레시피 공유 링크가 있으면 좋겠어요.", "e", "공유 버튼을 이번 주에 추가했어요. 앱을 새로고침해 보세요." },
+			{ "k", "냉동 식품 활용 레시피도 있으면 좋겠어요." },
+			{ "r39", "명절에 남은 전으로 만드는 레시피 있을까요?", "e", "전찌개 레시피가 있어요! 검색창에 전을 입력해 보세요." },
+			{ "g", "요리 용어 사전 같은 기능도 있으면 초보에게 도움이 될 것 같아요." },
+			{ "r40", "덕분에 요리가 재밌어졌어요. 감사합니다!" }
+	};
+
+	private static final String[] BUDGET_REVIEWS = {
+			"가계부를 다섯 번은 포기했는데 이건 세 달째 쓰고 있어요. 입력이 세 번 누르면 끝나는 게 핵심인 것 같아요.",
+			"월간 리포트에서 지난달과 비교해 주니까 어디서 돈이 새는지 바로 보여요. 배달비가 문제였네요.",
+			"카테고리가 8개뿐이라 처음엔 부족해 보였는데 오히려 고민할 게 없어서 좋아요.",
+			"-무료 버전에서 CSV 내보내기가 안 되는 건 아쉬워요. 기본 기능이라고 생각해요.",
+			"정산 메모 기능 덕분에 친구들과 여행 경비 정리가 편해졌어요.",
+			"월급날 기준으로 기간을 설정할 수 있어서 좋아요. 다른 가계부는 1일 기준이라 불편했거든요.",
+			"목표 예산 초과 알림이 은근히 잔소리처럼 효과가 있어요.",
+			"-그래프 색이 비슷해서 카테고리 구분이 어려워요. 색 대비를 조금 높여 주세요.",
+			"금융 정보를 서버에 안 보낸다는 점이 마음에 들어요. 은행 연동 앱은 불안했거든요.",
+			"남은 돈을 하루 단위로 나눠서 보여 주는 게 동기 부여가 돼요.",
+			"모바일에서 홈 화면에 추가해서 앱처럼 쓰고 있어요.",
+			"-백업 파일을 다시 불러올 때 날짜 형식이 바뀌어서 한 번 고생했어요.",
+			"플러스 요금제 결제했는데 월 2,900원이면 아깝지 않아요.",
+			"고정 지출을 매달 자동으로 넣어 주면 더 좋겠어요. 그래도 지금도 충분히 편해요.",
+			"자취 첫 달 예산 짤 때 큰 도움이 됐어요.",
+			"입력할 때 메모를 짧게 남길 수 있어서 나중에 뭐에 썼는지 기억나요.",
+			"부모님 용돈 관리용으로도 쓰고 있어요. 단순해서 부모님도 쉽게 쓰세요.",
+			"-카드 내역 자동 불러오기가 없어서 매번 직접 입력해야 해요.",
+			"한 달 결산 화면이 예뻐서 캡처해서 친구들한테 자랑했어요.",
+			"절약 챌린지 하는 동안 매일 들어가게 되네요.",
+			"지출 카테고리를 길게 누르면 이름을 바꿀 수 있는 게 숨은 꿀팁이에요.",
+			"여러 통장을 나눠 보는 기능이 생기면 완벽할 것 같아요."
+	};
+
+	private static final String[][] BUDGET_COMMENTS = {
+			{ "r16", "가족끼리 같이 쓰는 공동 가계부도 되나요?", "h", "지금은 개인용만 지원해요. 공동 가계부는 요청이 많아 검토하고 있어요.", "r17", "공동 가계부 나오면 바로 결제할게요." },
+			{ "c", "외화 지출도 입력할 수 있나요? 여행 갈 때 쓰고 싶어요.", "h", "통화 단위를 바꿀 수 있어요. 환율은 직접 입력하는 방식이에요." },
+			{ "r18", "고정 지출 자동 입력 기능 요청합니다!", "h", "다음 업데이트 목록 1순위로 올려 두었어요." },
+			{ "n", "CSV를 엑셀에서 열면 한글이 깨져요.", "h", "UTF-8 BOM을 넣도록 고쳤어요. 다시 내려받아 보세요.", "n", "이제 잘 열려요. 감사합니다!" },
+			{ "r19", "학생 할인 같은 건 없나요?" },
+			{ "l", "카테고리별 예산을 주 단위로도 볼 수 있으면 좋겠어요." },
+			{ "r20", "다른 가계부에서 옮겨 오는 기능이 있나요?", "h", "CSV 가져오기를 지원해요. 열 이름만 맞춰 주세요." },
+			{ "b", "위젯처럼 남은 돈만 크게 보는 화면이 있으면 좋겠어요." },
+			{ "r21", "연말정산용으로 의료비만 따로 뽑을 수 있을까요?", "h", "카테고리 필터 후 CSV로 내보내면 돼요." },
+			{ "d", "무지출 챌린지 달력 기능 생기면 재밌겠어요.", "r22", "저도 원해요!" },
+			{ "r23", "이용하기 눌렀더니 예시 페이지가 나오네요. 데모 버전인가요?" },
+			{ "k", "지출 입력 알림 시간을 바꿀 수 있나요?", "h", "설정 > 알림에서 시간을 바꿀 수 있어요." }
+	};
+
+	/** 이름·소개·카테고리·유형·가격·기기·언어·태그·등록 경과일 */
+	private static final String[][] EXTRAS = {
+			{ "x01", "mo", "오늘 할 일 셋", "하루 할 일을 딱 세 개만 적는 미니 투두", "PRODUCTIVITY", "TOY", "FREE", "PC,MOBILE", "KO", "할일,투두", "14" },
+			{ "x02", "hana", "코드 스니펫 노트", "자주 쓰는 코드 조각을 태그로 모아 두는 노트", "DEV_TOOLS", "SIDE", "FREE", "PC", "KO,EN", "코드,스니펫", "48" },
+			{ "x03", "studio", "웹툰 콘티 보드", "칸 나누기와 말풍선 배치를 연습하는 콘티 도구", "DESIGN", "SIDE", "FREEMIUM", "PC", "KO", "웹툰,콘티,그림", "62" },
+			{ "x04", "rain", "비 오는 날 플레이리스트", "날씨에 맞춰 노래를 골라 주는 플레이리스트", "PLAY,LIFE", "TOY", "FREE", "MOBILE", "KO", "음악,날씨", "23" },
+			{ "x05", "toy", "사다리 게임 만들기", "참가자와 결과를 넣으면 바로 사다리를 그려요", "PLAY,UTILITY", "TOY", "FREE", "PC,MOBILE", "KO", "게임,사다리", "77" },
+			{ "x06", "jun", "API 응답 비교기", "두 JSON 응답의 차이를 색으로 보여 줘요", "DEV_TOOLS", "SIDE", "FREE", "PC", "EN", "API,diff,개발도구", "36" },
+			{ "x07", "sena", "인터뷰 질문 카드", "직무별 면접 질문을 카드로 뽑아 연습해요", "LEARNING,PRODUCTIVITY", "SIDE", "FREE", "PC,MOBILE", "KO", "면접,취업", "29" },
+			{ "x08", "beta", "팀 회고 보드", "스프린트 회고를 카드로 모으고 투표해요", "PRODUCTIVITY", "COMMERCIAL", "FREEMIUM", "PC", "KO,EN", "회고,협업,애자일", "88" },
+			{ "x09", "mo", "물 마시기 챌린지", "하루 물 섭취량을 컵 단위로 기록해요", "LIFE", "TOY", "FREE", "MOBILE", "KO", "건강,습관", "11" },
+			{ "x10", "hana", "깃허브 잔디 달력", "커밋 기록을 달력 이미지로 만들어 줘요", "DEV_TOOLS,DESIGN", "TOY", "FREE", "PC", "KO,EN", "깃허브,잔디", "54" },
+			{ "x11", "studio", "캐릭터 이름 짓기", "성격과 분위기를 고르면 캐릭터 이름을 추천해요", "DESIGN,PLAY", "TOY", "FREE", "PC,MOBILE", "KO", "창작,이름", "40" },
+			{ "x12", "rain", "동네 날씨 일기", "오늘 날씨와 기분을 함께 남기는 짧은 일기", "LIFE", "SIDE", "FREE", "MOBILE", "KO", "일기,날씨", "33" },
+			{ "x13", "toy", "숫자 야구", "세 자리 숫자를 맞히는 추리 게임", "PLAY", "TOY", "FREE", "PC,MOBILE", "KO", "게임,추리", "95" },
+			{ "x14", "jun", "커밋 메시지 린터", "커밋 메시지 규칙을 붙여 넣고 검사해요", "DEV_TOOLS", "SIDE", "FREE", "PC", "KO,EN", "깃,커밋", "18" },
+			{ "x15", "sena", "발표 타이머", "발표 시간과 남은 슬라이드를 함께 보여 줘요", "PRODUCTIVITY,UTILITY", "TOY", "FREE", "PC", "KO", "발표,타이머", "57" },
+			{ "x16", "beta", "고객 문의 템플릿", "자주 받는 문의에 쓸 답변 템플릿 모음", "PRODUCTIVITY", "COMMERCIAL", "PAID", "PC", "KO", "CS,템플릿", "70" },
+			{ "x17", "mo", "자취방 체크리스트", "방 보러 갈 때 확인할 항목을 체크해요", "LIFE,UTILITY", "TOY", "FREE", "MOBILE", "KO", "자취,부동산", "26" },
+			{ "x18", "hana", "SQL 연습장", "예제 테이블로 바로 쿼리를 연습해요", "LEARNING,DEV_TOOLS", "SIDE", "FREE", "PC", "KO", "SQL,DB,공부", "64" },
+			{ "x19", "studio", "컬러 팔레트 퀴즈", "색 이름과 색을 맞히는 디자인 감각 퀴즈", "DESIGN,PLAY", "TOY", "FREE", "PC,MOBILE", "KO", "색상,퀴즈", "21" },
+			{ "x20", "rain", "주말 산책 코스 추천", "걸을 시간을 넣으면 근처 산책 코스를 골라요", "LIFE", "SIDE", "FREE", "MOBILE", "KO", "산책,주말", "44" },
+			{ "x21", "toy", "밸런스 투표방", "친구들과 밸런스 질문에 투표하는 방 만들기", "PLAY", "TOY", "FREE", "MOBILE", "KO", "투표,게임", "15" },
+			{ "x22", "jun", "정규식 치트시트", "자주 쓰는 정규식 패턴을 예제와 함께 정리", "DEV_TOOLS,LEARNING", "TOY", "FREE", "PC", "KO,EN", "정규식,치트시트", "100" },
+			{ "x23", "sena", "자기소개서 글자 수 세기", "공백 포함·제외 글자 수와 바이트를 세어 줘요", "UTILITY,PRODUCTIVITY", "TOY", "FREE", "PC,MOBILE", "KO", "취업,글자수", "39" },
+			{ "x24", "beta", "온라인 화이트보드", "링크 하나로 함께 그리는 화이트보드", "PRODUCTIVITY,DESIGN", "COMMERCIAL", "FREEMIUM", "PC", "KO,EN", "협업,화이트보드", "82" },
+			{ "x25", "mo", "가습기 청소 알림", "가습기·필터 교체 주기를 알려 줘요", "LIFE", "TOY", "FREE", "MOBILE", "KO", "알림,생활", "52" },
+			{ "x26", "hana", "README 생성기", "프로젝트 정보를 넣으면 README 초안을 만들어요", "DEV_TOOLS,PRODUCTIVITY", "SIDE", "FREE", "PC", "KO,EN", "README,문서", "31" },
+			{ "x27", "studio", "손글씨 폰트 테스트", "내 문장으로 손글씨 폰트를 비교해요", "DESIGN", "TOY", "FREE", "PC", "KO", "폰트,손글씨", "68" },
+			{ "x28", "toy", "끝말잇기 봇", "혼자서도 할 수 있는 끝말잇기 상대", "PLAY,LEARNING", "TOY", "FREE", "PC,MOBILE", "KO", "게임,단어", "47" },
+			{ "x29", "jun", "HTTP 상태 코드 사전", "상태 코드의 뜻과 쓰임을 예시로 설명해요", "DEV_TOOLS,LEARNING", "TOY", "FREE", "PC", "KO,EN", "HTTP,개발도구", "73" },
+			{ "x30", "sena", "스터디 시간표 공유", "스터디원끼리 가능한 시간을 겹쳐 보여 줘요", "LEARNING,UTILITY", "SIDE", "FREE", "PC,MOBILE", "KO", "스터디,일정", "24" }
+	};
+
+	/** 키·아이디·닉네임·가입 경과일·소개 */
+	private static final String[][] EXTRA_MAKERS = {
+			{ "mo", "mo.dev", "모도", "160", "생활에 필요한 작은 도구를 만들어요" },
+			{ "hana", "hana.code", "하나코드", "155", "개발자를 위한 도구를 만드는 백엔드 개발자" },
+			{ "studio", "studio.ten", "스튜디오텐", "150", "그림 그리는 사람을 위한 웹을 만들어요" },
+			{ "rain", "rain.day", "비오는날", "145", "날씨와 산책을 좋아해요" },
+			{ "toy", "toy.maker", "토이메이커", "140", "주말마다 작은 게임을 만들어요" },
+			{ "jun", "jun.web", "준웹", "135", "API와 개발 도구를 좋아하는 개발자" },
+			{ "sena", "sena.ui", "세나", "130", "취업 준비생을 돕는 서비스를 만들어요" },
+			{ "beta", "beta.lab", "베타랩", "125", "협업 도구를 만드는 작은 팀" }
+	};
+
+	private static final String[] EXTRA_GOOD = { "생각보다 완성도가 높아요. 자주 쓸 것 같아요.", "딱 필요한 기능만 있어서 좋아요.",
+			"화면이 깔끔하고 빨라요.", "친구한테도 추천했어요.", "매일 아침 열어 보는 서비스가 됐어요.", "설치 없이 바로 쓸 수 있어서 편해요." };
+	private static final String[] EXTRA_BAD = { "아이디어는 좋은데 기능이 조금 부족해요.", "모바일에서 버튼이 작아요.",
+			"가끔 느려요. 개선되면 다시 써 볼게요." };
+	private static final String[] EXTRA_COMMENTS = { "업데이트 계획이 궁금해요.", "다크 모드 지원 예정 있나요?", "이런 서비스 찾고 있었어요!",
+			"영어 버전도 나오면 좋겠어요.", "오픈소스인가요?" };
+	private static final String[] REVIEWERS = { "c", "l", "n", "b", "d", "g", "k" };
+
+	/** 실제 서비스형 목록을 채우는 서비스. 활동량은 인기 순위 상위를 바꾸지 않을 만큼만 둔다 */
+	private static void extraServices(DemoPlan p) {
+		for (int i = 0; i < EXTRAS.length; i++) {
+			String[] x = EXTRAS[i];
+			double created = Double.parseDouble(x[10]);
+			Svc s = p.service(x[0], x[1], x[2], x[3]).cats(x[4].split(",")).type(x[5]).price(x[6])
+				.devices(x[7].split(",")).langs(x[8].split(",")).tags(x[9].split(",")).created(created)
+				.desc("%s\n\n- %s\n- 회원가입 없이 바로 사용\n- %s 지원".formatted(x[3],
+						x[9].replace(",", "·") + " 관련 기능", x[7].contains("MOBILE") ? "모바일" : "PC 화면"))
+				.launches(4 + i % 6 * 2, 3.5, created - 0.5).views(25 + i % 5 * 15, 0.3, created - 0.2)
+				.likes(i % 6, 1, created - 1).allow(i % 3 == 0, i % 2 == 0, i % 4 == 0);
+			if (i % 7 != 6) {
+				s.ratings(1 + i % 4, i % 3 == 2 ? 1 : 0, 8, Math.max(9, created - 1));
+			}
+			int written = i % 4;
+			for (int k = 0; k < written; k++) {
+				boolean bad = (i + k) % 5 == 4;
+				double days = Math.max(4, created * (0.8 - k * 0.2));
+				s.review(x[0] + "r" + k, REVIEWERS[(i + k) % REVIEWERS.length], bad ? "DOWN" : "UP",
+						bad ? EXTRA_BAD[(i + k) % EXTRA_BAD.length] : EXTRA_GOOD[(i + k) % EXTRA_GOOD.length], days);
+			}
+			if (i % 3 == 1) {
+				s.comment(x[0] + "c", REVIEWERS[(i + 3) % REVIEWERS.length], EXTRA_COMMENTS[i % EXTRA_COMMENTS.length],
+						Math.max(3.5, created * 0.5))
+					.with(x[0] + "cr", x[1], "관심 가져 주셔서 감사해요! 곧 공지로 알려 드릴게요.", Math.max(3.4, created * 0.5 - 0.3));
+			}
+		}
 	}
 
 	// ---------------------------------------------------------------- 안내용 [시연] 서비스 (G)
