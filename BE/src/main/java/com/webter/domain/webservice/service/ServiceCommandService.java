@@ -65,7 +65,7 @@ public class ServiceCommandService {
 
 	private final PolicyDocumentRepository policies;
 
-	private final UrlProbe probe;
+	private final UrlSecurityChecks urlSecurity;
 
 	private final ImageVerifier images;
 
@@ -79,13 +79,18 @@ public class ServiceCommandService {
 	 * 서비스를 등록한다. 이미지는 저장소에서 확인해야 하므로(외부 호출) 트랜잭션 밖에서 먼저 확인한 뒤 저장한다.
 	 */
 	public long create(UUID userId, ServiceRequest request) {
+		User member = users.findById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+		if (member.getAccountStatus() != AccountStatus.ACTIVE) throw new BusinessException(ServiceErrorCode.REGISTRATION_RESTRICTED);
+		if (!request.agreed()) throw new BusinessException(ServiceErrorCode.REGISTRATION_AGREEMENT_REQUIRED);
 		Fields f = Fields.of(request);
+		urlSecurity.requireChecked(f.url());
 		verifyImages(f, Set.of());
 		Long id = tx.execute(status -> doCreate(userId, request, f));
 		return id;
 	}
 
 	private long doCreate(UUID userId, ServiceRequest request, Fields f) {
+		urlSecurity.requireCached(f.url());
 		User user = users.findLockedById(userId).orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
 		if (user.getAccountStatus() != AccountStatus.ACTIVE) {
 			throw new BusinessException(ServiceErrorCode.REGISTRATION_RESTRICTED);
@@ -135,12 +140,15 @@ public class ServiceCommandService {
 	/** 서비스를 수정한다. 새로 연결하는 이미지만 저장소에서 확인한다(트랜잭션 밖). */
 	public void update(long id, Viewer viewer, ServiceRequest request) {
 		Fields f = Fields.of(request);
-		verifyImages(f, currentImages(id, viewer));
+		Current current = currentState(id, viewer);
+		verifyImages(f, current.images());
+		if (!current.url().equals(f.url())) urlSecurity.requireChecked(f.url());
 		tx.executeWithoutResult(status -> doUpdate(id, viewer, request, f));
 	}
 
 	private void doUpdate(long id, Viewer viewer, ServiceRequest request, Fields f) {
 		WebService service = manageable(id, viewer);
+		if (!service.getServiceUrl().equals(f.url())) urlSecurity.requireCached(f.url());
 		ensureCategoriesExist(f.categories());
 		if (!service.getCanonicalUrl().equals(f.canonicalUrl()) && services.existsByCanonicalUrl(f.canonicalUrl())) {
 			throw new BusinessException(ServiceErrorCode.URL_DUPLICATED);
@@ -194,7 +202,9 @@ public class ServiceCommandService {
 	}
 
 	// 이미 서비스에 연결된 이미지(수정 때 다시 확인하지 않는다). 관리 권한이 없으면 서비스가 없는 것처럼 404로 답한다.
-	private Set<String> currentImages(long id, Viewer viewer) {
+	private record Current(Set<String> images, String url) { }
+
+	private Current currentState(long id, Viewer viewer) {
 		return java.util.Objects.requireNonNull(tx.execute(status -> {
 			WebService service = manageable(id, viewer);
 			Set<String> urls = new java.util.HashSet<>(service.getPreviewImages());
@@ -204,7 +214,7 @@ public class ServiceCommandService {
 			if (service.getThumbnailUrl() != null) {
 				urls.add(service.getThumbnailUrl());
 			}
-			return urls;
+			return new Current(urls, service.getServiceUrl());
 		}));
 	}
 
@@ -249,9 +259,9 @@ public class ServiceCommandService {
 		if (taken) {
 			return new UrlCheckResponse(UrlCheckResponse.State.DUPLICATE, ServiceErrorCode.URL_DUPLICATED.getMessage());
 		}
-		if (!probe.isReachable(url)) {
-			return new UrlCheckResponse(UrlCheckResponse.State.UNREACHABLE,
-					"접속할 수 없어요. 배포 상태를 확인한 뒤 다시 검사하세요.");
+		try { urlSecurity.requireChecked(url); }
+		catch (BusinessException ex) {
+			return new UrlCheckResponse(UrlCheckResponse.State.UNREACHABLE, ex.getErrorCode().getMessage());
 		}
 		return new UrlCheckResponse(UrlCheckResponse.State.OK, "접속을 확인했어요.");
 	}

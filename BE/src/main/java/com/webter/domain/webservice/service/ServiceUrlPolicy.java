@@ -29,6 +29,7 @@ final class ServiceUrlPolicy {
 		String url = raw == null ? "" : raw.trim();
 		URI uri = parse(url);
 		if (uri == null || !"https".equals(uri.getScheme()) || uri.getHost() == null || uri.getRawUserInfo() != null
+				|| (uri.getPort() != -1 && uri.getPort() != 443) || uri.getRawAuthority().endsWith(":")
 				|| url.length() > MAX_LENGTH) {
 			throw new BusinessException(ServiceErrorCode.INVALID_SERVICE_URL);
 		}

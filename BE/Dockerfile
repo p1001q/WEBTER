@@ -8,7 +8,12 @@ COPY src src
 RUN ./gradlew --no-daemon bootJar -x test
 
 FROM eclipse-temurin:21-jre
-RUN groupadd --system app && useradd --system --gid app --no-create-home app
+# Java를 직접 실행하므로 기본 이미지의 미사용 서비스 관리 바이너리(pebble)는 제거한다.
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/bin/pebble \
+    && groupadd --system app && useradd --system --gid app --no-create-home app
 WORKDIR /app
 COPY --from=build /workspace/build/libs/app.jar app.jar
 USER app

@@ -35,4 +35,13 @@ jobs:
       - name: Build and test
         run: ./gradlew build --no-daemon
       - name: Build Docker image
-        run: docker build --tag webter-backend:ci .
+        run: docker build --pull --tag webter-backend:ci .
+      - name: Audit backend and container dependencies
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.70.0
+          image-ref: webter-backend:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          timeout: 5m

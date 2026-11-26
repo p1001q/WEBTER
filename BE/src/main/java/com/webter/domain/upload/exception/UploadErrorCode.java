@@ -13,6 +13,7 @@ public enum UploadErrorCode implements ErrorCode {
 	UPLOAD_TOO_LARGE(HttpStatus.BAD_REQUEST, "UPLOAD_400_02", "이미지는 장당 5MB 이하만 올릴 수 있습니다."),
 	UPLOAD_NOT_AN_IMAGE(HttpStatus.BAD_REQUEST, "UPLOAD_400_03", "올린 파일이 올바른 이미지가 아닙니다."),
 	UPLOAD_NOT_FOUND(HttpStatus.BAD_REQUEST, "UPLOAD_400_04", "올린 이미지를 찾을 수 없습니다. 다시 올려 주세요."),
+	UPLOAD_DAILY_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "UPLOAD_429_01", "오늘의 이미지 업로드 한도를 초과했습니다. 내일 다시 시도해 주세요."),
 	UPLOAD_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "UPLOAD_503_01", "이미지 업로드가 설정되지 않았습니다.");
 
 	private final HttpStatus status;

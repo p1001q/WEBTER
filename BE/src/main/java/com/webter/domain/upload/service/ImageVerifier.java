@@ -12,6 +12,10 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.MetadataDirective;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 /**
  * 서비스에 연결하려는 이미지 주소가 이 서버가 올린 이미지인지, 저장소에 실제로 있는지, 크기와 파일 내용(매직 바이트)이
@@ -23,10 +27,12 @@ public class ImageVerifier {
 	private final ImageStorageProperties properties;
 
 	private final ObjectProvider<S3Client> client;
+	private final ImageUploadUsage usage;
 
-	public ImageVerifier(ImageStorageProperties properties, ObjectProvider<S3Client> client) {
+	public ImageVerifier(ImageStorageProperties properties, ObjectProvider<S3Client> client, ImageUploadUsage usage) {
 		this.properties = properties;
 		this.client = client;
+		this.usage = usage;
 	}
 
 	/** 이 서버가 올린 이미지의 주소(설정한 이미지 주소 앞부분 + 업로드 경로)인지 */
@@ -41,20 +47,38 @@ public class ImageVerifier {
 		if (key == null || s3 == null) {
 			throw new BusinessException(UploadErrorCode.UPLOAD_NOT_FOUND);
 		}
+		usage.retain(url);
 		try {
-			long length = s3.headObject(HeadObjectRequest.builder().bucket(properties.bucket()).key(key).build())
-				.contentLength();
+			String source = key;
+			HeadObjectResponse object;
+			try { object = s3.headObject(HeadObjectRequest.builder().bucket(properties.bucket()).key(key).build()); }
+			catch (S3Exception ex) {
+				if (ex.statusCode() != 404) throw ex;
+				source = ImageUploadUsage.pendingKey(key);
+				object = s3.headObject(HeadObjectRequest.builder().bucket(properties.bucket()).key(source).build());
+			}
+			long length = object.contentLength();
 			if (length <= 0 || length > ImageUploadService.MAX_BYTES) {
 				throw new BusinessException(UploadErrorCode.UPLOAD_TOO_LARGE);
 			}
 			byte[] head = s3.getObject(GetObjectRequest.builder()
 				.bucket(properties.bucket())
-				.key(key)
+				.key(source)
+				.ifMatch(object.eTag())
 				.range("bytes=0-15")
 				.build(), ResponseTransformer.toBytes()).asByteArray();
 			if (!looksLikeImage(head)) {
 				throw new BusinessException(UploadErrorCode.UPLOAD_NOT_AN_IMAGE);
 			}
+			if (!source.equals(key)) {
+				// 확인한 원본이 바뀌면 복사를 거절한다. 공개 경로에는 브라우저 PUT 서명을 발급하지 않는다.
+				String type = (head[0] & 0xFF) == 0xFF ? "image/jpeg" : (head[0] & 0xFF) == 0x89 ? "image/png" : "image/webp";
+				s3.copyObject(CopyObjectRequest.builder().bucket(properties.bucket()).key(key)
+					.copySource(properties.bucket() + "/" + source).copySourceIfMatch(object.eTag())
+					.metadataDirective(MetadataDirective.REPLACE).contentType(type).contentDisposition("inline").build());
+				s3.deleteObject(DeleteObjectRequest.builder().bucket(properties.bucket()).key(source).build());
+			}
+			usage.promoted(url);
 		}
 		catch (NoSuchKeyException ex) {
 			throw new BusinessException(UploadErrorCode.UPLOAD_NOT_FOUND);

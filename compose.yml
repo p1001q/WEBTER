@@ -28,6 +28,7 @@ services:
       IMAGE_S3_SECRET_KEY: local-secret-key
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      WEB_RISK_API_KEY: ${WEB_RISK_API_KEY:-}
     ports:
       - "127.0.0.1:${BE_PORT:-8080}:8080"
     # FE가 시작할 때 서비스 목록을 받아 가므로 BE가 요청을 받을 수 있을 때까지 기다리게 한다(포트가 열리면 준비된 것으로 본다)

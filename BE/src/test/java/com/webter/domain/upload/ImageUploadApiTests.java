@@ -80,12 +80,49 @@ class ImageUploadApiTests extends IntegrationTest {
 	@Autowired
 	JdbcTemplate jdbc;
 
+	@Autowired
+	com.webter.domain.upload.service.ImageUploadUsage usage;
+
+	@Test
+	void pendingUploadCannotBeReadAtPublicUrlBeforeVerification() throws Exception {
+		String url = upload("image/png", PNG);
+		assertThat(http.send(HttpRequest.newBuilder(URI.create(url)).GET().build(), HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
+		verifier.verify(url);
+		assertThat(http.send(HttpRequest.newBuilder(URI.create(url)).GET().build(), HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(200);
+	}
+
+	@Test
+	void dailyQuotaCountsIssuedTicketsEvenWhenFilesAreNotUploaded() throws Exception {
+		User owner = users.save(User.builder().username("quota_" + UUID.randomUUID().toString().substring(0, 8)).nickname("할당량").build());
+		String body = "{\"contentType\":\"image/png\",\"size\":5242880}";
+		for (int i = 0; i < 20; i++) mockMvc.perform(post("/api/uploads/images").with(member(owner.getId())).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isOk());
+		mockMvc.perform(post("/api/uploads/images").with(member(owner.getId())).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("UPLOAD_429_01"));
+	}
+
+	@Test
+	void cleanupPreservesDraftImageAndDeletesOnlyExpiredUnusedImage() throws Exception {
+		String draftUrl = upload("image/png", PNG);
+		String unusedUrl = upload("image/png", PNG);
+		verifier.verify(draftUrl); verifier.verify(unusedUrl);
+		UUID owner = jdbc.queryForObject("SELECT user_id FROM image_upload_usage WHERE image_url = ?", UUID.class, draftUrl);
+		jdbc.update("INSERT INTO service_registration_drafts(user_id, revision, payload) VALUES (?, ?, CAST(? AS jsonb))", owner, UUID.randomUUID(), "{\"iconImg\":\"" + draftUrl + "\",\"pv\":[]}");
+		jdbc.update("UPDATE image_upload_usage SET retain_until = now() - interval '8 days', unused_since = now() - interval '8 days' WHERE image_url IN (?, ?)", draftUrl, unusedUrl);
+		usage.cleanup();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM image_upload_usage WHERE image_url = ?", Integer.class, draftUrl)).isEqualTo(1);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM image_upload_usage WHERE image_url = ?", Integer.class, unusedUrl)).isZero();
+		assertThat(http.send(HttpRequest.newBuilder(URI.create(draftUrl)).GET().build(), HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(200);
+		assertThat(http.send(HttpRequest.newBuilder(URI.create(unusedUrl)).GET().build(), HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
+	}
+
 	final HttpClient http = HttpClient.newHttpClient();
 
 	static final byte[] PNG = { (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0 };
 
 	RequestPostProcessor member() {
-		return member(UUID.randomUUID());
+		User user = users.save(User.builder().username("up_" + UUID.randomUUID().toString().substring(0, 8)).nickname("업로더").build());
+		return member(user.getId());
 	}
 
 	RequestPostProcessor member(UUID id) {
@@ -124,6 +161,7 @@ class ImageUploadApiTests extends IntegrationTest {
 		String imageUrl = JsonPath.read(json, "$.data.imageUrl");
 		assertThat(imageUrl).startsWith(endpoint() + "/" + BUCKET + "/uploads/").endsWith(".png");
 		assertThat((String) JsonPath.read(json, "$.data.uploadUrl")).contains("X-Amz-Signature");
+		assertThat(java.net.URLDecoder.decode((String) JsonPath.read(json, "$.data.uploadUrl"), java.nio.charset.StandardCharsets.UTF_8)).contains("content-length");
 
 		String uploaded = upload("image/png", PNG);
 		verifier.verify(uploaded);

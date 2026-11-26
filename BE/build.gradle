@@ -26,6 +26,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-session-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	// 이미지 업로드(S3). 로컬·테스트는 같은 방식으로 동작하는 MinIO를 쓴다
 	implementation platform('software.amazon.awssdk:bom:2.57.8')
