@@ -8,6 +8,11 @@ spring:
     enabled: true
 
 app:
+  abuse:
+    search-per-minute: 100000
+    url-per-minute: 100000
+    guest-reviews-per-hour: 100000
+    writes-per-minute: 100000
   auth:
     # 개발 PC의 환경변수와 무관하게, 기본은 구글 로그인이 꺼진 상태로 시험한다
     google-client-id: ""

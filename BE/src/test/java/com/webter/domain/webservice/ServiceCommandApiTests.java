@@ -50,6 +50,12 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 	@MockitoBean
 	UrlProbe probe;
 
+	@MockitoBean
+	com.webter.domain.webservice.service.WebRiskClient webRisk;
+
+	@Autowired
+	com.webter.domain.webservice.service.UrlRecheckJob rechecks;
+
 	// 저장소 없이 "우리가 올린 이미지"인지와 실제 이미지인지를 정한다(기본은 우리가 올린 이미지가 아님)
 	@MockitoBean
 	ImageVerifier images;
@@ -68,6 +74,7 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 		other = createUser("other_two");
 		em.flush();
 		when(probe.isReachable(anyString())).thenReturn(true);
+		when(webRisk.check(anyString())).thenAnswer(inv -> new com.webter.domain.webservice.service.WebRiskClient.Result(false, java.time.Instant.now().plusSeconds(600)));
 	}
 
 	RequestPostProcessor as(User user, String role) {
@@ -366,8 +373,68 @@ class ServiceCommandApiTests extends DomainFixtureTest {
 		mockMvc.perform(post("/api/services/url-check").with(as(maker, "USER")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"url\":\"https://checked.example.test\",\"selfId\":" + id + "}")).andExpect(jsonPath("$.data.state").value("OK"));
 		when(probe.isReachable(anyString())).thenReturn(false);
+		jdbc.update("UPDATE url_security_checks SET expires_at = now() - interval '1 second'");
 		mockMvc.perform(post("/api/services/url-check").with(as(maker, "USER")).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(ok))
 			.andExpect(jsonPath("$.data.state").value("UNREACHABLE"));
+	}
+
+	@Test
+	void finalRegistrationCannotSkipInspectionOrReuseAnotherUrlsResult() throws Exception {
+		createOk(maker, "https://checked-first.example.test");
+		when(probe.isReachable("https://not-reachable.example.test")).thenReturn(false);
+		create(maker, body("https://not-reachable.example.test")).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("SERVICE_400_11"));
+		when(webRisk.check("https://malicious.example.test")).thenReturn(new com.webter.domain.webservice.service.WebRiskClient.Result(true, java.time.Instant.now().plusSeconds(600)));
+		create(maker, body("https://malicious.example.test")).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("SERVICE_400_12"));
+		verify(webRisk, times(1)).check("https://malicious.example.test");
+	}
+
+	@Test
+	void addressChangesRequireInspectionAndProviderFailureBlocksSaving() throws Exception {
+		long id = createOk(maker, "https://change-from.example.test");
+		when(webRisk.check("https://changed.example.test")).thenThrow(new BusinessException(com.webter.domain.webservice.exception.ServiceErrorCode.URL_CHECK_UNAVAILABLE));
+		mockMvc.perform(put("/api/services/" + id).with(as(maker, "USER")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+			.content(body("https://changed.example.test"))).andExpect(status().isServiceUnavailable());
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT service_url FROM services WHERE service_id = ?", String.class, id))
+			.isEqualTo("https://change-from.example.test");
+	}
+
+	@Test
+	void launchChecksCurrentVisibilityAndRejectsUnsafeDestination() throws Exception {
+		String url = "https://launch-guard.example.test";
+		long id = createOk(maker, url);
+		var first = mockMvc.perform(get("/api/services/" + id + "/launch")).andExpect(status().isFound()).andReturn().getResponse();
+		org.assertj.core.api.Assertions.assertThat(first.getRedirectedUrl()).isEqualTo(url);
+		jdbc.update("UPDATE url_security_checks SET expires_at = now() - interval '1 second'");
+		when(webRisk.check(url)).thenReturn(new com.webter.domain.webservice.service.WebRiskClient.Result(true, java.time.Instant.now().plusSeconds(600)));
+		var blocked = mockMvc.perform(get("/api/services/" + id + "/launch")).andExpect(status().isBadRequest()).andReturn().getResponse();
+		org.assertj.core.api.Assertions.assertThat(blocked.getRedirectedUrl()).isNull();
+		org.assertj.core.api.Assertions.assertThat(blocked.getContentAsString()).contains("위험한 사이트");
+		jdbc.update("UPDATE services SET visibility_status = 'HIDDEN' WHERE service_id = ?", id);
+		em.clear();
+		mockMvc.perform(get("/api/services/" + id + "/launch")).andExpect(status().isNotFound());
+	}
+
+	@Test
+	void backgroundRecheckTemporarilyHidesKnownMaliciousSite() throws Exception {
+		String url = "https://recheck-guard.example.test";
+		long id = createOk(maker, url);
+		jdbc.update("UPDATE url_security_checks SET expires_at = now() - interval '1 second'");
+		when(webRisk.isConfigured()).thenReturn(true);
+		when(webRisk.check(url)).thenReturn(new com.webter.domain.webservice.service.WebRiskClient.Result(true, java.time.Instant.now().plusSeconds(600)));
+		rechecks.recheck();
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT visibility_status FROM services WHERE service_id = ?", String.class, id)).isEqualTo("TEMP_HIDDEN");
+	}
+
+	@Test
+	void extraOwnerAndVisibilityFieldsCannotChangeRegistrationOwnership() throws Exception {
+		String json = body("https://owner-field.example.test");
+		json = json.substring(0, json.length() - 1) + ",\"ownerId\":\"" + other.getId() + "\",\"visibilityStatus\":\"HIDDEN\"}";
+		var response = create(maker, json).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		long id = Long.parseLong(com.jayway.jsonpath.JsonPath.read(response, "$.data.id"));
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT owner_id FROM services WHERE service_id = ?", java.util.UUID.class, id)).isEqualTo(maker.getId());
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT visibility_status FROM services WHERE service_id = ?", String.class, id)).isEqualTo("PUBLIC");
 	}
 
 	@Test

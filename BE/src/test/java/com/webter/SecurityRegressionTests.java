@@ -143,7 +143,7 @@ class SecurityRegressionTests extends DomainFixtureTest {
 			"DELETE /api/services/1/team/members/1", "POST /api/invitations/1/accept",
 			"POST /api/invitations/1/decline", "GET /api/notifications", "GET /api/notifications/unread-count",
 			"PUT /api/notifications/read-all", "PUT /api/notifications/1/read", "DELETE /api/notifications/1",
-			"DELETE /api/notifications", "POST /api/reports", "POST /api/uploads/images", "POST /api/auth/signup",
+			"DELETE /api/notifications", "POST /api/reports", "POST /api/uploads/images", "POST /api/uploads/images/complete", "POST /api/auth/signup",
 			"GET /api/auth/username-available", "GET /api/admin/reports", "GET /api/admin/reports/SERVICE/1",
 			"POST /api/admin/reports/SERVICE/1/actions", "GET /api/admin/temporarily-hidden",
 			"POST /api/admin/users/1/sanctions", "GET /api/admin/moderation-actions" })

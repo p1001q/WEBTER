@@ -37,13 +37,15 @@ public class ImageUploadService {
 	private final ImageStorageProperties properties;
 
 	private final ObjectProvider<S3Presigner> presigner;
+	private final ImageUploadUsage usage;
 
-	public ImageUploadService(ImageStorageProperties properties, ObjectProvider<S3Presigner> presigner) {
+	public ImageUploadService(ImageStorageProperties properties, ObjectProvider<S3Presigner> presigner, ImageUploadUsage usage) {
 		this.properties = properties;
 		this.presigner = presigner;
+		this.usage = usage;
 	}
 
-	public UploadResponse issue(UploadRequest request) {
+	public UploadResponse issue(UUID userId, UploadRequest request) {
 		S3Presigner signer = presigner.getIfAvailable();
 		if (!properties.enabled() || signer == null) {
 			throw new BusinessException(UploadErrorCode.UPLOAD_DISABLED);
@@ -65,13 +67,17 @@ public class ImageUploadService {
 			.signatureDuration(EXPIRES)
 			.putObjectRequest(PutObjectRequest.builder()
 				.bucket(properties.bucket())
-				.key(key)
+				.key(ImageUploadUsage.pendingKey(key))
 				.contentType(contentType)
 				.contentLength(size)
 				.build())
 			.build());
 		Map<String, String> headers = new LinkedHashMap<>();
+		if (!signed.signedHeaders().containsKey("content-length")) {
+			throw new BusinessException(UploadErrorCode.UPLOAD_DISABLED);
+		}
 		headers.put("Content-Type", contentType);
+		usage.reserve(userId, key, properties.baseUrl() + "/" + key, size);
 		return new UploadResponse(signed.url().toString(), "PUT", headers, properties.baseUrl() + "/" + key,
 				Instant.now().plus(EXPIRES));
 	}

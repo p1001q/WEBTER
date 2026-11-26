@@ -59,7 +59,18 @@ server:
         same-site: lax
 
 app:
+  url-security:
+    web-risk-api-key: ${WEB_RISK_API_KEY:}
+  abuse:
+    url-per-minute: ${URL_CHECKS_PER_MINUTE:10}
+    search-per-minute: ${SEARCHES_PER_MINUTE:60}
+    guest-reviews-per-hour: ${GUEST_REVIEWS_PER_HOUR:3}
+    web-risk-per-day: ${WEB_RISK_LOOKUPS_PER_DAY:1000}
+    writes-per-minute: ${WRITES_PER_MINUTE:60}
   image:
+    daily-upload-limit: ${IMAGE_DAILY_UPLOAD_LIMIT:20}
+    daily-upload-bytes: ${IMAGE_DAILY_UPLOAD_BYTES:104857600}
+    unused-retention-days: ${IMAGE_UNUSED_RETENTION_DAYS:7}
     # 이미지 저장소(S3). bucket 이 비어 있으면 이미지 업로드는 꺼진다(업로드 API는 503)
     bucket: ${IMAGE_BUCKET:}
     region: ${IMAGE_REGION:ap-northeast-2}
