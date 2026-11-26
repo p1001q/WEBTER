@@ -1,0 +1,216 @@
+<!doctype html>
+<!--
+  시연 데이터용 가상 서비스 화면·아이콘·프로필 이미지 생성기.
+  render.sh가 Chrome headless로 이 파일을 열어 캡처한다. 주소의 # 뒤 값으로 무엇을 그릴지 정한다.
+  예: mock.html#kind=screen&theme=habit&v=1
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #1d2430; background: #f4f6f9; }
+  .app { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  .top { display: flex; align-items: center; gap: 14px; padding: 0 28px; height: 64px; background: #fff; border-bottom: 1px solid #e6e9ef; flex: none; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px; }
+  .brand { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+  .nav { margin-left: auto; display: flex; gap: 22px; font-size: 15px; color: #6b7482; }
+  .nav b { color: #1d2430; }
+  .body { flex: 1; display: flex; gap: 22px; padding: 26px 28px; min-height: 0; }
+  .card { background: #fff; border-radius: 16px; border: 1px solid #e6e9ef; padding: 20px; }
+  .h { font-weight: 800; font-size: 19px; margin-bottom: 14px; letter-spacing: -0.02em; }
+  .muted { color: #8a93a1; font-size: 13px; }
+  .pill { display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f0f2f5; font-size: 15px; }
+  .row:last-child { border-bottom: 0; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .grow { flex: 1; }
+  .btn { padding: 12px 18px; border-radius: 12px; color: #fff; font-weight: 800; font-size: 15px; text-align: center; }
+  .mobile .top { height: 76px; padding: 0 22px; }
+  .mobile .body { flex-direction: column; padding: 18px; gap: 16px; }
+  .tabbar { display: flex; justify-content: space-around; height: 78px; align-items: center; background: #fff; border-top: 1px solid #e6e9ef; flex: none; font-size: 13px; color: #8a93a1; }
+  .tabbar b { display: block; width: 26px; height: 26px; border-radius: 8px; margin: 0 auto 6px; background: #d5dae2; }
+  .tabbar .on { color: #1d2430; font-weight: 800; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const P = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
+const v = Number(P.v || 1);
+
+const THEMES = {
+  habit:   { name: "하루콩", mark: "콩", color: "#2f9e6e", soft: "#e3f5ec" },
+  pixel:   { name: "픽셀 캔버스", mark: "픽", color: "#7048e8", soft: "#ece6ff" },
+  word:    { name: "모두의 단어장", mark: "단", color: "#1c7ed6", soft: "#e2efff" },
+  quiz:    { name: "한국사 퀴즈", mark: "퀴", color: "#e8590c", soft: "#fff0e6" },
+  budget:  { name: "가계부 한 장", mark: "₩", color: "#0c8599", soft: "#e0f5f8" },
+  walk:    { name: "동네 산책 지도", mark: "길", color: "#5c940d", soft: "#eef7dd" },
+  palette: { name: "팔레트 픽커", mark: "색", color: "#d6336c", soft: "#fde6ee" },
+  recipe:  { name: "냠냠 레시피", mark: "냠", color: "#f03e3e", soft: "#ffe8e8" },
+  plant:   { name: "물주기 알림", mark: "잎", color: "#2b8a3e", soft: "#e6f5e9" },
+  json:    { name: "JSON 정리기", mark: "{}", color: "#343a40", soft: "#eceef1" },
+  weather: { name: "주말 날씨 요약", mark: "맑", color: "#1098ad", soft: "#e1f6f9" },
+  timer:   { name: "포모도로 메이트", mark: "25", color: "#e03131", soft: "#ffe9e9" },
+  planner: { name: "코지 플래너", mark: "코", color: "#9c6644", soft: "#f6ece4" },
+  study:   { name: "스터디 출석부", mark: "출", color: "#4263eb", soft: "#e7ecff" },
+  memo:    { name: "메모 한 줄", mark: "메", color: "#f59f00", soft: "#fff4db" },
+  lunch:   { name: "랜덤 점심 룰렛", mark: "점", color: "#fd7e14", soft: "#fff0e0" },
+  diary:   { name: "색깔 일기", mark: "일", color: "#ae3ec9", soft: "#f7e8fb" },
+  type:    { name: "헬로 타자 연습", mark: "타", color: "#495057", soft: "#eef0f2" },
+};
+const T = THEMES[P.theme] || THEMES.habit;
+const root = document.getElementById("root");
+
+function header(nav = ["홈", "기록", "설정"]) {
+  return `<div class="top"><div class="logo" style="background:${T.color}">${T.mark}</div>
+    <div class="brand">${T.name}</div>
+    <div class="nav">${nav.map((n, i) => i === 0 ? `<b>${n}</b>` : `<span>${n}</span>`).join("")}</div></div>`;
+}
+function tabbar(items) {
+  return `<div class="tabbar">${items.map((t, i) => `<div class="${i === 0 ? "on" : ""}"><b style="${i === 0 ? `background:${T.color}` : ""}"></b>${t}</div>`).join("")}</div>`;
+}
+const rnd = (() => { let s = (v * 9301 + (P.theme || "").length * 49297) % 233280; return () => (s = (s * 9301 + 49297) % 233280) / 233280; })();
+
+/* ---------- 가로 화면 ---------- */
+const SCREENS = {
+  habit() {
+    const habits = ["물 2L 마시기", "스트레칭 10분", "영어 단어 20개", "일기 쓰기", "11시 전에 자기"];
+    const days = ["월", "화", "수", "목", "금", "토", "일"];
+    const grid = habits.map((h, r) => `<div class="row"><div class="grow">${h}</div>${days.map((d, c) => {
+      const on = rnd() > (v === 2 ? 0.45 : 0.25);
+      return `<div style="width:34px;height:34px;border-radius:10px;background:${on ? T.color : "#eef1f4"};display:grid;place-items:center;color:#fff;font-weight:800">${on ? "✓" : ""}</div>`;
+    }).join("")}</div>`).join("");
+    const side = v === 3
+      ? `<div class="card"><div class="h">이번 달 달성률</div><div style="font-size:54px;font-weight:900;color:${T.color}">82%</div><div class="muted">지난달보다 12% 올랐어요</div></div>
+         <div class="card" style="flex:1"><div class="h">친구 랭킹</div>${["새벽코딩 · 28일", "리뷰하는고양이 · 24일", "지우 · 19일"].map((t, i) => `<div class="row"><span class="pill" style="background:${T.soft};color:${T.color}">${i + 1}</span>${t}</div>`).join("")}</div>`
+      : `<div class="card" style="background:${T.color};color:#fff"><div style="font-size:15px;opacity:.85">연속 달성</div><div style="font-size:58px;font-weight:900">${v === 2 ? 7 : 23}일째</div><div style="opacity:.85">오늘도 콩 하나 심었어요</div></div>
+         <div class="card" style="flex:1"><div class="h">오늘의 한마디</div><div style="font-size:17px;line-height:1.6">작은 습관이 모여<br>큰 하루가 돼요.</div></div>`;
+    return `${header(["오늘", "통계", "친구", "설정"])}<div class="body">
+      <div class="card" style="flex:1.7"><div class="h">이번 주 습관 <span class="muted">${v === 2 ? "11월 2주차" : "11월 4주차"}</span></div>
+      <div class="row muted"><div class="grow"></div>${days.map(d => `<div style="width:34px;text-align:center">${d}</div>`).join("")}</div>${grid}</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:22px">${side}</div></div>`;
+  },
+  pixel() {
+    const palettes = [["#ffd43b", "#fa5252", "#4c6ef5", "#40c057"], ["#f783ac", "#9775fa", "#3bc9db", "#ffe066"], ["#212529", "#868e96", "#dee2e6", "#ff922b"], ["#5c7cfa", "#91a7ff", "#e599f7", "#fcc419"]];
+    const pal = palettes[(v - 1) % 4];
+    const n = 16, cells = [];
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const dx = x - 7.5, dy = y - 7.5, d = Math.sqrt(dx * dx + dy * dy);
+      let c = "#ffffff";
+      if (v % 2) { if (d < 6.5) c = pal[0]; if (d < 6.5 && y > 9 && Math.abs(dx) < 3.5) c = pal[1]; if ((x === 5 || x === 10) && y === 5) c = "#212529"; }
+      else { if (Math.abs(dx) + Math.abs(dy) < 7.5) c = pal[2]; if (Math.abs(dx) + Math.abs(dy) < 4) c = pal[3]; if (y === 7 && (x === 6 || x === 9)) c = "#212529"; }
+      if (v > 4 && rnd() > 0.93) c = pal[(x + y) % 4];
+      cells.push(`<div style="background:${c}"></div>`);
+    }
+    return `${header(["캔버스", "갤러리", "내 작품"])}<div class="body">
+      <div class="card" style="width:150px;display:flex;flex-direction:column;gap:12px"><div class="h">도구</div>${["펜", "지우개", "채우기", "스포이트", "선택"].map((t, i) => `<div class="pill" style="background:${i === 0 ? T.color : "#f1f3f5"};color:${i === 0 ? "#fff" : "#495057"};text-align:center">${t}</div>`).join("")}</div>
+      <div class="card" style="flex:1;display:grid;place-items:center"><div style="width:520px;height:520px;display:grid;grid-template-columns:repeat(16,1fr);gap:1px;background:#e9ecef;border:1px solid #e9ecef">${cells.join("")}</div></div>
+      <div class="card" style="width:220px"><div class="h">팔레트</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${pal.concat(["#ffffff", "#212529", "#adb5bd", "#e64980"]).map(c => `<div style="height:38px;border-radius:9px;background:${c};border:1px solid #dee2e6"></div>`).join("")}</div>
+      <div class="h" style="margin-top:22px">레이어</div>${["배경", "몸통", "눈"].map((t, i) => `<div class="row">${t}<span class="grow"></span><span class="muted">${i === 2 ? "편집 중" : ""}</span></div>`).join("")}
+      <div class="muted" style="margin-top:18px">작품 ${v} / 8</div></div></div>`;
+  },
+  word() {
+    return `${header(["오늘 외울 단어", "단어장", "시험"])}<div class="body">
+      <div class="card" style="flex:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:${T.soft}">
+      <div class="muted">토익 필수 800 · 14 / 40</div><div style="font-size:74px;font-weight:900;color:${T.color}">resilient</div>
+      <div style="font-size:24px">회복력 있는, 탄력 있는</div><div class="muted">She stayed resilient through the long project.</div>
+      <div style="display:flex;gap:14px;margin-top:10px"><div class="btn" style="background:#adb5bd">모르겠어요</div><div class="btn" style="background:${T.color}">알아요</div></div></div>
+      <div class="card" style="flex:1"><div class="h">오늘 진도</div>${["abundant · 풍부한", "candid · 솔직한", "diligent · 성실한", "feasible · 실현 가능한", "meticulous · 꼼꼼한", "tentative · 잠정적인"].map((w, i) => `<div class="row"><span class="dot" style="background:${i < 4 ? T.color : "#dee2e6"}"></span>${w}</div>`).join("")}</div></div>`;
+  },
+  quiz() {
+    return `${header(["오늘의 퀴즈", "시대별", "오답 노트"])}<div class="body">
+      <div class="card" style="flex:1.6"><div class="muted">조선 후기 · 문제 7 / 10</div><div style="height:10px;background:#f1f3f5;border-radius:9px;margin:12px 0 22px"><div style="width:70%;height:100%;background:${T.color};border-radius:9px"></div></div>
+      <div style="font-size:27px;font-weight:800;line-height:1.45;margin-bottom:24px">실학자 정약용이 수원 화성 축조에 사용한 기구는 무엇일까요?</div>
+      ${["① 측우기", "② 거중기", "③ 혼천의", "④ 앙부일구"].map((o, i) => `<div style="padding:15px 18px;border-radius:12px;margin-bottom:10px;font-size:18px;border:2px solid ${i === 1 ? T.color : "#e9ecef"};background:${i === 1 ? T.soft : "#fff"};font-weight:${i === 1 ? 800 : 500}">${o}</div>`).join("")}</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:22px"><div class="card" style="background:${T.color};color:#fff"><div style="opacity:.85">현재 점수</div><div style="font-size:56px;font-weight:900">60점</div></div>
+      <div class="card" style="flex:1"><div class="h">시대별 정답률</div>${[["고조선", 90], ["삼국", 75], ["고려", 62], ["조선", 48]].map(([t, p]) => `<div style="margin:10px 0"><div style="display:flex;font-size:14px"><span class="grow">${t}</span>${p}%</div><div style="height:9px;background:#f1f3f5;border-radius:9px;margin-top:5px"><div style="width:${p}%;height:100%;background:${T.color};border-radius:9px"></div></div></div>`).join("")}</div></div></div>`;
+  },
+  budget() {
+    const bars = [42, 58, 35, 71, 49, 88, 64, 52, 77, 40, 66, 59];
+    return `${header(["이번 달", "카테고리", "목표"])}<div class="body">
+      <div style="flex:1.6;display:flex;flex-direction:column;gap:22px">
+      <div style="display:flex;gap:22px">${[["수입", "2,450,000원", "#2b8a3e"], ["지출", "1,382,400원", "#e03131"], ["남은 돈", "1,067,600원", T.color]].map(([t, n, c]) => `<div class="card" style="flex:1"><div class="muted">${t}</div><div style="font-size:25px;font-weight:900;color:${c};margin-top:6px">${n}</div></div>`).join("")}</div>
+      <div class="card" style="flex:1"><div class="h">${v === 2 ? "주간 지출" : "월별 지출"}</div><div style="display:flex;align-items:flex-end;gap:14px;height:240px">${bars.map((b, i) => `<div style="flex:1;height:${b}%;border-radius:8px 8px 0 0;background:${i === 5 ? T.color : T.soft}"></div>`).join("")}</div></div></div>
+      <div class="card" style="flex:1"><div class="h">최근 내역</div>${[["편의점", "-4,800"], ["월급", "+2,450,000"], ["교통카드 충전", "-30,000"], ["친구랑 저녁", "-18,500"], ["넷플릭스", "-13,500"], ["카페", "-5,200"], ["중고 판매", "+25,000"]].map(([t, n]) => `<div class="row"><span class="grow">${t}</span><b style="color:${n[0] === "+" ? "#2b8a3e" : "#1d2430"}">${n}</b></div>`).join("")}</div></div>`;
+  },
+  walk() {
+    const roads = Array.from({ length: 9 }, (_, i) => `<div style="position:absolute;left:0;right:0;top:${i * 12 + 4}%;height:9px;background:#fff;opacity:.9"></div><div style="position:absolute;top:0;bottom:0;left:${i * 12 + 6}%;width:9px;background:#fff;opacity:.9"></div>`).join("");
+    return `${header(["지도", "내 산책", "코스 공유"])}<div class="body">
+      <div class="card" style="flex:1.8;position:relative;overflow:hidden;background:#e9f2dc;padding:0">${roads}
+      <div style="position:absolute;left:18%;top:20%;width:24%;height:22%;background:#c3e39a;border-radius:24px"></div>
+      <div style="position:absolute;left:58%;top:52%;width:22%;height:28%;background:#a5d8ff;border-radius:40px"></div>
+      <svg style="position:absolute;inset:0" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="12,82 12,52 30,52 30,28 54,28 54,64 78,64" fill="none" stroke="${T.color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="position:absolute;left:10%;top:78%" class="pill" ><span class="pill" style="background:${T.color};color:#fff">출발</span></div></div>
+      <div class="card" style="flex:1"><div class="h">${v === 2 ? "저녁 강변 코스" : "점심 공원 한 바퀴"}</div>
+      <div style="display:flex;gap:12px;margin-bottom:12px">${[["거리", v === 2 ? "3.8km" : "2.1km"], ["시간", v === 2 ? "52분" : "28분"], ["걸음", v === 2 ? "5,240" : "2,980"]].map(([a, b]) => `<div style="flex:1;background:${T.soft};border-radius:12px;padding:12px"><div class="muted">${a}</div><b style="font-size:20px">${b}</b></div>`).join("")}</div>
+      ${["벚꽃길 입구", "놀이터 옆 벤치", "동네 빵집", "하천 산책로"].map(p => `<div class="row"><span class="dot" style="background:${T.color}"></span>${p}</div>`).join("")}</div></div>`;
+  },
+  palette() {
+    const sets = [["#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"], ["#ffcdb2", "#ffb4a2", "#e5989b", "#b5838d", "#6d6875"]];
+    return `${header(["추출", "저장한 팔레트", "공유"])}<div class="body">${sets.map((s, i) => `<div class="card" style="flex:1;display:flex;flex-direction:column"><div class="h">${i ? "봄날 카페" : "바다 노을"}</div><div style="flex:1;display:flex;border-radius:12px;overflow:hidden">${s.map(c => `<div style="flex:1;background:${c}"></div>`).join("")}</div><div style="display:flex;margin-top:10px">${s.map(c => `<div class="muted" style="flex:1;text-align:center">${c}</div>`).join("")}</div></div>`).join("")}</div>`;
+  },
+};
+
+/* ---------- 세로 화면 ---------- */
+const PORTRAITS = {
+  recipe() {
+    const dishes = [["김치볶음밥", "15분 · 1인분", "#ff8787"], ["토마토 달걀볶음", "10분 · 2인분", "#ffa94d"], ["두부 스테이크", "20분 · 2인분", "#ffd43b"]];
+    const d = dishes[(v - 1) % 3];
+    return `<div class="app mobile">${header([])}<div class="body">
+      <div style="height:470px;border-radius:22px;background:linear-gradient(135deg, ${d[2]}, ${T.color});display:grid;place-items:center"><div style="width:250px;height:250px;border-radius:50%;background:#fff;opacity:.92;box-shadow:0 20px 40px rgba(0,0,0,.15);display:grid;place-items:center"><div style="width:170px;height:170px;border-radius:50%;background:${d[2]}"></div></div></div>
+      <div style="font-size:36px;font-weight:900">${d[0]}</div><div class="muted" style="font-size:18px">${d[1]} · 자취생 추천</div>
+      <div class="card"><div class="h">재료</div>${["밥 한 공기", "김치 1/2컵", "대파 약간", "달걀 1개"].map(t => `<div class="row" style="font-size:18px"><span class="dot" style="background:${T.color}"></span>${t}</div>`).join("")}</div>
+      <div class="btn" style="background:${T.color};font-size:20px;padding:20px">조리 시작하기</div></div>${tabbar(["레시피", "냉장고", "장보기", "내 정보"])}</div>`;
+  },
+  plant() {
+    const plants = [["몬스테라", "오늘 물 주는 날", "#2b8a3e"], ["스투키", "3일 뒤", "#5c940d"], ["산세베리아", "다음 주", "#087f5b"], ["바질", "내일", "#37b24d"]];
+    return `<div class="app mobile">${header([])}<div class="body">
+      <div class="card" style="background:${T.color};color:#fff;padding:26px"><div style="opacity:.85;font-size:18px">오늘 챙길 식물</div><div style="font-size:44px;font-weight:900">${v === 2 ? "3개" : "1개"}</div></div>
+      ${plants.map(([n, t, c], i) => `<div class="card" style="display:flex;align-items:center;gap:16px;padding:18px"><div style="width:84px;height:84px;border-radius:20px;background:${c};opacity:${0.55 + i * 0.12}"></div><div class="grow"><div style="font-size:22px;font-weight:800">${n}</div><div class="muted" style="font-size:16px">${t}</div></div><div class="pill" style="background:${T.soft};color:${T.color};font-size:15px">${i === 0 ? "물 주기" : "기록"}</div></div>`).join("")}
+      </div>${tabbar(["내 식물", "달력", "도감", "설정"])}</div>`;
+  },
+  study() {
+    return `<div class="app mobile">${header([])}<div class="body">
+      <div class="card" style="padding:24px"><div class="muted" style="font-size:16px">알고리즘 스터디 · ${v}주차</div><div style="font-size:34px;font-weight:900;margin-top:6px">출석 6 / 7</div></div>
+      ${["새벽코딩", "지우", "민트바이트", "공부방장", "헬로월드", "코지랩", "솔메이커"].map((n, i) => `<div class="row" style="font-size:20px;padding:16px 6px"><span class="grow">${n}</span><span class="pill" style="font-size:15px;background:${i === 4 ? "#ffe3e3" : T.soft};color:${i === 4 ? "#e03131" : T.color}">${i === 4 ? "결석" : "출석"}</span></div>`).join("")}
+      </div>${tabbar(["출석", "과제", "멤버", "설정"])}</div>`;
+  },
+};
+
+/* ---------- 정사각 썸네일 ---------- */
+function square() {
+  return `<div style="width:100%;height:100%;background:linear-gradient(150deg, ${T.soft}, #fff);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px">
+    <div style="width:300px;height:300px;border-radius:72px;background:${T.color};display:grid;place-items:center;color:#fff;font-size:${T.mark.length > 1 ? 120 : 160}px;font-weight:900;box-shadow:0 30px 60px rgba(0,0,0,.15)">${T.mark}</div>
+    <div style="font-size:84px;font-weight:900;letter-spacing:-0.03em">${T.name}</div></div>`;
+}
+
+/* ---------- 아이콘 ---------- */
+function icon() {
+  return `<div style="width:100%;height:100%;background:${T.color};display:grid;place-items:center;position:relative;overflow:hidden">
+    <div style="position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.13);left:-150px;top:-170px"></div>
+    <div style="position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(0,0,0,.08);right:-120px;bottom:-130px"></div>
+    <div style="position:relative;color:#fff;font-size:${T.mark.length > 1 ? 190 : 260}px;font-weight:900;letter-spacing:-0.04em">${T.mark}</div></div>`;
+}
+
+/* ---------- 프로필 사진(사람 얼굴이 아닌 추상 그림) ---------- */
+function avatar() {
+  const sets = [["#ffd8a8", "#f76707", "#fff4e6"], ["#c5f6fa", "#1098ad", "#e3fafc"], ["#d0bfff", "#7048e8", "#f3f0ff"], ["#b2f2bb", "#2f9e44", "#ebfbee"], ["#ffc9c9", "#e03131", "#fff5f5"], ["#ffec99", "#f08c00", "#fff9db"]];
+  const [a, b, c] = sets[(v - 1) % sets.length];
+  return `<div style="width:100%;height:100%;background:${c};position:relative;overflow:hidden">
+    <div style="position:absolute;width:260px;height:260px;border-radius:50%;background:${a};left:70px;top:150px"></div>
+    <div style="position:absolute;width:150px;height:150px;border-radius:${v % 2 ? "50%" : "36px"};background:${b};left:125px;top:60px"></div>
+    <div style="position:absolute;width:80px;height:80px;border-radius:50%;background:#fff;opacity:.55;left:${v * 37 % 260}px;top:${v * 53 % 200 + 40}px"></div></div>`;
+}
+
+const kind = P.kind || "screen";
+if (kind === "screen") root.innerHTML = `<div class="app">${(SCREENS[P.theme] || SCREENS.habit)()}</div>`;
+else if (kind === "portrait") root.innerHTML = (PORTRAITS[P.theme] || PORTRAITS.recipe)();
+else if (kind === "square") root.innerHTML = square();
+else if (kind === "icon") root.innerHTML = icon();
+else root.innerHTML = avatar();
+root.style.cssText = "width:100%;height:100%";
+</script>
+</body>
+</html>

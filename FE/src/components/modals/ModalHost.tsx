@@ -13,6 +13,7 @@ import { ReviewRateConfirmModal } from "./ReviewRateConfirmModal";
 import { SessionExpiredModal } from "./SessionExpiredModal";
 import { StopReasonModal } from "./StopReasonModal";
 import { TeamModal } from "./TeamModal";
+import { UnsaveConfirmModal } from "./UnsaveConfirmModal";
 import { VersionModal } from "./VersionModal";
 import { WithdrawModal } from "./WithdrawModal";
 
@@ -127,6 +128,8 @@ function ModalBody({ m }: { m: ModalState }) {
           onClose={close}
         />
       ) : null;
+    case "unsave":
+      return s ? <UnsaveConfirmModal s={s} onClose={close} /> : null;
     case "versions":
       return s ? <VersionModal s={s} onClose={close} /> : null;
     case "team":

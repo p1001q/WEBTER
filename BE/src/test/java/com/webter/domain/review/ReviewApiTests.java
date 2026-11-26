@@ -160,7 +160,9 @@ class ReviewApiTests extends DomainFixtureTest {
 		mvc.perform(put(base + suffix).with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"text\":\"감사합니다\"}")).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.reply.edited").value(false))
-			.andExpect(jsonPath("$.data.reply.withdrawn").value(false));
+			.andExpect(jsonPath("$.data.reply.withdrawn").value(false))
+			.andExpect(jsonPath("$.data.reply.author.uid").value(owner.getId().toString()))
+			.andExpect(jsonPath("$.data.reply.author.handle").value("rv_owner"));
 		UUID replyId = jdbc.queryForObject("select reply_id from reviews where review_id = ?", UUID.class, Long.parseLong(id));
 		mvc.perform(put(base + suffix).with(as(owner)).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"text\":\"의견 감사합니다\"}")).andExpect(status().isOk())
@@ -173,9 +175,35 @@ class ReviewApiTests extends DomainFixtureTest {
 		jdbc.update("update reviews set reply_author_id = null where review_id = ?", Long.parseLong(id));
 		em.clear();
 		mvc.perform(get(base + "/reviews")).andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.items[0].reply.withdrawn").value(true));
+			.andExpect(jsonPath("$.data.items[0].reply.withdrawn").value(true))
+			.andExpect(jsonPath("$.data.items[0].reply.author.withdrawn").value(true))
+			.andExpect(jsonPath("$.data.items[0].reply.author.uid").doesNotExist());
 		mvc.perform(delete(base + suffix).with(as(owner)).with(csrf())).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.reply").doesNotExist());
+	}
+
+	@Test
+	void teamMemberReplyShowsTheMemberAsAuthor() throws Exception {
+		var owner = createUser("rv_team_owner");
+		var teammate = createUser("rv_teammate");
+		var member = createUser("rv_team_writer");
+		var service = createService(owner, "https://example.com/rv-team-reply");
+		em.flush();
+		Long invitation = jdbc.queryForObject("""
+				insert into service_invitations (service_id, inviter_id, invitee_id, status, accepted_at)
+				values (?, ?, ?, 'ACCEPTED', now()) returning invitation_id
+				""", Long.class, service.getId(), owner.getId(), teammate.getId());
+		jdbc.update("insert into service_members (service_id, user_id, invitation_id) values (?, ?, ?)",
+				service.getId(), teammate.getId(), invitation);
+		String base = "/api/services/" + service.getId();
+		String id = write(base, member, "리뷰");
+		mvc.perform(put(base + "/reviews/" + id + "/reply").with(as(teammate)).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"팀원 답글\"}")).andExpect(status().isOk());
+		// 답글은 등록자가 아니라 실제로 답글을 단 팀원의 이름으로 보인다
+		mvc.perform(get(base + "/reviews")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.items[0].reply.author.uid").value(teammate.getId().toString()))
+			.andExpect(jsonPath("$.data.items[0].reply.author.handle").value("rv_teammate"))
+			.andExpect(jsonPath("$.data.items[0].reply.author.withdrawn").value(false));
 	}
 
 	@Test

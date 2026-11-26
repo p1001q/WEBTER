@@ -9,7 +9,9 @@ public record ReviewView(String id, String sid, InteractionAuthor a, ReviewRatin
 		String text, Reply reply, boolean edited, boolean creatorReview, boolean mine,
 		boolean canEdit, boolean canDelete, boolean canReply, boolean canVote, Votes votes) {
 
-	public record Reply(String id, String text, Instant date, boolean edited, boolean withdrawn) {
+	/** author는 답글을 단 제작자(등록자 또는 팀원)다. 작성자가 탈퇴했으면 withdrawn이 true이고 프로필 항목이 비어 있다. */
+	public record Reply(String id, String text, Instant date, boolean edited, boolean withdrawn,
+			InteractionAuthor author) {
 	}
 
 	public record Votes(long up, long down, VoteType mine) {

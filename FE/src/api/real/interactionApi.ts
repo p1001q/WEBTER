@@ -52,9 +52,18 @@ interface BackendVotes {
   mine: BackendVote | null;
 }
 
+interface BackendReply {
+  id: string;
+  text: string;
+  date: string;
+  edited: boolean;
+  withdrawn: boolean;
+  author: BackendAuthor | null;
+}
+
 interface BackendReview extends BackendEntry {
   rate: BackendRate;
-  reply: Review["reply"] | null;
+  reply: BackendReply | null;
   creatorReview: boolean;
   canVote: boolean;
   votes: BackendVotes;
@@ -113,6 +122,7 @@ function entryFields(e: BackendEntry) {
 
 export function mapReview(r: BackendReview) {
   const author = authorOf(r.a);
+  const replyAuthor = authorOf(r.reply?.author ?? null);
   const kind: Review["a"]["kind"] =
     r.a?.kind === "GUEST"
       ? "guest"
@@ -128,11 +138,20 @@ export function mapReview(r: BackendReview) {
     ...fields,
     a: { kind, uid: author?.id, ip: r.a?.ip ?? undefined },
     rate: r.creatorReview ? null : RATE[r.rate],
-    reply: r.reply ? { ...r.reply, date: ymd(r.reply.date) } : undefined,
+    reply: r.reply
+      ? {
+          id: r.reply.id,
+          text: r.reply.text,
+          date: ymd(r.reply.date),
+          edited: r.reply.edited,
+          withdrawn: r.reply.withdrawn,
+          uid: replyAuthor?.id,
+        }
+      : undefined,
     permissions: { ...fields.permissions, canVote: r.canVote },
     votes: mapVotes(r.votes),
   };
-  return { item, author };
+  return { item, author, replyAuthor };
 }
 
 export function mapComment(c: BackendComment) {

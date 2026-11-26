@@ -59,6 +59,12 @@ server:
         same-site: lax
 
 app:
+  # 시연 데이터 시드(BE/demo-assets/README.md). 켜면 업무 데이터를 지우고 다시 채운 뒤 프로세스가 끝난다.
+  # 세 값이 모두 맞아야 실행된다. 일반 실행·배포에서는 켜지 않는다.
+  demo-seed:
+    enabled: ${DEMO_SEED_ENABLED:false}
+    owner-email: ${DEMO_OWNER_EMAIL:}
+    confirm: ${DEMO_SEED_CONFIRM:}
   url-security:
     web-risk-api-key: ${WEB_RISK_API_KEY:}
   abuse:

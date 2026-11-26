@@ -154,6 +154,8 @@ export interface Review {
     date: string;
     edited?: boolean;
     withdrawn?: boolean;
+    /** 답글을 단 제작자(등록자 또는 팀원)의 회원 id. 탈퇴했으면 없다. 목업에는 없고 등록자로 본다 */
+    uid?: string;
   };
   permissions?: InteractionPermissions & { canVote: boolean };
   votes?: ReviewVotes;
