@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Footer } from "@/components/layout/Footer";
 import { ServiceIcon } from "@/components/service/ServiceIcon";
 import { Avatar } from "@/components/ui/Avatar";
+import { CopyHandle } from "@/components/ui/CopyHandle";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -22,7 +23,7 @@ import { ReflectionsPanel } from "./ReflectionsPanel";
 const reviewText =
   "m-0 mt-1.5 text-14 leading-[1.7] whitespace-pre-line text-[#3a3a3a] [overflow-wrap:anywhere]";
 
-/** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·계정 설정 */
+/** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·프로필 수정 */
 export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   const wt = useWt();
   // 탭이 오른쪽으로 가면 본문도 오른쪽에서, 왼쪽으로 가면 왼쪽에서 들어온다
@@ -69,9 +70,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
           <div className="flex min-w-[240px] flex-1 flex-col gap-1.5">
             <h1 className="m-0 flex flex-wrap items-baseline gap-2.5 text-28 font-extrabold tracking-[-0.02em]">
               {me.nick}
-              <small className="font-mono text-14 font-medium text-muted">
-                @{me.handle}
-              </small>
+              <CopyHandle handle={me.handle} />
               <RouteLink
                 to="profile"
                 params={{ id: me.id }}
@@ -107,7 +106,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
             ["saved", "저장한 서비스", saved.length],
             ["reflections", "회고"],
             ["reviews", "리뷰·댓글", myReviews.length + myComments.length],
-            ["settings", "계정 설정"],
+            ["settings", "프로필 수정"],
           ]}
           aside={
             tab === "services" &&
@@ -200,18 +199,21 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
                         <p className={reviewText}>{r.text}</p>
                       </div>
                       <div className="flex">
-                        <MiniButton
-                          onClick={() =>
-                            wt.setModal({
-                              type: "review",
-                              sid: s.id,
-                              review: r,
-                            })
-                          }
-                        >
-                          <Icon name="edit" size={13} />
-                          수정
-                        </MiniButton>
+                        {!isMaker(s, me.id) &&
+                          (r.permissions?.canEdit ?? true) && (
+                            <MiniButton
+                              onClick={() =>
+                                wt.setModal({
+                                  type: "review",
+                                  sid: s.id,
+                                  review: r,
+                                })
+                              }
+                            >
+                              <Icon name="edit" size={13} />
+                              수정
+                            </MiniButton>
+                          )}
                         <MiniButton
                           onClick={() =>
                             wt.setModal({ type: "delete-review", rid: r.id })

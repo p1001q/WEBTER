@@ -2,7 +2,10 @@
 
 /* 카드 열 수. 컨테이너가 좁아져 3 → 2 → 1열로 줄어드는 구간은 건드리지 않는다 */
 @container app (min-width: 1181px) {
-  :root[data-tw-cols="3"] [data-component="service-list"] {
+  :root[data-tw-cols="3"] [data-component="service-list"]:not([data-cols]) {
     --cols: 3 !important;
+  }
+  :root[data-tw-cols="4"] [data-component="service-list"]:not([data-cols]) {
+    --cols: 4 !important;
   }
 }

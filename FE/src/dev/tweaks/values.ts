@@ -17,7 +17,7 @@ export interface TweakValues {
 }
 
 export const DEFAULT_TWEAKS: TweakValues = {
-  cols: 4,
+  cols: 3,
   sample: "default",
   viewport: "desktop",
   data: "default",

@@ -31,11 +31,11 @@
   --color-card: #ffffff;
   --color-border: #e7e5df;
   --color-border-strong: #cfccc4;
-  --color-muted: #858585;
+  --color-muted: #6b6b6b;
   --color-light: #f1f1ee;
   --color-text-2: #555555;
   --color-text-3: #6b6b6b;
-  --color-placeholder: #a9a69e;
+  --color-placeholder: #77736b;
   --color-scrim: rgb(36 36 36 / 0.36);
   --color-launch-bg: #242424;
   --color-focus: rgb(53 68 92 / 0.28);
@@ -116,13 +116,13 @@
   --spacing-ctl-lg: 48px;
   --spacing-ctl-input: 46px;
   --spacing-ctl-icon: 40px;
-  --spacing-header: 64px;
+  --spacing-header: 96px;
   --spacing-nav: 52px;
   --spacing-gutter: 32px;
-  --spacing-side: 272px;
+  --spacing-side: 240px;
   --spacing-detail-cta: 300px;
   --spacing-form-aside: 340px;
-  --container-page: 1376px;
+  --container-page: 1184px;
   --aspect-thumb: 16 / 10;
 
   /* 모션 — 보관본에서는 개발용 CSS(dev.css)에만 있던 인터랙션. 컴포넌트를 옮길 때 필요한 것부터 추가한다 */
@@ -342,11 +342,45 @@
   }
 }
 
+/* 전체 화면은 탐색 레일과 본문으로 나누고, 본문 자체 너비로 화면 구성을 조정한다. */
+.app-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1680px;
+  margin-inline: auto;
+
+  @container shell (min-width: 1180px) {
+    grid-template-columns: 224px minmax(0, 1fr);
+    padding-inline: 32px;
+  }
+}
+
+@utility shell-header {
+  max-width: 1680px;
+  margin-inline: auto;
+  padding-inline: var(--spacing-gutter);
+
+  @container shell (min-width: 1180px) {
+    padding-inline: 64px;
+  }
+
+  @container app (max-width: 860px) {
+    padding-inline: 20px;
+  }
+  @container app (max-width: 560px) {
+    padding-inline: 16px;
+  }
+}
+
 /* 본문 폭: 가운데 정렬, 컨테이너(`app`) 너비에 따라 좌우 여백이 줄어든다 */
 @utility page-wrap {
   max-width: var(--container-page);
   margin-inline: auto;
   padding-inline: var(--spacing-gutter);
+
+  @container shell (min-width: 1180px) {
+    padding-inline: 48px;
+  }
 
   @container app (max-width: 860px) {
     padding-inline: 20px;

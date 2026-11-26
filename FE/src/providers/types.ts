@@ -147,7 +147,7 @@ export interface WtStore {
   ) => Promise<boolean | "policyChanged">;
   logout: () => Promise<boolean>;
   withdraw: () => Promise<boolean>;
-  /** 계정 설정은 입력칸을 서버 응답과 맞출 수 있도록 저장된 회원을 돌려준다. */
+  /** 프로필 수정은 입력칸을 서버 응답과 맞출 수 있도록 저장된 회원을 돌려준다. */
   updateMe: (patch: Partial<User>) => Promise<User | false>;
 
   launch: (s: Service) => Promise<void>;

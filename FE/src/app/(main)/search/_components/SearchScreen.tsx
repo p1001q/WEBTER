@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { aiSearchAvailable } from "@/api/auth/config";
 import type { AiSearchResult } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
-import { SearchBar } from "@/components/layout/SearchBar";
 import { SectionHead } from "@/components/layout/SectionHead";
 import { ServiceList } from "@/components/service/ServiceList";
 import { ServiceListSkeleton } from "@/components/service/ServiceListSkeleton";
@@ -36,11 +35,8 @@ export function SearchScreen({ q }: { q: string }) {
   return (
     <>
       <div className="page-wrap pt-6">
-        <div className="max-w-[760px]">
-          <SearchBar initial={q} size="sm" autoFocus={!q} />
-        </div>
         {!q && (
-          <div className="mt-5">
+          <div className="animate-unfold">
             <p className={`${helpClass} mb-2.5`}>
               키워드나 문장으로 찾아보세요. 문장으로 입력하면 AI가 의도를 분석해
               찾아요.

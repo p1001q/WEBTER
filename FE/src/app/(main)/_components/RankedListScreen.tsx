@@ -53,6 +53,7 @@ export function RankedListScreen({
     desc = "선택한 기간 동안 받은 반응(이용하기·추천·저장)이 많은 순서예요.";
     right = (
       <SegmentedControl
+        className="@max-[560px]/app:[&_button]:min-h-11"
         label="인기 기간"
         value={chosen}
         onChange={(p) => inListTransition(() => setChosen(p))}
@@ -69,12 +70,34 @@ export function RankedListScreen({
     desc = "최근에 등록된 순서예요.";
     ranked = false;
   }
+  // 관심 카테고리는 우선 정렬에만 사용한다. 탐색 용도 선택은 항상 전체 또는 한 개다.
+  const interests = wt.me?.interests ?? [];
+  if (kind !== "latest" && st.f.cats.length === 0 && interests.length) {
+    items.sort(
+      (a, b) =>
+        Number(b.cats.some((c) => interests.includes(c))) -
+        Number(a.cats.some((c) => interests.includes(c))),
+    );
+  }
   return (
     <>
       <MainNav />
       <div className="page-wrap">
-        <ListHead title={title} desc={desc} />
-        <ListToolbar st={st} count={items.length} right={right} />
+        <ListHead
+          title={title}
+          desc={desc}
+          titleAction={
+            right && (
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-13 font-semibold text-muted">
+                  집계 기간
+                </span>
+                {right}
+              </div>
+            )
+          }
+        />
+        <ListToolbar st={st} count={items.length} sidebarCategories />
         {items.length ? (
           <ServiceList
             items={items}

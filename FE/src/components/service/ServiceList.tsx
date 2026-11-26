@@ -17,7 +17,7 @@ interface ServiceListProps {
   view?: "card" | "list";
   rankStart?: number;
   reasons?: Record<string, string> | null;
-  /** 카드형 열 수(기본 4) */
+  /** 카드형 열 수(기본 3) */
   cols?: number;
   /** 좁은 화면에서도 2열을 유지 */
   m2?: boolean;
@@ -57,6 +57,7 @@ export function ServiceList({
   return (
     <div
       data-component="service-list"
+      data-cols={cols}
       className={m2 ? `${styles.grid} ${styles.m2}` : styles.grid}
       style={{ "--cols": cols || DISPLAY.defaultCols } as CSSProperties}
     >

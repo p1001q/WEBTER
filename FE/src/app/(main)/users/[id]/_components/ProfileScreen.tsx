@@ -6,6 +6,7 @@ import { Restricted } from "@/components/layout/Restricted";
 import { SectionHead } from "@/components/layout/SectionHead";
 import { ServiceList } from "@/components/service/ServiceList";
 import { Avatar } from "@/components/ui/Avatar";
+import { CopyHandle } from "@/components/ui/CopyHandle";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReportButton } from "@/components/modals/ReportButton";
 import { Icon } from "@/components/ui/Icon";
@@ -46,9 +47,7 @@ export function ProfileScreen({ id }: { id: string }) {
           <div className="flex min-w-[240px] flex-1 flex-col gap-1.5">
             <h1 className="m-0 flex flex-wrap items-baseline gap-2.5 text-28 font-extrabold tracking-[-0.02em]">
               {u.nick}
-              <small className="font-mono text-14 font-medium text-muted">
-                @{u.handle}
-              </small>
+              <CopyHandle handle={u.handle} />
               {isMe && (
                 <RouteLink
                   to="mypage"

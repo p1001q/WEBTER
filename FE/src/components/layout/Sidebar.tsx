@@ -3,162 +3,128 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
-import { CategoryGlyph } from "@/components/service/CategoryGlyph";
-import { CATEGORIES } from "@/domain/options";
 import { cx } from "@/lib/cx";
-import { useRoute } from "@/lib/useRoute";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { useWt } from "@/providers/context";
+import { SidebarNavigation } from "./SidebarNavigation";
+import {
+  DESKTOP_NAVIGATION_QUERY,
+  useDesktopNavigation,
+} from "./useDesktopNavigation";
 import { Wordmark } from "./Wordmark";
 
-const label = "px-3 pt-4 pb-2 text-12 font-bold tracking-[.02em] text-muted";
-const itemBase =
-  "flex h-[42px] w-full items-center gap-2.5 rounded-md px-3 text-left text-15";
-const cnt = "ml-auto font-mono text-11 text-muted";
-
-/* 기본 접힘, 콘텐츠 위 오버레이. `useSearchParams` 를 쓰므로 AppShell 에서 Suspense 로 감싼다 */
+/** 데스크톱은 상시 탐색, 좁은 화면은 본문 위에 열리는 메뉴로 구분한다. */
 export function Sidebar() {
   const wt = useWt();
-  const route = useRoute();
+  const { setSide } = wt;
+  const desktop = useDesktopNavigation();
+  const open = wt.side && !desktop;
   const asideRef = useRef<HTMLElement>(null);
-  // 열리면 사이드바 안으로 포커스를 옮기고, 닫히면 열기 전 위치로 돌려 놓는다(뒤쪽 화면은 inert)
   useEffect(() => {
-    if (!wt.side) return;
+    const media = window.matchMedia(DESKTOP_NAVIGATION_QUERY);
+    const closeOnDesktop = () => {
+      if (media.matches) setSide(false);
+    };
+    media.addEventListener("change", closeOnDesktop);
+    return () => media.removeEventListener("change", closeOnDesktop);
+  }, [setSide]);
+  useEffect(() => {
+    if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
-    asideRef.current?.querySelector<HTMLElement>("button")?.focus();
-    return () => prev?.focus?.();
-  }, [wt.side]);
-  // 닫을 때는 슬라이드·페이드가 끝난 뒤에 화면에서 뺀다. 모션 줄이기 설정에서는 바로 뺀다
+    const aside = asideRef.current;
+    aside?.querySelector<HTMLElement>("button")?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSide(false);
+      }
+      if (event.key !== "Tab" || !aside) return;
+      const targets = Array.from(
+        aside.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"),
+      );
+      const first = targets[0];
+      const last = targets.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      if (prev?.isConnected && prev.getClientRects().length) prev.focus();
+    };
+  }, [open, setSide]);
   const [leaving, setLeaving] = useState(false);
-  const [wasOpen, setWasOpen] = useState(wt.side);
-  if (wasOpen !== wt.side) {
-    setWasOpen(wt.side);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
     setLeaving(
-      !wt.side &&
+      !open &&
+        !desktop &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
   }
   useEffect(() => {
     if (!leaving) return;
-    const t = setTimeout(() => setLeaving(false), 200);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setLeaving(false), 200);
+    return () => clearTimeout(timer);
   }, [leaving]);
-  useScrollLock(wt.side || leaving);
-  if (!wt.side && !leaving) return null;
-  const close = () => wt.setSide(false);
-  const onList =
-    route.name === "trending" ||
-    route.name === "popular" ||
-    route.name === "latest";
-  const picked = wt.listFilter.cats;
-  const curCat = onList ? (picked.length === 1 ? picked[0] : "all") : null;
-  const live = wt.publicServices.filter((s) => s.use === "live");
-  const counts = Object.fromEntries(
-    CATEGORIES.map((c) => [
-      c.id,
-      live.filter((s) => s.cats.includes(c.id)).length,
-    ]),
-  );
-  const goCat = (id: string) => {
-    close();
-    // 홈에서 용도를 고른 것과 같다: 필터에 그 용도만 고르고 트렌딩을 보여 준다
-    wt.setListFilter((prev) => ({ ...prev, cats: id === "all" ? [] : [id] }));
-    wt.go("trending");
-  };
-  const itemClass = (on: boolean) =>
-    cx(
-      itemBase,
-      on ? "bg-card font-bold shadow-card" : "font-medium hover:bg-ink/5",
-    );
+  useScrollLock(!desktop && (open || leaving));
+  const close = () => setSide(false);
   return (
     <>
-      <button
-        className={cx(
-          "fixed inset-0 z-50 w-full cursor-default border-0 bg-scrim p-0",
-          leaving ? "pointer-events-none animate-fade-out" : "animate-fade",
-        )}
-        aria-label="메뉴 닫기"
-        tabIndex={-1}
-        onClick={close}
-      />
       <aside
-        ref={asideRef}
-        className={cx(
-          "fixed top-0 bottom-0 left-0 z-[51] flex w-side max-w-[84%] flex-col border-r border-border bg-ivory",
-          leaving ? "pointer-events-none animate-slide-out" : "animate-slide",
-        )}
-        role="dialog"
-        aria-label="사이드 메뉴"
+        aria-label="고정 사이드 메뉴"
+        className="sticky top-header hidden h-[calc(100dvh-var(--spacing-header))] flex-col border-r border-border @min-[1180px]/shell:flex"
+        inert={wt.modal !== null}
       >
-        <div className="flex h-header items-center gap-3 px-4">
-          <IconButton className="-ml-1" onClick={close} aria-label="메뉴 닫기">
-            <Icon name="close" size={20} />
-          </IconButton>
-          <Wordmark onClick={close} />
-        </div>
-        <div className="flex-1 overflow-y-auto px-3 pt-2 pb-6">
-          <div className={label}>서비스 용도</div>
-          <button
-            className={itemClass(curCat === "all")}
-            onClick={() => goCat("all")}
-          >
-            전체<span className={cnt}>{live.length}</span>
-          </button>
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              className={itemClass(curCat === c.id)}
-              onClick={() => goCat(c.id)}
-            >
-              <CategoryGlyph cat={c.id} size={18} />
-              {c.label}
-              <span className={cnt}>{counts[c.id]}</span>
-            </button>
-          ))}
-          <div className={cx(label, "mt-2")}>내 메뉴</div>
-          <button
-            className={itemClass(false)}
-            onClick={() => {
-              close();
-              wt.requireLogin(
-                () => wt.go("mypage", { tab: "saved" }),
-                "저장한 서비스는 로그인 후 볼 수 있어요.",
-              );
-            }}
-          >
-            <Icon name="bookmark" size={18} />
-            저장한 서비스
-            {wt.me ? (
-              <span className={cnt}>{wt.saves.size}</span>
-            ) : (
-              <span className={cnt}>
-                <Icon name="lock" size={13} />
-              </span>
-            )}
-          </button>
-          <button
-            className={itemClass(false)}
-            onClick={() => {
-              close();
-              wt.requireLogin(
-                () => wt.go("manage"),
-                "내 서비스 관리는 로그인 후 이용할 수 있어요.",
-              );
-            }}
-          >
-            <Icon name="grid" size={18} />내 서비스 관리
-            {!wt.me && (
-              <span className={cnt}>
-                <Icon name="lock" size={13} />
-              </span>
-            )}
-          </button>
-        </div>
-        <div className="border-t border-border px-6 pt-4 pb-6 text-13 text-muted">
-          <div className="mb-0.5 font-bold text-ink">웹이 모이는 터, 웹터.</div>
-          개발자가 만든 웹 서비스를 발견하고 바로 이용해 보세요.
-        </div>
+        <SidebarNavigation />
       </aside>
+      {!desktop && (open || leaving) && (
+        <>
+          <button
+            className={cx(
+              "fixed inset-0 z-50 w-full cursor-default border-0 bg-scrim p-0",
+              leaving ? "pointer-events-none animate-fade-out" : "animate-fade",
+            )}
+            aria-label="메뉴 닫기"
+            tabIndex={-1}
+            onClick={close}
+          />
+          <aside
+            ref={asideRef}
+            id="mobile-sidebar"
+            className={cx(
+              "fixed inset-y-0 left-0 z-[51] flex w-side max-w-[84%] flex-col border-r border-border bg-ivory",
+              leaving
+                ? "pointer-events-none animate-slide-out"
+                : "animate-slide",
+            )}
+            role="dialog"
+            aria-modal="true"
+            aria-label="사이드 메뉴"
+            inert={leaving || wt.modal !== null}
+          >
+            <div className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4">
+              <IconButton
+                className="-ml-1"
+                onClick={close}
+                aria-label="메뉴 닫기"
+              >
+                <Icon name="close" size={20} />
+              </IconButton>
+              <Wordmark onClick={close} />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <SidebarNavigation onNavigate={close} />
+            </div>
+          </aside>
+        </>
+      )}
     </>
   );
 }

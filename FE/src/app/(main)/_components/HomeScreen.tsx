@@ -1,9 +1,9 @@
 "use client";
 
+import { Fragment } from "react";
 import type { Service } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
 import { MainNav } from "@/components/layout/MainNav";
-import { SearchBar } from "@/components/layout/SearchBar";
 import { SectionHead } from "@/components/layout/SectionHead";
 import { NoServices } from "@/components/service/NoServices";
 import { ServiceList } from "@/components/service/ServiceList";
@@ -14,7 +14,6 @@ import { DISPLAY, POLICY } from "@/domain/policy";
 import { scoreOf } from "@/domain/score";
 import type { RouteName } from "@/lib/routes";
 import { useWt } from "@/providers/context";
-import { SearchExamples } from "./SearchExamples";
 
 interface Section {
   title: string;
@@ -24,7 +23,7 @@ interface Section {
   rank?: boolean;
 }
 
-/** 홈: 검색, 관심 카테고리 안내, 트렌딩·인기·최신 미리보기 */
+/** 홈: 소개, 트렌딩, 관심 카테고리 안내, 인기·최신 미리보기 */
 export function HomeScreen() {
   const wt = useWt();
   const live = wt.publicServices.filter((s) => s.use === "live");
@@ -70,34 +69,13 @@ export function HomeScreen() {
     <>
       <MainNav />
       <div className="page-wrap">
-        <section className="pt-6 pb-2 text-center @max-[560px]/app:pt-8 @max-[560px]/app:pb-0 @max-[560px]/app:text-left">
-          <h1 className="m-0 text-40 leading-[1.2] font-extrabold tracking-[-0.035em] text-balance @max-[860px]/app:text-[32px] @max-[560px]/app:text-[25px]">
+        <section className="pt-8 pb-0 text-left">
+          <h1 className="m-0 text-[32px] leading-[1.2] font-extrabold tracking-[-0.035em] text-balance @max-[560px]/app:text-[25px]">
             오늘은 어떤 웹을 만나볼까요?
           </h1>
-          <p className="mt-3 text-16 text-pretty text-muted @max-[560px]/app:text-14">
+          <p className="mt-2 text-16 text-pretty text-muted @max-[560px]/app:text-15">
             찾던 웹도, 몰랐던 웹도 이곳에서! 설치 없이 버튼 하나로 만나봐요
           </p>
-          <div className="mx-auto mt-7 max-w-[720px]">
-            <SearchBar />
-            <SearchExamples />
-          </div>
-          {interests.length > 0 && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-13 text-text-3 @max-[560px]/app:flex-wrap @max-[560px]/app:justify-start">
-              <Icon name="spark" size={14} />
-              관심 카테고리:{" "}
-              <b className="font-bold text-ink">
-                {interests.map((c) => CAT[c].label).join(", ")}
-              </b>{" "}
-              — 트렌딩·인기에서 먼저 보여 드려요
-              <RouteLink
-                to="mypage"
-                params={{ tab: "settings" }}
-                className="font-bold text-navy underline underline-offset-[3px]"
-              >
-                변경
-              </RouteLink>
-            </div>
-          )}
         </section>
         {live.length === 0 ? (
           <section className="mt-10">
@@ -107,17 +85,37 @@ export function HomeScreen() {
           DISPLAY.homeSections.map((k) => {
             const sec = sections[k];
             return (
-              <section className="mt-10" key={k}>
-                <SectionHead
-                  title={sec.title}
-                  sub={sec.sub}
-                  onMore={() => wt.go(sec.to)}
-                />
-                <ServiceList
-                  items={sec.items}
-                  rankStart={sec.rank ? 1 : undefined}
-                />
-              </section>
+              <Fragment key={k}>
+                <section className="mt-8">
+                  <SectionHead
+                    title={sec.title}
+                    sub={sec.sub}
+                    onMore={() => wt.go(sec.to)}
+                  />
+                  <ServiceList
+                    cols={3}
+                    items={sec.items}
+                    rankStart={sec.rank ? 1 : undefined}
+                  />
+                </section>
+                {k === "trending" && interests.length > 0 && (
+                  <div className="mt-5 flex flex-wrap items-center gap-2 text-13 text-text-3">
+                    <Icon name="spark" size={14} />
+                    관심 카테고리:{" "}
+                    <b className="font-bold text-ink">
+                      {interests.map((c) => CAT[c].label).join(", ")}
+                    </b>{" "}
+                    — 트렌딩·인기에서 먼저 보여 드려요
+                    <RouteLink
+                      to="mypage"
+                      params={{ tab: "settings" }}
+                      className="font-bold text-navy underline underline-offset-[3px]"
+                    >
+                      변경
+                    </RouteLink>
+                  </div>
+                )}
+              </Fragment>
             );
           })
         )}
