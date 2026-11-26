@@ -158,26 +158,23 @@ export function WtProvider({
   }, [closeOverlays]);
 
   const me = meId ? (users[meId] ?? null) : null;
-  const defaultListFilter = { ...FILTER_DEFAULT, cats: me?.interests ?? [] };
+  const defaultListFilter = { ...FILTER_DEFAULT };
   const listFilter =
     editedListFilter?.viewerId === meId
       ? editedListFilter.filter
       : defaultListFilter;
-  const interests = me?.interests;
   const setListFilter = useCallback(
     (next: SetStateAction<FilterState>) => {
       setEditedListFilter((previous) => {
         const active =
-          previous?.viewerId === meId
-            ? previous.filter
-            : { ...FILTER_DEFAULT, cats: interests ?? [] };
+          previous?.viewerId === meId ? previous.filter : { ...FILTER_DEFAULT };
         return {
           viewerId: meId,
           filter: typeof next === "function" ? next(active) : next,
         };
       });
     },
-    [interests, meId],
+    [meId],
   );
 
   const toast = useCallback(
@@ -382,6 +379,7 @@ export function WtProvider({
   // 실제 로그인을 쓸 때는 첫 화면을 그린 뒤 서버 세션을 확인해 로그인 상태를 되살린다.
   // 확인이 끝나기 전에는 로그인이 필요한 화면이 로그인 안내를 띄우지 않도록 sessionReady 로 기다리게 한다.
   const [sessionReady, setSessionReady] = useState(!realAuth);
+  const [myServicesReady, setMyServicesReady] = useState(!realAuth);
   useEffect(() => {
     if (!realAuth) return;
     let live = true;
@@ -415,12 +413,15 @@ export function WtProvider({
               }));
             } catch {
               // 내 서비스를 못 받아도 로그인 복원은 그대로 둔다(공개 서비스는 이미 보인다)
+            } finally {
+              if (live) setMyServicesReady(true);
             }
           })();
-        }
+        } else setMyServicesReady(true);
       } catch {
         // 저장된 목업 회원 상태가 서버 확인 실패 뒤에 남지 않도록 비운다
         if (live) {
+          setMyServicesReady(true);
           const r = await api.adoptMember(null);
           if (live) applySession(r.session);
         }
@@ -517,6 +518,8 @@ export function WtProvider({
     todayCount,
     takenHandles: realAuth ? [] : snap.takenHandles,
     sessionReady,
+    notificationsReady: realAuth ? realNotifications.ready : true,
+    myServicesReady,
     publicServices: services.filter((s) => s.pub === "public"),
     view,
     setView,
@@ -663,7 +666,7 @@ export function WtProvider({
       }),
     updateMe: async (patch) => {
       let saved: User | undefined;
-      await act("계정 설정을 저장하지", async () => {
+      await act("프로필을 저장하지", async () => {
         let u: User;
         if (realAuth) {
           // 서버에 저장하고, 서버가 정리한 값(링크 주소 등)을 화면에 반영한다
@@ -676,8 +679,8 @@ export function WtProvider({
         saved = u;
         toast(
           realAuth
-            ? "계정 설정을 저장했어요."
-            : "계정 설정을 저장했어요. (데모: 이 탭에서만 유지돼요)",
+            ? "프로필을 저장했어요."
+            : "프로필을 저장했어요. (데모: 이 탭에서만 유지돼요)",
         );
       });
       return saved ?? false;
@@ -806,6 +809,8 @@ export function WtProvider({
 
     addReview: (s, role, v) =>
       act("리뷰를 남기지", async () => {
+        if (isOwner(s) || role === "maker")
+          throw new ApiError("rule", "본인 서비스에는 답글만 남길 수 있어요.");
         const r = await api.addReview(s.id, role, v);
         setReviews((l) => [r, ...l]);
         setVotes((m) => {
@@ -818,6 +823,10 @@ export function WtProvider({
       }),
     updateReview: (id, v) =>
       act("리뷰를 수정하지", async () => {
+        const review = reviews.find((r) => r.id === id);
+        const service = services.find((s) => s.id === review?.sid);
+        if (service && isOwner(service))
+          throw new ApiError("rule", "본인 서비스에는 답글만 남길 수 있어요.");
         applyReview(await api.updateReview(id, v));
         toast("리뷰를 수정했어요.");
       }),

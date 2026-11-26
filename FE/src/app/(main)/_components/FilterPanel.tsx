@@ -2,7 +2,7 @@
 
 import { useId, type SetStateAction } from "react";
 import { Button } from "@/components/ui/Button";
-import { Chip, chipClass } from "@/components/ui/Chip";
+import { Chip } from "@/components/ui/Chip";
 import {
   FILTER_DEFAULT,
   type FilterKey,
@@ -11,7 +11,7 @@ import {
 import { OPT, TYPE_SHORT } from "@/domain/options";
 
 const rowClass =
-  "grid grid-cols-[96px_1fr] items-center gap-3 @max-[860px]/app:grid-cols-1 @max-[860px]/app:gap-1.5";
+  "grid grid-cols-[88px_minmax(0,1fr)] items-center gap-3 @max-[560px]/app:grid-cols-1 @max-[560px]/app:gap-2";
 const keyClass = "text-13 font-bold text-text-3";
 const valuesClass = "flex flex-wrap gap-1.5";
 
@@ -52,6 +52,7 @@ export function FilterPanel({
           <Chip
             key={v}
             size="sm"
+            className="@max-[560px]/app:min-h-11"
             on={f[k].includes(v)}
             onClick={() => tog(k, v)}
           >
@@ -63,7 +64,7 @@ export function FilterPanel({
   );
   return (
     <div
-      className="mb-6 flex flex-col gap-3 rounded-md border border-border bg-card px-6 py-4"
+      className="mb-6 grid grid-cols-2 gap-x-8 gap-y-4 rounded-md border border-border bg-card px-6 py-4 @max-[860px]/app:grid-cols-1 @max-[560px]/app:px-4"
       data-component="filter-panel"
     >
       {row(
@@ -74,26 +75,17 @@ export function FilterPanel({
       {row("devices", "기기 지원", OPT.devices)}
       {row("price", "가격", OPT.price)}
       {row("owner", "등록 주체", OPT.owner)}
-      <div className={rowClass}>
-        <span className={keyClass}>이용 형태</span>
-        <div className={valuesClass}>
-          <span
-            className={chipClass({ on: true, size: "sm" })}
-            aria-disabled="true"
-          >
-            웹 서비스
-          </span>
-        </div>
-      </div>
       {row("langs", "지원 언어", OPT.langs)}
       {row("use", "운영 상태", OPT.use)}
-      <div className="flex items-center gap-3 border-t border-light pt-3 text-12 text-muted">
-        같은 항목 안에서는 하나라도 맞으면, 다른 항목끼리는 모두 맞는 서비스를
-        보여 줘요.
+      <div className="col-span-full flex flex-wrap items-center gap-3 border-t border-light pt-3 text-13 text-muted">
+        <p className="m-0 flex-[1_1_240px]">
+          같은 항목 안에서는 하나라도 맞으면, 다른 항목끼리는 모두 맞는 서비스를
+          보여 줘요.
+        </p>
         <Button
           variant="text"
           size="sm"
-          className="ml-auto"
+          className="ml-auto @max-[560px]/app:min-h-11"
           onClick={() => setF((prev) => ({ ...base, cats: prev.cats }))}
         >
           용도 제외 초기화

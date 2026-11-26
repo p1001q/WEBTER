@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "내 서비스 관리" };
 
 export default function ManagePage() {
   return (
-    <AuthGate>
+    <AuthGate fallback={<ManageScreen />}>
       <ManageScreen />
     </AuthGate>
   );

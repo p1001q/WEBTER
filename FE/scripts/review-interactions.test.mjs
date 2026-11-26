@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { deferred, harness, settle } from "./helpers/uiHarness.mjs";
 
-function mountInteractions(t, api) {
+function mountInteractions(t, api, overrides = {}) {
   const h = harness({
     "@/api/auth/config": { realAuth: true },
     "@/api/real/interactionApi": { interactionApi: api },
@@ -31,9 +31,41 @@ function mountInteractions(t, api) {
       await run();
       return true;
     },
+    ...overrides,
   };
   return () => h.render(useRealInteractions, props).actions;
 }
+
+test("등록자와 수락한 팀원은 역할 값을 바꿔도 본인 서비스 리뷰를 요청할 수 없다", async (t) => {
+  const write = t.mock.fn();
+  const render = mountInteractions(t, { addReview: write });
+  const input = { text: "리뷰 시도", rate: "none" };
+  for (const service of [
+    { id: "owned", owner: "member" },
+    { id: "team", owner: "other", members: ["member"] },
+  ]) {
+    for (const role of ["member", "maker", "guest"]) {
+      await assert.rejects(
+        render().addReview(service, role, input),
+        /본인 서비스/,
+      );
+    }
+  }
+  assert.equal(write.mock.callCount(), 0);
+});
+
+test("수정 권한이 사라진 기존 리뷰는 수정 요청을 보내지 않는다", async (t) => {
+  const update = t.mock.fn();
+  const render = mountInteractions(
+    t,
+    { updateReview: update },
+    {
+      reviews: [{ id: "old", sid: "team", permissions: { canEdit: false } }],
+    },
+  );
+  await assert.rejects(render().updateReview("old", { text: "수정 시도" }));
+  assert.equal(update.mock.callCount(), 0);
+});
 
 test("내 평가 조회를 실패한 뒤 다시 시도하면 기존 평가가 복구된다", async (t) => {
   const first = deferred();

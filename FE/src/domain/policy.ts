@@ -31,8 +31,8 @@ export const POLICY = {
 /* 표현 설정 — 화면 제안값(정책 아님) */
 export const DISPLAY = {
   homeSections: ["trending", "popular", "latest"] as const, // 정책서 5.2 미정 → 제안 구성
-  homeCount: 4,
-  defaultCols: 4,
+  homeCount: 3,
+  defaultCols: 3,
   demoToday: "2026-10-22",
   urlCheckDelay: 700, // 목업 접속 검사 지연(ms) — 결정적
   stopCanRateNew: false, // 운영 중지 서비스의 신규 리뷰 평가: 미설정만

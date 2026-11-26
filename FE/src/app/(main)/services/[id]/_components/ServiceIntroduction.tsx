@@ -2,11 +2,12 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { MarkdownContent } from "@/components/ui/MarkdownContent";
 import { RouteLink } from "@/components/ui/RouteLink";
 import { tagClass } from "@/components/ui/Tag";
 import { cx } from "@/lib/cx";
 
-/** 소개는 항상 표시하고, 실제 화면에서 7줄을 넘는 설명만 접는다. */
+/** 소개는 마크다운으로 꾸며 보여 주고, 실제 화면에서 7줄 높이를 넘는 설명만 접는다. */
 export function ServiceIntroduction({
   description,
   tags,
@@ -15,7 +16,7 @@ export function ServiceIntroduction({
   tags: string[];
 }) {
   const contentId = useId();
-  const content = useRef<HTMLParagraphElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflow, setOverflow] = useState(false);
   useEffect(() => {
@@ -27,6 +28,7 @@ export function ServiceIntroduction({
       const lineHeight = Number.parseFloat(
         getComputedStyle(element).lineHeight,
       );
+      // 문단·목록이 섞여도 같은 기준으로 접도록 줄 수가 아니라 높이로 잰다
       setOverflow(element.scrollHeight > lineHeight * 7 + 1);
     };
     const observer = new ResizeObserver(measure);
@@ -43,17 +45,25 @@ export function ServiceIntroduction({
   return (
     <section className="mb-8" aria-label="서비스 소개">
       <h2 className="mb-4 text-18 font-bold">소개</h2>
-      <p
+      <div
         ref={content}
         id={contentId}
         className={cx(
-          "m-0 text-[15.5px] leading-[1.75] break-words text-pretty whitespace-pre-line",
-          description ? "text-[#3a3a3a]" : "text-muted",
-          !expanded && "line-clamp-7",
+          "text-[15.5px] leading-[1.75]",
+          !expanded && "max-h-[12.25em] overflow-hidden",
         )}
       >
-        {description || "상세 설명이 아직 없어요."}
-      </p>
+        {description ? (
+          <MarkdownContent
+            images={false}
+            className="text-[15.5px] leading-[1.75] text-[#3a3a3a] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+          >
+            {description}
+          </MarkdownContent>
+        ) : (
+          <p className="m-0 text-muted">상세 설명이 아직 없어요.</p>
+        )}
+      </div>
       {overflow && (
         <button
           type="button"

@@ -1,6 +1,8 @@
 import { reportKey } from "@/domain/report";
 import { DISPLAY, POLICY } from "@/domain/policy";
 import { generateNickname } from "@/domain/nickname";
+import { isMaker } from "@/domain/maker";
+import { ApiError } from "../errors";
 import { CAT } from "@/domain/options";
 import { handleChangeStatus, normUrl } from "@/domain/validation";
 import type {
@@ -240,20 +242,20 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     addReview: async (sid: string, role: ReviewRole, v: ReviewInput) => {
       const s = findService(sid);
       const u = role === "guest" ? null : need();
+      if (role === "maker" || isMaker(s, session.meId))
+        throw new ApiError("rule", "본인 서비스에는 답글만 남길 수 있어요.");
       const a: Review["a"] =
         role === "guest"
           ? { kind: "guest", ip: "175.22.xx.xx" }
-          : role === "maker"
-            ? { kind: "maker", uid: u!.id }
-            : v.anon
-              ? { kind: "anon", uid: u!.id }
-              : { kind: "member", uid: u!.id };
+          : v.anon
+            ? { kind: "anon", uid: u!.id }
+            : { kind: "member", uid: u!.id };
       const r: Review = {
         id: "rn" + Date.now(),
         fresh: true,
         sid: s.id,
         a,
-        rate: role === "maker" ? null : role === "guest" ? "none" : v.rate,
+        rate: role === "guest" ? "none" : v.rate,
         date: DISPLAY.demoToday,
         text: v.text,
       };
@@ -264,6 +266,8 @@ export function createMockApi(opts: MockOptions = {}): WebterApi {
     },
     updateReview: async (id, v) => {
       const r = findReview(id);
+      if (isMaker(findService(r.sid), session.meId))
+        throw new ApiError("rule", "본인 서비스에는 답글만 남길 수 있어요.");
       r.rate = r.a.kind === "maker" ? null : v.rate;
       r.text = v.text;
       r.edited = true;

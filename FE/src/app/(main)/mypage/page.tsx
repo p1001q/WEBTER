@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { oneOf } from "@/lib/query";
+import { GenericPageSkeleton } from "@/components/service/PageSkeletons";
 import { AuthGate } from "../_components/AuthGate";
 import { MyPageScreen } from "./_components/MyPageScreen";
 import { MYPAGE_TABS } from "./tabs";
@@ -13,7 +14,7 @@ export default async function MyPage({
 }) {
   const tab = oneOf((await searchParams).tab, MYPAGE_TABS) ?? "services";
   return (
-    <AuthGate>
+    <AuthGate fallback={<GenericPageSkeleton />}>
       <MyPageScreen tab={tab} />
     </AuthGate>
   );

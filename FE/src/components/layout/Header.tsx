@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -10,6 +10,8 @@ import { usePressHold } from "@/lib/usePressHold";
 import { useWt } from "@/providers/context";
 import { NotificationMenu } from "@/components/notification/NotificationMenu";
 import { Wordmark } from "./Wordmark";
+import { HeaderSearch } from "./HeaderSearch";
+import { SearchBar } from "./SearchBar";
 
 const popItem =
   "flex h-10 w-full items-center gap-2.5 rounded-[6px] px-3 text-left text-14 text-ink hover:bg-light focus-visible:bg-light";
@@ -77,25 +79,26 @@ export function Header() {
     </button>
   );
   return (
-    <header className="sticky top-0 z-30 border-b border-transparent bg-ivory">
-      <div className="page-wrap flex h-header items-center gap-3 @max-[560px]/app:h-14 @max-[560px]/app:gap-1 @max-[385px]/app:gap-0">
-        <IconButton
-          className="-ml-2 @max-[385px]/app:size-9"
-          onClick={() => wt.setSide(true)}
-          aria-label="메뉴 열기"
-          aria-expanded={wt.side}
-        >
-          <Icon name="menu" size={22} />
-        </IconButton>
-        <Wordmark />
-        <div className="ml-auto flex items-center gap-2 @max-[399px]/app:gap-1">
+    <header className="border-b border-border bg-ivory">
+      <div className="shell-header grid min-h-[calc(var(--spacing-header)-1px)] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-6 gap-y-2 @max-[860px]/app:grid-cols-[auto_1fr_auto] @max-[860px]/app:gap-x-2 @max-[860px]/app:pt-3 @max-[860px]/app:pb-4 @min-[1180px]/shell:grid-cols-[minmax(240px,1fr)_minmax(0,640px)_minmax(240px,1fr)]">
+        <div className="flex items-center gap-3 @max-[860px]/app:col-span-2 @max-[560px]/app:h-12">
           <IconButton
-            className="@max-[385px]/app:size-9"
-            aria-label="검색"
-            onClick={() => wt.go("search", {})}
+            className="-ml-2 @max-[385px]/app:size-9 @min-[1180px]/shell:hidden"
+            onClick={() => wt.setSide(true)}
+            aria-label="메뉴 열기"
+            aria-expanded={wt.side}
+            aria-controls="mobile-sidebar"
           >
-            <Icon name="search" size={21} />
+            <Icon name="menu" size={22} />
           </IconButton>
+          <Wordmark />
+        </div>
+        <div className="w-full max-w-[640px] justify-self-center @max-[860px]/app:order-last @max-[860px]/app:col-span-3 @max-[860px]/app:max-w-none">
+          <Suspense fallback={<SearchBar size="sm" />}>
+            <HeaderSearch />
+          </Suspense>
+        </div>
+        <div className="flex items-center justify-self-end gap-2 @max-[399px]/app:gap-1">
           {me && <NotificationMenu />}
           <Button
             variant="outline"
@@ -142,7 +145,16 @@ export function Header() {
                   role="menu"
                   inert={leaving}
                 >
-                  <div className="flex items-center gap-3 px-3 pt-3 pb-3.5">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    aria-label={`${me.nick} 마이페이지로 이동`}
+                    className="flex w-full items-center gap-3 rounded-md px-3 pt-3 pb-3.5 text-left hover:bg-light focus-visible:bg-light"
+                    onClick={() => {
+                      setOpen(false);
+                      wt.go("mypage");
+                    }}
+                  >
                     <Avatar user={me} size={44} />
                     <div className="min-w-0">
                       <div className="text-15 font-bold">{me.nick}</div>
@@ -150,21 +162,21 @@ export function Header() {
                         @{me.handle}
                       </div>
                     </div>
-                  </div>
+                  </button>
                   <div className={popSep} />
                   {item("user", "마이페이지", () => wt.go("mypage"))}
-                  {item("grid", "내 서비스 관리", () => wt.go("manage"))}
+                  {item("eye", "프로필 보기", () =>
+                    wt.go("profile", { id: me.id }),
+                  )}
+                  {item("settings", "프로필 수정", () =>
+                    wt.go("mypage", { tab: "settings" }),
+                  )}
+                  {item("grid", "서비스 관리", () => wt.go("manage"))}
                   {item(
                     "bookmark",
                     "저장한 서비스",
                     () => wt.go("mypage", { tab: "saved" }),
                     wt.saves.size,
-                  )}
-                  {item("eye", "내 프로필 보기", () =>
-                    wt.go("profile", { id: me.id }),
-                  )}
-                  {item("settings", "계정 설정", () =>
-                    wt.go("mypage", { tab: "settings" }),
                   )}
                   <div className={popSep} />
                   {item("logout", "로그아웃", () => {

@@ -69,6 +69,10 @@ export interface WtStore {
   takenHandles: string[];
   /** 실제 로그인을 쓸 때 서버 세션 확인이 끝났는지. 끝나기 전에는 로그인 상태를 알 수 없다 */
   sessionReady: boolean;
+  /** 로그인한 회원의 첫 알림 조회가 끝났는지(목업은 항상 true) */
+  notificationsReady: boolean;
+  /** 로그인한 회원의 내 서비스(비공개 포함) 조회가 끝났는지(목업은 항상 true) */
+  myServicesReady: boolean;
   aiUsed: number;
   todayCount: number;
 
@@ -147,7 +151,7 @@ export interface WtStore {
   ) => Promise<boolean | "policyChanged">;
   logout: () => Promise<boolean>;
   withdraw: () => Promise<boolean>;
-  /** 계정 설정은 입력칸을 서버 응답과 맞출 수 있도록 저장된 회원을 돌려준다. */
+  /** 프로필 수정은 입력칸을 서버 응답과 맞출 수 있도록 저장된 회원을 돌려준다. */
   updateMe: (patch: Partial<User>) => Promise<User | false>;
 
   launch: (s: Service) => Promise<void>;

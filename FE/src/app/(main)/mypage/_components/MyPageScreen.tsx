@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { realAuth } from "@/api/auth/config";
 import { Footer } from "@/components/layout/Footer";
+import { CommentListSkeleton } from "@/components/comment/CommentListSkeleton";
+import { ReviewListSkeleton } from "@/components/review/ReviewListSkeleton";
 import { ServiceIcon } from "@/components/service/ServiceIcon";
+import { ServiceListSkeleton } from "@/components/service/ServiceListSkeleton";
 import { Avatar } from "@/components/ui/Avatar";
+import { CopyHandle } from "@/components/ui/CopyHandle";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { MiniButton } from "@/components/ui/MiniButton";
@@ -22,7 +27,7 @@ import { ReflectionsPanel } from "./ReflectionsPanel";
 const reviewText =
   "m-0 mt-1.5 text-14 leading-[1.7] whitespace-pre-line text-[#3a3a3a] [overflow-wrap:anywhere]";
 
-/** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·계정 설정 */
+/** 마이페이지: 내 서비스·저장한 서비스·내가 쓴 리뷰·프로필 수정 */
 export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   const wt = useWt();
   // 탭이 오른쪽으로 가면 본문도 오른쪽에서, 왼쪽으로 가면 왼쪽에서 들어온다
@@ -47,8 +52,12 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   const me = wt.me!;
   const { loadMypage } = wt;
   // 실제 서버 연결에서는 서비스를 가리지 않고 내가 쓴 리뷰·댓글과 저장한 순서를 서버에서 가져온다(실패해도 이미 있는 내용으로 보여 준다)
+  // 서버에서 내 리뷰·댓글·저장 순서를 받기 전에는 빈 안내 대신 자리 표시를 보인다
+  const [loaded, setLoaded] = useState(!realAuth);
   useEffect(() => {
-    loadMypage().catch(() => {});
+    loadMypage()
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, [loadMypage]);
   const mine = wt.services.filter((s) => isMaker(s, me.id));
   // 담은 순서(먼저 담은 것이 앞)를 그대로 둔다. 저장한 서비스의 정렬이 이 순서를 쓴다
@@ -69,9 +78,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
           <div className="flex min-w-[240px] flex-1 flex-col gap-1.5">
             <h1 className="m-0 flex flex-wrap items-baseline gap-2.5 text-28 font-extrabold tracking-[-0.02em]">
               {me.nick}
-              <small className="font-mono text-14 font-medium text-muted">
-                @{me.handle}
-              </small>
+              <CopyHandle handle={me.handle} />
               <RouteLink
                 to="profile"
                 params={{ id: me.id }}
@@ -107,7 +114,7 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
             ["saved", "저장한 서비스", saved.length],
             ["reflections", "회고"],
             ["reviews", "리뷰·댓글", myReviews.length + myComments.length],
-            ["settings", "계정 설정"],
+            ["settings", "프로필 수정"],
           ]}
           aside={
             tab === "services" &&
@@ -143,7 +150,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
           )}
         >
           {tab === "services" &&
-            (mine.length ? (
+            (!wt.myServicesReady ? (
+              <ServiceListSkeleton view="card" />
+            ) : mine.length ? (
               <MyServiceList kind="mine" items={mine} />
             ) : (
               <EmptyState
@@ -155,7 +164,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
               />
             ))}
           {tab === "saved" &&
-            (saved.length ? (
+            (!loaded ? (
+              <ServiceListSkeleton view="card" />
+            ) : saved.length ? (
               <MyServiceList kind="saved" items={saved} />
             ) : (
               <EmptyState
@@ -167,7 +178,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
               />
             ))}
           {tab === "reviews" &&
-            (myReviews.length ? (
+            (!loaded ? (
+              <ReviewListSkeleton />
+            ) : myReviews.length ? (
               <div>
                 {myReviews.map((r) => {
                   const s = wt.svc(r.sid);
@@ -200,18 +213,21 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
                         <p className={reviewText}>{r.text}</p>
                       </div>
                       <div className="flex">
-                        <MiniButton
-                          onClick={() =>
-                            wt.setModal({
-                              type: "review",
-                              sid: s.id,
-                              review: r,
-                            })
-                          }
-                        >
-                          <Icon name="edit" size={13} />
-                          수정
-                        </MiniButton>
+                        {!isMaker(s, me.id) &&
+                          (r.permissions?.canEdit ?? true) && (
+                            <MiniButton
+                              onClick={() =>
+                                wt.setModal({
+                                  type: "review",
+                                  sid: s.id,
+                                  review: r,
+                                })
+                              }
+                            >
+                              <Icon name="edit" size={13} />
+                              수정
+                            </MiniButton>
+                          )}
                         <MiniButton
                           onClick={() =>
                             wt.setModal({ type: "delete-review", rid: r.id })
@@ -233,7 +249,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
               />
             ))}
           {tab === "comments" &&
-            (myComments.length ? (
+            (!loaded ? (
+              <CommentListSkeleton />
+            ) : myComments.length ? (
               <div>
                 {myComments.map((c) => {
                   const s = wt.svc(c.sid);

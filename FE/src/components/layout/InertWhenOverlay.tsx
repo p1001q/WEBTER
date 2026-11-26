@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useWt } from "@/providers/context";
+import { useDesktopNavigation } from "./useDesktopNavigation";
 
 /**
  * 모달·사이드바가 열려 있는 동안 뒤쪽 화면(헤더·본문)을 키보드와 스크린 리더가 건드리지 못하게 한다.
@@ -9,8 +10,12 @@ import { useWt } from "@/providers/context";
  */
 export function InertWhenOverlay({ children }: { children: ReactNode }) {
   const wt = useWt();
+  const desktop = useDesktopNavigation();
   return (
-    <div className="contents" inert={wt.side || wt.modal !== null}>
+    <div
+      className="contents"
+      inert={(!desktop && wt.side) || wt.modal !== null}
+    >
       {children}
     </div>
   );

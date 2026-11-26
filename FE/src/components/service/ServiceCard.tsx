@@ -88,7 +88,7 @@ export function ServiceCard({
           >
             {s.name}
           </Heading>
-          <p className="m-0 line-clamp-2 min-h-[2.9em] text-[13.5px] leading-[1.45] text-text-2">
+          <p className="m-0 line-clamp-2 min-h-[2.9em] text-14 leading-[1.45] text-text-2 @max-[560px]/app:text-16">
             {s.tagline}
           </p>
           {reason && (

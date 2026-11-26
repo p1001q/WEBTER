@@ -16,6 +16,7 @@ interface SegmentedControlProps<T extends string> {
   iconOnlyOnNarrow?: boolean;
   /** 선택지가 둘일 때, 어디를 눌러도(이미 선택된 쪽도) 다른 쪽으로 바뀐다 */
   toggle?: boolean;
+  className?: string;
 }
 
 /**
@@ -30,6 +31,7 @@ export function SegmentedControl<T extends string>({
   compact,
   iconOnlyOnNarrow,
   toggle,
+  className,
 }: SegmentedControlProps<T>) {
   const flip = toggle && options.length === 2;
   const wrap = useRef<HTMLDivElement>(null);
@@ -70,6 +72,7 @@ export function SegmentedControl<T extends string>({
       className={cx(
         "relative inline-flex gap-0.5 rounded-pill border border-border bg-card p-[3px] [&:not([data-ready])_[aria-pressed=true]]:bg-ink",
         flip && "cursor-pointer",
+        className,
       )}
       role="group"
       aria-label={label}

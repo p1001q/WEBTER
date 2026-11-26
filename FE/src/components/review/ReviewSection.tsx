@@ -77,7 +77,14 @@ export function ReviewSection({
   const formBox = `${boxClass} my-6 flex flex-col gap-3 p-6`;
   let form;
   const myReviewStatus = realAuth ? wt.myReviewStatus(s.id) : "ready";
-  if (myReviewStatus === "error")
+  if (isOwner)
+    form = (
+      <Note className="my-5">
+        <Icon name="info" size={16} />
+        제작자는 본인 서비스에 리뷰를 쓸 수 없어요. 리뷰에 답글을 남겨 주세요.
+      </Note>
+    );
+  else if (myReviewStatus === "error")
     form = (
       <div className="my-5">
         <RetryMyReview sid={s.id} />
@@ -120,24 +127,18 @@ export function ReviewSection({
     );
   else if (wt.me)
     form = (
-      <div
-        className={formBox}
-        data-component="review-form"
-        data-role={isOwner ? "maker" : "member"}
-      >
-        <div className={labelClass}>
-          {isOwner ? "제작자 리뷰 남기기" : "리뷰 남기기"}
-        </div>
+      <div className={formBox} data-component="review-form" data-role="member">
+        <div className={labelClass}>리뷰 남기기</div>
         <ReviewForm
           s={s}
-          role={isOwner ? "maker" : "member"}
+          role="member"
           syncRate={wt.myVote(s.id)}
           onRate={
             realAuth
               ? undefined
               : (r) => wt.setVote(s.id, r === "none" ? null : r)
           }
-          onSubmit={(v) => wt.addReview(s, isOwner ? "maker" : "member", v)}
+          onSubmit={(v) => wt.addReview(s, "member", v)}
         />
       </div>
     );
@@ -233,9 +234,7 @@ export function ReviewSection({
               미설정 {Math.round(noneShown)}
             </span>
           </div>
-          <span className={helpClass}>
-            미설정·제작자 리뷰는 등급 산정에서 제외
-          </span>
+          <span className={helpClass}>미설정 평가는 등급 산정에서 제외</span>
         </div>
         <RatingVote s={s} />
       </div>
@@ -276,7 +275,9 @@ export function ReviewSection({
         </>
       ) : !page.error ? (
         <p className="m-0 py-10 text-center text-14 text-muted">
-          아직 리뷰가 없어요. 첫 리뷰를 남겨 보세요.
+          {isOwner
+            ? "아직 리뷰가 없어요. 리뷰가 등록되면 답글을 남길 수 있어요."
+            : "아직 리뷰가 없어요. 첫 리뷰를 남겨 보세요."}
         </p>
       ) : null}
       {realAuth && (
