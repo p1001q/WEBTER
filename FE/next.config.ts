@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
-import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
+import {
+  PHASE_DEVELOPMENT_SERVER,
+  PHASE_PRODUCTION_BUILD,
+} from "next/constants";
 
 export default function config(phase: string): NextConfig {
+  if (
+    phase === PHASE_PRODUCTION_BUILD &&
+    process.env.NEXT_PUBLIC_API_BASE_URL &&
+    !process.env.CSP_UPLOAD_ORIGINS?.trim()
+  )
+    throw new Error(
+      "실제 API를 사용하는 빌드에는 CSP_UPLOAD_ORIGINS(이미지 PUT 저장소 origin)을 설정해야 합니다.",
+    );
   return {
     // next dev가 AI 에이전트를 감지하면 프로젝트 루트에 AGENTS.md를 자동 생성하는 기능을 끈다.
     agentRules: false,
