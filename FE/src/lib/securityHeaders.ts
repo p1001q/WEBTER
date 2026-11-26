@@ -16,6 +16,9 @@ function originOf(value: string, development: boolean): string {
       !((development || loopback) && url.protocol === "http:"))
   )
     throw new Error("CSP 연결 주소는 HTTPS origin이어야 합니다.");
+  // URL 호스트에는 세미콜론 등이 남을 수 있다. CSP 구분자가 있으면 지시어가 추가되므로 거절한다.
+  if (/[\s;,'"]/.test(url.origin))
+    throw new Error("CSP 연결 주소에 허용하지 않는 문자가 있습니다.");
   return url.origin;
 }
 

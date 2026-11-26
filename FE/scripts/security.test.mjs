@@ -43,6 +43,7 @@ test("개발 도구의 같은 출처 iframe과 HMR 연결만 개발 예외로 �
 test("설정값·nonce로 CSP를 삽입하거나 운영에 비보안 연결 주소를 넣을 수 없다", () => {
   for (const uploadOrigins of [
     "https://good.example;script-src *",
+    "https://upload.example;sandbox",
     "javascript:alert(1)",
     "http://upload.example.test",
     "https://user:password@example.test",
