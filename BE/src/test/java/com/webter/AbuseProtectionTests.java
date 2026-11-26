@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.webter.global.security.AbuseProtection;
+import java.net.URI;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -51,5 +52,24 @@ class AbuseProtectionTests extends IntegrationTest {
 	void oversizedJsonIsRejectedBeforeDeserialization() throws Exception {
 		mvc.perform(post("/api/services").contentType(MediaType.APPLICATION_JSON).content("x".repeat(128 * 1024 + 1)))
 			.andExpect(status().isPayloadTooLarge());
+	}
+
+	@Test
+	void jsonSuffixTypesAndMissingTypeHaveTheSameBodyLimit() throws Exception {
+		String body = "x".repeat(128 * 1024 + 1);
+		mvc.perform(post("/api/services").contentType("application/vnd.webter+json").content(body))
+			.andExpect(status().isPayloadTooLarge());
+		mvc.perform(post("/api/services").content(body)).andExpect(status().isPayloadTooLarge());
+		mvc.perform(post(URI.create("/%61pi/services")).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isPayloadTooLarge());
+	}
+
+	@Test
+	void percentEncodedPathCannotSkipSearchLimit() throws Exception {
+		// 인코딩한 경로도 같은 목록 API에 매핑되므로 같은 IP 한도를 소비해야 한다.
+		for (int i = 0; i < 2; i++) mvc.perform(get(URI.create("/api/%73ervices")).with(r -> { r.setRemoteAddr("203.0.113.61"); return r; }))
+			.andExpect(status().isOk());
+		mvc.perform(get("/api/services").with(r -> { r.setRemoteAddr("203.0.113.61"); return r; }))
+			.andExpect(status().isTooManyRequests());
 	}
 }

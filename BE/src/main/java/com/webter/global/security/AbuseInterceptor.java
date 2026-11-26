@@ -24,7 +24,8 @@ public class AbuseInterceptor implements HandlerInterceptor, WebMvcConfigurer {
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-		String path = request.getRequestURI();
+		// 원본 URI로 비교하면 /api/%73ervices처럼 인코딩한 경로가 같은 컨트롤러에 닿으면서 제한을 건너뛴다.
+		String path = RequestPaths.of(request);
 		String method = request.getMethod();
 		var auth = SecurityContextHolder.getContext().getAuthentication();
 		String user = auth != null && auth.getPrincipal() instanceof SessionPrincipal.Member member ? member.userId().toString() : null;

@@ -24,8 +24,11 @@ public class JsonRequestSizeFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
-		if (!request.getRequestURI().startsWith("/api/") || request.getContentType() == null
-				|| !request.getContentType().toLowerCase(java.util.Locale.ROOT).contains("application/json")) {
+		// JSON 변환기는 application/*+json 등도 읽으므로 형식과 관계없이 API 본문 전체를 제한한다.
+		// 폼·멀티파트는 서블릿 컨테이너가 파라미터로 직접 읽으므로(크기 상한 별도) 제외한다. API에 파일 업로드는 없다.
+		String type = request.getContentType() == null ? "" : request.getContentType().toLowerCase(java.util.Locale.ROOT);
+		if (!RequestPaths.of(request).startsWith("/api/") || type.startsWith("application/x-www-form-urlencoded")
+				|| type.startsWith("multipart/")) {
 			chain.doFilter(request, response); return;
 		}
 		byte[] bytes = request.getContentLengthLong() > MAX_BYTES ? new byte[MAX_BYTES + 1]
