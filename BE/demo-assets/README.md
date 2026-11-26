@@ -25,6 +25,7 @@
 - 다시 실행하면 앞서 만든 시연 데이터를 지우고 같은 구성으로 다시 만든다(ID는 바뀐다).
 - 트렌딩(3일)·주간·월간 순위는 실행 시각 기준이다. 발표 하루 전에 실행한다.
 - 본계정은 `DEMO_OWNER_EMAIL`과 이메일이 같은 기존 회원이며, `ADMIN`·`ACTIVE`가 아니면 실행하지 않는다.
+- 시드 회원의 활동(리뷰·댓글·평가·투표·반응)은 그 회원의 가입 시각 이후로만 만든다. 본계정은 실제 가입 시각을 바꾸지 않으므로 이 검사에서 빠지고, 본계정의 시연 활동이 가입 시각보다 앞설 수 있다.
 
 ## 실행 조건
 
@@ -57,8 +58,8 @@ docker exec -i webter-local-db-1 psql -U webter -d webter -v owner="'<본계정 
 시드 코드가 들어간 이미지가 `main`으로 배포된 뒤, SSM 세션에서 실행한다.
 
 ```sh
-# 1. 백업(S3 백업 버킷에 업로드)
-sudo /opt/webter/bin/backup.sh
+# 1. 백업(S3 백업 버킷에 업로드). 실패하면 여기서 멈추고 다음 단계로 가지 않는다
+sudo /opt/webter/bin/backup.sh || { echo "백업 실패: 시드를 실행하지 않는다"; exit 1; }
 
 # 2. 앱 중지(실행 중 요청과 겹치지 않게, 메모리 확보)
 sudo /usr/local/sbin/webter-compose stop app
@@ -78,7 +79,10 @@ sudo /usr/local/sbin/webter-compose exec -T db sh -c \
 
 `verify.sql`은 서버에 없으므로 SSM 세션에서 파일로 만들어 둔다.
 
-복구가 필요하면 1번 백업을 `pg_restore --clean`으로 되돌린다. 이미지 저장소의 `uploads/demo/`는 다음 시드에서 덮어쓴다.
+복구가 필요하면 1번 백업을 `pg_restore --clean`으로 되돌린다. 백업은 DB만 담고 이미지 파일은 담지 않는다.
+시드 뒤 참조가 끊긴 기존 업로드 이미지는 미사용 이미지 정리 작업이 `IMAGE_UNUSED_RETENTION_DAYS`(기본 7일)가 지난 뒤 저장소에서 지운다.
+따라서 이전 데이터로 되돌리려면 시드 실행 후 7일 안에 복구해야 이미지가 함께 살아 있다. 그 뒤에 복구하면 기존 데이터의 이미지 링크는 깨진다.
+이미지 저장소의 `uploads/demo/`는 다음 시드에서 덮어쓴다.
 
 ## 공개 전 정리
 
