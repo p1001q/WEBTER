@@ -150,7 +150,7 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
             <b className={r.reply.withdrawn ? "text-muted" : undefined}>
               {r.reply.withdrawn
                 ? DEPARTED_MEMBER_NAME
-                : wt.users[s.owner]?.nick}
+                : wt.users[r.reply.uid ?? s.owner]?.nick}
             </b>
             <MakerBadge />
             <span className="text-12 text-muted">
