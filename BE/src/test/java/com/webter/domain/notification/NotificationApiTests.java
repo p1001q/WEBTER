@@ -69,7 +69,9 @@ class NotificationApiTests extends DomainFixtureTest {
 		assertThat(types(writer)).containsExactly("REVIEW_REPLY");
 		mvc.perform(get("/api/notifications").with(as(writer))).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.items[0].actor.username").value("nt_owner"))
-			.andExpect(jsonPath("$.data.items[0].reviewId").value(reviewId));
+			.andExpect(jsonPath("$.data.items[0].reviewId").value(reviewId))
+			// 인용문은 리뷰 본문이 아니라 제작자가 남긴(고쳐 쓴) 답글이다
+			.andExpect(jsonPath("$.data.items[0].quote").value("고쳐 씁니다"));
 
 		// 댓글: 등록자에게. 자기 서비스에 쓴 댓글은 알리지 않는다
 		String commentId = postAs(base + "/comments", writer, "{\"text\":\"질문 있어요\"}");
