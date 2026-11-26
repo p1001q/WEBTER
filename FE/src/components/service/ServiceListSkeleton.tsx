@@ -6,7 +6,7 @@ import { shimmer as shimmerBase } from "@/components/ui/Skeleton";
 
 const shimmer = `${shimmerBase} rounded-sm`;
 
-/** 서비스 목록을 불러오는 동안 보여 주는 자리 표시(카드형 4개·목록형 3개) */
+/** 서비스 목록을 불러오는 동안 보여 주는 자리 표시(카드형 두 줄·목록형 3개) */
 export function ServiceListSkeleton({ view }: { view: "card" | "list" }) {
   if (view === "list")
     return (
@@ -22,7 +22,7 @@ export function ServiceListSkeleton({ view }: { view: "card" | "list" }) {
       className={styles.grid}
       style={{ "--cols": DISPLAY.defaultCols } as CSSProperties}
     >
-      {[0, 1, 2, 3].map((i) => (
+      {Array.from({ length: DISPLAY.defaultCols * 2 }, (_, i) => (
         <div key={i} className={`${shimmer} aspect-[16/15]`} />
       ))}
     </div>

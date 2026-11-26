@@ -1,27 +1,5 @@
-import { MainNav } from "@/components/layout/MainNav";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ServiceListSkeleton } from "./ServiceListSkeleton";
-
-/** 트렌딩·인기·최신처럼 제목과 서비스 목록이 있는 화면의 로딩 자리 표시 */
-export function ListPageSkeleton({ nav = true }: { nav?: boolean }) {
-  return (
-    <>
-      {nav && <MainNav />}
-      <div className="page-wrap" role="status" aria-label="불러오는 중">
-        <div className="pt-8 pb-6">
-          <Skeleton className="h-9 w-40" />
-          <Skeleton className="mt-3 h-4 w-80 max-w-full" />
-        </div>
-        <div className="mb-6 flex items-center justify-between gap-3 border-b border-border py-3">
-          <Skeleton className="h-9 w-28 rounded-pill" />
-          <Skeleton className="h-9 w-48 rounded-pill @max-[560px]/app:hidden" />
-          <Skeleton className="h-9 w-36 rounded-pill" />
-        </div>
-        <ServiceListSkeleton view="card" />
-      </div>
-    </>
-  );
-}
 
 /** 서비스 상세의 로딩 자리 표시: 아이콘·이름·통계·본문 */
 export function DetailPageSkeleton() {

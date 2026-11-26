@@ -42,6 +42,8 @@ export function useRealNotifications({
   onJoined,
 }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  // 로그인한 뒤 첫 조회가 끝났는지. 끝나기 전에는 빈 목록 대신 자리 표시를 보인다
+  const [ready, setReady] = useState(false);
   const latest = useRef(notifications);
   useEffect(() => {
     latest.current = notifications;
@@ -66,13 +68,18 @@ export function useRealNotifications({
       setNotifications(list.map((m) => m.item));
     } catch {
       // 알림을 못 받아도 화면은 그대로 둔다(다음 주기에 다시 시도한다)
+    } finally {
+      if (epoch === viewerEpoch.current) setReady(true);
     }
   }, [viewerEpoch, setUsers]);
 
   useEffect(() => {
     if (!realAuth) return;
     if (!meId) {
-      const reset = setTimeout(() => setNotifications([]), 0);
+      const reset = setTimeout(() => {
+        setNotifications([]);
+        setReady(false);
+      }, 0);
       return () => clearTimeout(reset);
     }
     const first = setTimeout(() => void refresh(), 0);
@@ -105,6 +112,7 @@ export function useRealNotifications({
 
   return {
     notifications,
+    ready,
     reset,
     refresh,
     read: (id: string) => {

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "알림" };
 
 export default function NotificationsPage() {
   return (
-    <AuthGate>
+    <AuthGate fallback={<NotificationsScreen />}>
       <NotificationsScreen />
     </AuthGate>
   );

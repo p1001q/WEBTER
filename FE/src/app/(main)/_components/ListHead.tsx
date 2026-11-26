@@ -7,6 +7,7 @@ export function ListHead({
   variant = "page",
   action,
   flush,
+  titleAction,
 }: {
   title: ReactNode;
   desc?: string;
@@ -16,6 +17,8 @@ export function ListHead({
   action?: ReactNode;
   /** 아래 여백 없음 */
   flush?: boolean;
+  /** 제목과 같은 줄의 조작 영역. 인기 기간처럼 목록 전체에 적용하는 기준을 둔다. */
+  titleAction?: ReactNode;
 }) {
   const result = variant === "result";
   const heading = (
@@ -27,14 +30,21 @@ export function ListHead({
   );
   return (
     <div
-      className={`flex flex-wrap items-end gap-4 ${flush ? "pb-0" : "pb-4"} ${result ? "pt-7" : "pt-8"}`}
+      className={`flex flex-wrap items-end gap-4 ${flush ? "pb-0" : "pb-4 @max-[560px]/app:pb-3"} ${result ? "pt-7" : "pt-8 @max-[560px]/app:pt-6"}`}
     >
       {result ? (
         heading
       ) : (
-        <div>
-          {heading}
-          {desc && <p className="mt-1.5 text-[14.5px] text-muted">{desc}</p>}
+        <div className={titleAction ? "w-full" : undefined}>
+          <div className="flex flex-wrap items-center gap-3">
+            {heading}
+            {titleAction}
+          </div>
+          {desc && (
+            <p className="mt-1.5 text-15 text-muted @max-[560px]/app:text-14">
+              {desc}
+            </p>
+          )}
         </div>
       )}
       {action}

@@ -48,7 +48,9 @@ export function ServiceRow({
         <ServiceIcon s={s} size={48} />
         <div className={rowMainClass}>
           <div className={rowTitleClass}>
-            <span className="truncate">{s.name}</span>
+            <span className="truncate @max-[560px]/app:line-clamp-2 @max-[560px]/app:whitespace-normal @max-[560px]/app:break-words">
+              {s.name}
+            </span>
             {down && <StatusBadge kind="stop" />}
           </div>
           <div className={rowDescClass}>
@@ -60,9 +62,14 @@ export function ServiceRow({
               s.tagline
             )}
           </div>
+          <GradeBadge
+            grade={agg.grade}
+            count={agg.total}
+            className="mt-1 self-start text-12 @min-[561px]/app:hidden"
+          />
         </div>
       </RouteLink>
-      <div className={rowSideClass}>
+      <div className={cx(rowSideClass, "@max-[560px]/app:hidden")}>
         <div
           className={cx(
             "flex items-center gap-3 opacity-0 transition-opacity duration-150 @max-[560px]/app:opacity-100 [@media(hover:none)]:opacity-100",

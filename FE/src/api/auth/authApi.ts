@@ -77,7 +77,7 @@ export async function submitSignup(input: {
   return session.member;
 }
 
-/** 계정 설정 저장. 편집 항목 전체를 보내며 링크·관심 카테고리는 보낸 목록으로 바뀐다 */
+/** 프로필 수정 저장. 편집 항목 전체를 보내며 링크·관심 카테고리는 보낸 목록으로 바뀐다 */
 export async function submitProfile(
   u: User,
   avatarChange?: string | null,

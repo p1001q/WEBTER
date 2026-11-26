@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useState } from "react";
 import { Footer } from "@/components/layout/Footer";
 import { NotificationRow } from "@/components/notification/NotificationRow";
@@ -58,7 +59,9 @@ export function NotificationsScreen() {
               </button>
             </div>
           </div>
-          {list.length ? (
+          {!wt.notificationsReady ? (
+            <NotificationListSkeleton />
+          ) : list.length ? (
             <ul className={`${boxClass} m-0 list-none overflow-hidden p-0`}>
               {list.map((n) => (
                 <li
@@ -94,5 +97,30 @@ export function NotificationsScreen() {
       </div>
       <Footer />
     </>
+  );
+}
+
+/** 첫 알림 조회가 끝나기 전의 자리 표시(알림 행 모양) */
+function NotificationListSkeleton() {
+  return (
+    <div
+      className={`${boxClass} overflow-hidden`}
+      role="status"
+      aria-label="알림을 불러오는 중"
+    >
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="flex items-start gap-3 border-b border-light px-5 py-4 last:border-b-0"
+        >
+          <Skeleton className="size-9 shrink-0 rounded-full" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

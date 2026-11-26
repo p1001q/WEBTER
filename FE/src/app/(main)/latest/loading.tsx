@@ -1,5 +1,5 @@
-import { ListPageSkeleton } from "@/components/service/PageSkeletons";
+import { RankedListLoading } from "../_components/RankedListScreen";
 
 export default function Loading() {
-  return <ListPageSkeleton />;
+  return <RankedListLoading kind="latest" />;
 }

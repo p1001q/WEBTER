@@ -96,13 +96,15 @@ public class ReviewService {
 		var summaries = summaries(mine.stream().map(Review::getId).toList(), viewerId);
 		boolean canWrite = access.canWrite(viewerId);
 		return mine.stream()
-			.map(review -> view(review, viewerId, false, canWrite, summaries.getOrDefault(review.getId(), Votes.EMPTY)))
+			.map(review -> view(review, viewerId, access.isMaker(review.getWebService(), viewerId), canWrite,
+				summaries.getOrDefault(review.getId(), Votes.EMPTY)))
 			.toList();
 	}
 
 	@Transactional
 	public ReviewView create(long serviceId, UUID viewerId, ReviewInput input) {
 		var context = access.write(serviceId, viewerId);
+		requireReviewer(context);
 		String text = requireContent(input.text());
 		boolean anon = Boolean.TRUE.equals(input.anon());
 		if (anon && (context.maker() || !context.service().isAllowAnonymousReviews())) {
@@ -147,6 +149,7 @@ public class ReviewService {
 	@Transactional
 	public ReviewView update(long serviceId, long reviewId, UUID viewerId, ReviewInput input) {
 		var context = access.write(serviceId, viewerId);
+		requireReviewer(context);
 		Review review = findWritten(context.service(), reviewId);
 		requireAuthor(review, viewerId);
 		ReviewRating rate = reviewRate(context.maker(), input.rate(), review.getRating());
@@ -238,9 +241,7 @@ public class ReviewService {
 	}
 
 	private Review standalone(WriteAccess context) {
-		if (context.maker()) {
-			throw new BusinessException(InteractionErrorCode.OWN_SERVICE);
-		}
+		requireReviewer(context);
 		if (context.service().getAvailabilityStatus() != AvailabilityStatus.AVAILABLE) {
 			throw new BusinessException(InteractionErrorCode.RATING_UNAVAILABLE);
 		}
@@ -249,6 +250,12 @@ public class ReviewService {
 			throw new BusinessException(InteractionErrorCode.EDIT_REVIEW_REQUIRED);
 		}
 		return review;
+	}
+
+	private static void requireReviewer(WriteAccess context) {
+		if (context.maker()) {
+			throw new BusinessException(InteractionErrorCode.OWN_SERVICE);
+		}
 	}
 
 	private Review findWritten(WebService service, long id) {
@@ -300,7 +307,7 @@ public class ReviewService {
 		return new ReviewView(review.getId().toString(), review.getWebService().getId().toString(), author,
 			review.getRating(), review.getCreatedAt(), review.getContent(), visibleReply,
 			written && review.getUpdatedAt().isAfter(review.getCreatedAt()), review.isCreatorReview(), mine,
-			canWrite && mine && written, canWrite && mine && written, maker && !mine && written
+			canWrite && !maker && mine && written, canWrite && mine && written, maker && !mine && written
 				&& (reply == null || reply.getVisibilityStatus() == VisibilityStatus.PUBLIC),
 			canWrite && mayVote(review, viewerId), votes);
 	}

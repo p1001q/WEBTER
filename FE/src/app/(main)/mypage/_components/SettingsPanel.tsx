@@ -48,7 +48,7 @@ import {
   twoColumnClass,
 } from "../../_components/formStyles";
 
-/** 계정 설정: 프로필·관심 카테고리 수정, 로그인 계정, 탈퇴 */
+/** 프로필 수정: 프로필·관심 카테고리 수정, 로그인 계정, 탈퇴 */
 export function SettingsPanel() {
   const wt = useWt();
   const P = useId();

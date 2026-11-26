@@ -1,14 +1,8 @@
-/* 카드 격자. 열 수(--cols)는 인라인으로 받고, 컨테이너(app) 너비가 좁아지면 보관본처럼 3 → 2 → 1열로 강제한다 */
+/* 카드 격자. 사이드바를 제외한 본문 너비를 기준으로 3 → 2 → 1열로 줄인다. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
   gap: 32px 24px;
-}
-
-@container app (max-width: 1180px) {
-  .grid {
-    --cols: 3 !important;
-  }
 }
 
 @container app (max-width: 860px) {
