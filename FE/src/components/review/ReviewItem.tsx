@@ -33,9 +33,9 @@ export function ReviewItem({ r, s }: { r: Review; s: Service }) {
   const revealRef = useRevealWhenFresh(r.id, r.fresh);
   const isOwner = isMaker(s, wt.me?.id);
   const mine = r.permissions?.mine ?? (!!wt.me && r.a.uid === wt.me.id);
-  const canEdit = r.permissions?.canEdit ?? mine;
+  const canEdit = !isOwner && (r.permissions?.canEdit ?? mine);
   const canDelete = r.permissions?.canDelete ?? mine;
-  const canReply = r.permissions?.canReply ?? (isOwner && r.a.kind !== "maker");
+  const canReply = r.permissions?.canReply ?? (isOwner && !mine);
   const [voting, setVoting] = useState(false);
   const [replyBusy, setReplyBusy] = useState(false);
   const [replying, setReplying] = useState(false);

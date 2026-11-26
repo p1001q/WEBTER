@@ -24,6 +24,7 @@ import { profileApi } from "@/api/real/profileApi";
 import { savedHiddenService } from "@/api/real/serviceApi";
 import type { Comment, Review, Service, User } from "@/api/types";
 import { gradeOf } from "@/domain/review";
+import { isMaker } from "@/domain/maker";
 import type { MyReviewStatus, WtStore } from "./types";
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
@@ -532,6 +533,8 @@ export function useRealInteractions({
       ),
     addReview: (s, role, v) =>
       interact(`my-review:${s.id}`, "리뷰를 남기지", async (current) => {
+        if (role === "maker" || isMaker(s, meId))
+          throw new ApiError("rule", "본인 서비스에는 답글만 남길 수 있어요.");
         const guest = role === "guest";
         const markGuestReviewed = () =>
           setGuestReviewed((old) => updateSet(old, s.id, true));
@@ -560,6 +563,7 @@ export function useRealInteractions({
         async (current) => {
           const r = findReview(id);
           if (!r) throw new ApiError("notFound");
+          if (r.permissions?.canEdit === false) throw new ApiError("forbidden");
           const entry = await interactionApi.updateReview(r.sid, id, v);
           if (!current()) return;
           rememberReview(entry);
