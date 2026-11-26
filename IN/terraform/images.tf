@@ -133,6 +133,13 @@ resource "aws_iam_user_policy" "app_images" {
       Effect   = "Allow"
       Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
       Resource = ["${aws_s3_bucket.images.arn}/uploads/*", "${aws_s3_bucket.images.arn}/pending/*"]
+      }, {
+      # 없는 키의 HEAD가 403이 아니라 404로 응답해야 검증 전(pending/) 원본 확인으로 넘어간다.
+      # 접두사 조건은 HEAD 요청에 적용되지 않을 수 있어 버킷 단위로 허용한다. 버킷에는 이미지만 둔다.
+      Sid      = "DistinguishMissingImages"
+      Effect   = "Allow"
+      Action   = "s3:ListBucket"
+      Resource = aws_s3_bucket.images.arn
     }]
   })
 }
