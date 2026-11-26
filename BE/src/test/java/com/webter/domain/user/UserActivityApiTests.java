@@ -121,7 +121,37 @@ class UserActivityApiTests extends DomainFixtureTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[*].serviceId", contains(String.valueOf(second.getId()),
 					String.valueOf(open.getId()), String.valueOf(hidden.getId()))))
-			.andExpect(jsonPath("$.data", hasSize(3)));
+			.andExpect(jsonPath("$.data", hasSize(3)))
+			// 비공개된 서비스도 마이페이지에서 이름으로 알아보고 저장을 해제할 수 있게 이름과 공개 상태를 준다
+			.andExpect(jsonPath("$.data[2].name").value("숨김"))
+			.andExpect(jsonPath("$.data[2].visibility").value("TEMP_HIDDEN"))
+			.andExpect(jsonPath("$.data[1].visibility").value("PUBLIC"));
+	}
+
+	@Test
+	void myRatingsListOnlyMyRatedPublicReviewsOnPublicServices() throws Exception {
+		WebService other = service(maker, "다른 서비스", "https://rating-other.example.test");
+		WebService plain = service(maker, "평가 없음", "https://rating-plain.example.test");
+		WebService hidden = service(maker, "숨김", "https://rating-hidden.example.test");
+		jdbc.update("UPDATE services SET visibility_status = 'TEMP_HIDDEN' WHERE service_id = ?", hidden.getId());
+		jdbc.update("INSERT INTO reviews (service_id, author_id, author_kind, rating, content) VALUES (?, ?, 'MEMBER', 'RECOMMEND', '')", open.getId(), fan.getId());
+		jdbc.update("INSERT INTO reviews (service_id, author_id, author_kind, rating, content) VALUES (?, ?, 'MEMBER', 'NOT_RECOMMEND', '글 있는 리뷰')", other.getId(), fan.getId());
+		// 평가 없는 리뷰, 숨겨진 서비스의 평가, 남의 평가는 나오지 않는다
+		jdbc.update("INSERT INTO reviews (service_id, author_id, author_kind, rating, content) VALUES (?, ?, 'MEMBER', 'NONE', '평가 없이')", plain.getId(), fan.getId());
+		jdbc.update("INSERT INTO reviews (service_id, author_id, author_kind, rating, content) VALUES (?, ?, 'MEMBER', 'RECOMMEND', '')", hidden.getId(), fan.getId());
+		jdbc.update("INSERT INTO reviews (service_id, author_id, author_kind, rating, content) VALUES (?, ?, 'MEMBER', 'RECOMMEND', '')", plain.getId(), maker.getId());
+		em.clear();
+
+		mockMvc.perform(get("/api/users/me/ratings")).andExpect(status().isUnauthorized());
+		mockMvc.perform(get("/api/users/me/ratings").with(as(fan)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data", hasSize(2)))
+			.andExpect(jsonPath("$.data[0].serviceId").value(String.valueOf(open.getId())))
+			.andExpect(jsonPath("$.data[0].rate").value("RECOMMEND"))
+			.andExpect(jsonPath("$.data[0].written").value(false))
+			.andExpect(jsonPath("$.data[1].serviceId").value(String.valueOf(other.getId())))
+			.andExpect(jsonPath("$.data[1].rate").value("NOT_RECOMMEND"))
+			.andExpect(jsonPath("$.data[1].written").value(true));
 	}
 
 	@Test
