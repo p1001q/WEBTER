@@ -143,10 +143,10 @@ run "image_bucket_is_private_and_served_through_cloudfront" {
 
   assert {
     condition = (
-      toset(jsondecode(aws_iam_user_policy.app_images.policy).Statement[0].Action) == toset(["s3:PutObject", "s3:GetObject"]) &&
-      endswith(jsondecode(aws_iam_user_policy.app_images.policy).Statement[0].Resource, "/uploads/*")
+      toset(jsondecode(aws_iam_user_policy.app_images.policy).Statement[0].Action) == toset(["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]) &&
+      toset(jsondecode(aws_iam_user_policy.app_images.policy).Statement[0].Resource) == toset(["${aws_s3_bucket.images.arn}/uploads/*", "${aws_s3_bucket.images.arn}/pending/*"])
     )
-    error_message = "앱 이미지 사용자는 uploads/ 경로의 PutObject·GetObject만 가진다."
+    error_message = "앱 이미지 사용자는 공개·격리 이미지 경로의 PutObject·GetObject·DeleteObject만 가진다."
   }
 }
 

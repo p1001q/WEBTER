@@ -131,8 +131,8 @@ resource "aws_iam_user_policy" "app_images" {
     Statement = [{
       Sid      = "UploadAndVerifyImages"
       Effect   = "Allow"
-      Action   = ["s3:PutObject", "s3:GetObject"]
-      Resource = "${aws_s3_bucket.images.arn}/uploads/*"
+      Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+      Resource = ["${aws_s3_bucket.images.arn}/uploads/*", "${aws_s3_bucket.images.arn}/pending/*"]
     }]
   })
 }

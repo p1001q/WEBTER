@@ -41,6 +41,8 @@ def parse(path):
     return values
 
 new = parse(pathlib.Path(sys.argv[1]))
+if not new.get('WEB_RISK_API_KEY', '').strip():
+    raise SystemExit('WEB_RISK_API_KEY is required for URL security checks; current release preserved')
 protected = ('PG_ADMIN_PASSWORD', 'PG_APP_PASSWORD', 'REDIS_PASSWORD')
 hmac_key = 'SERVICE_EVENT_IP_HMAC_KEY'
 required_secrets = (*protected, hmac_key)
