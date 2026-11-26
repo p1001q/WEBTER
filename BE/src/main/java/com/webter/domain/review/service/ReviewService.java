@@ -295,7 +295,8 @@ public class ReviewService {
 		var reply = review.getReply();
 		Reply visibleReply = reply == null || reply.getVisibilityStatus() != VisibilityStatus.PUBLIC ? null
 			: new Reply(reply.getReplyId().toString(), reply.getContent(), reply.getCreatedAt(),
-				reply.getUpdatedAt().isAfter(reply.getCreatedAt()), reply.getAuthor() == null);
+				reply.getUpdatedAt().isAfter(reply.getCreatedAt()), reply.getAuthor() == null,
+				InteractionAuthor.member(reply.getAuthor(), false));
 		return new ReviewView(review.getId().toString(), review.getWebService().getId().toString(), author,
 			review.getRating(), review.getCreatedAt(), review.getContent(), visibleReply,
 			written && review.getUpdatedAt().isAfter(review.getCreatedAt()), review.isCreatorReview(), mine,
