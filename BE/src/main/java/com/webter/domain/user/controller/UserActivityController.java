@@ -4,6 +4,7 @@ import com.webter.domain.comment.dto.CommentView;
 import com.webter.domain.comment.service.CommentService;
 import com.webter.domain.review.dto.ReviewView;
 import com.webter.domain.review.service.ReviewService;
+import com.webter.domain.user.dto.MyRatingResponse;
 import com.webter.domain.user.dto.SavedServiceResponse;
 import com.webter.domain.user.dto.UserProfileResponse;
 import com.webter.domain.user.service.UserActivityService;
@@ -45,6 +46,12 @@ public class UserActivityController {
 	@GetMapping("/me/saved")
 	public ApiResponse<List<SavedServiceResponse>> saved(@AuthenticationPrincipal SessionPrincipal.Member member) {
 		return ApiResponse.ok(activity.saved(member.userId()));
+	}
+
+	/** 내가 남긴 서비스 추천·비추천(목록 카드의 내 평가 표시용). */
+	@GetMapping("/me/ratings")
+	public ApiResponse<List<MyRatingResponse>> ratings(@AuthenticationPrincipal SessionPrincipal.Member member) {
+		return ApiResponse.ok(activity.ratings(member.userId()));
 	}
 
 	/** 내가 쓴 리뷰(최근 순). limit은 1~100이고 기본 100이다. */

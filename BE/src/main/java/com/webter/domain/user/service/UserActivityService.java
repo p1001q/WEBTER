@@ -1,5 +1,6 @@
 package com.webter.domain.user.service;
 
+import com.webter.domain.user.dto.MyRatingResponse;
 import com.webter.domain.user.dto.SavedServiceResponse;
 import com.webter.domain.user.dto.UserProfileResponse;
 import com.webter.domain.user.entity.User;
@@ -63,11 +64,28 @@ public class UserActivityService {
 	@Transactional(readOnly = true)
 	public List<SavedServiceResponse> saved(UUID userId) {
 		return jdbc.sql("""
-				SELECT service_id, created_at FROM service_reactions
-				WHERE user_id = :id AND reaction_type = 'SAVE' ORDER BY created_at ASC, service_id ASC""")
+				SELECT r.service_id, r.created_at, s.name, s.visibility_status FROM service_reactions r
+				JOIN services s ON s.service_id = r.service_id
+				WHERE r.user_id = :id AND r.reaction_type = 'SAVE' ORDER BY r.created_at ASC, r.service_id ASC""")
 			.param("id", userId)
 			.query((rs, i) -> new SavedServiceResponse(String.valueOf(rs.getLong("service_id")),
-					rs.getObject("created_at", OffsetDateTime.class).toInstant()))
+					rs.getObject("created_at", OffsetDateTime.class).toInstant(), rs.getString("name"),
+					rs.getString("visibility_status")))
+			.list();
+	}
+
+	/** 내가 공개 서비스에 남긴 추천·비추천(공개 상태의 내 회원 리뷰만). 평가 없이 쓴 리뷰는 넣지 않는다. */
+	@Transactional(readOnly = true)
+	public List<MyRatingResponse> ratings(UUID userId) {
+		return jdbc.sql("""
+				SELECT r.service_id, r.rating, btrim(r.content) <> '' AS written FROM reviews r
+				JOIN services s ON s.service_id = r.service_id
+				WHERE r.author_id = :id AND r.author_kind = 'MEMBER' AND r.rating <> 'NONE'
+				  AND r.visibility_status = 'PUBLIC' AND s.visibility_status = 'PUBLIC'
+				ORDER BY r.service_id""")
+			.param("id", userId)
+			.query((rs, i) -> new MyRatingResponse(String.valueOf(rs.getLong("service_id")), rs.getString("rating"),
+					rs.getBoolean("written")))
 			.list();
 	}
 

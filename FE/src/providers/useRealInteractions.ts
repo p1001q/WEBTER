@@ -21,6 +21,7 @@ import {
   type ReviewSort,
 } from "@/api/real/interactionApi";
 import { profileApi } from "@/api/real/profileApi";
+import { savedHiddenService } from "@/api/real/serviceApi";
 import type { Comment, Review, Service, User } from "@/api/types";
 import { gradeOf } from "@/domain/review";
 import type { MyReviewStatus, WtStore } from "./types";
@@ -48,7 +49,8 @@ interface Props {
 }
 
 type ReactionState = Awaited<ReturnType<typeof interactionApi.reactions>>;
-type Authored<T> = { item: T; author?: User };
+/** 목록과 함께 받은 작성자(리뷰는 제작자 답글의 작성자도)를 사용자 맵에 넣는다 */
+type Authored<T> = { item: T; author?: User; replyAuthor?: User };
 
 function mergeEntries<T extends { id: string; fresh?: boolean }>(
   previous: T[],
@@ -113,6 +115,9 @@ export function useRealInteractions({
   go,
 }: Props) {
   const [myReviews, setMyReviews] = useState<Record<string, Review | null>>({});
+  // 목록 카드가 서비스마다 조회하지 않고 내 추천·비추천을 보여 주도록 로그인 때 한 번에 받는다.
+  // 서비스의 내 리뷰를 따로 받으면(myReviews) 그 값이 우선한다.
+  const [myRatings, setMyRatings] = useState<Record<string, "up" | "down">>({});
   const [myReviewRequests, setMyReviewRequests] = useState<
     Record<string, "loading" | "error" | undefined>
   >({});
@@ -140,14 +145,17 @@ export function useRealInteractions({
     setReviews([]);
     setComments([]);
     setMyReviews({});
+    setMyRatings({});
     setMyReviewRequests({});
   }, [clearFreshTimers, setReviews, setComments]);
 
   const rememberAuthors = useCallback(
     (entries: Authored<unknown>[]) => {
       setUsers((previous) => {
-        const missing = entries.flatMap(({ author }) =>
-          author && !previous[author.id] ? [author] : [],
+        const missing = entries.flatMap(({ author, replyAuthor }) =>
+          [author, replyAuthor].filter(
+            (user): user is User => !!user && !previous[user.id],
+          ),
         );
         if (!missing.length) return previous;
         return {
@@ -267,20 +275,43 @@ export function useRealInteractions({
     [setLikes, setSaves, viewerEpoch],
   );
 
-  // 로그인하면 내 좋아요·저장 상태를 한 번에 채운다(서비스마다 조회하지 않는다). 저장은 저장한 순서를 유지한다.
+  // 로그인하면 내 좋아요·저장·추천 상태를 한 번에 채운다(서비스마다 조회하지 않는다). 저장은 저장한 순서를 유지한다.
   const refreshMyReactions = useCallback(async () => {
     const epoch = viewerEpoch.current;
-    const [liked, saved] = await Promise.all([
+    const [liked, saved, ratings] = await Promise.all([
       profileApi.liked(),
       profileApi.saved(),
+      profileApi.ratings(),
     ]);
     if (epoch !== viewerEpoch.current) return;
     setLikes(new Set(liked));
     setSaves(new Set(saved.map((s) => s.serviceId)));
-  }, [setLikes, setSaves, viewerEpoch]);
+    setMyRatings(
+      Object.fromEntries(
+        ratings.map((r) => [
+          r.serviceId,
+          r.rate === "RECOMMEND" ? "up" : "down",
+        ]),
+      ),
+    );
+    // 저장한 뒤 비공개된 남의 서비스는 공개 목록에 없으므로 이름과 상태만으로 저장 탭에 보여 준다
+    const hidden = saved.flatMap((s) =>
+      s.visibility === "PUBLIC"
+        ? []
+        : [savedHiddenService(s.serviceId, s.name, s.visibility)],
+    );
+    if (hidden.length)
+      setServices((all) => {
+        const known = new Set(all.map((s) => s.id));
+        const missing = hidden.filter((s) => !known.has(s.id));
+        return missing.length ? [...all, ...missing] : all;
+      });
+  }, [setLikes, setSaves, setServices, viewerEpoch]);
   useEffect(() => {
     if (!realAuth || !meId) return;
     let active = true;
+    // refreshMyReactions는 서버 응답을 받은 뒤에만 상태를 바꾼다(효과 안에서 동기로 바꾸지 않는다)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshMyReactions().catch((error: unknown) => {
       if (!active) return;
       const err = toApiError(error);
@@ -473,6 +504,7 @@ export function useRealInteractions({
     | "commentRevision"
     | "loadReviews"
     | "loadMyReview"
+    | "ensureMyReview"
     | "loadComments"
     | "loadMypage"
     | "loadProfile"
@@ -631,6 +663,7 @@ export function useRealInteractions({
       };
     },
     myVote: (sid) => {
+      if (myReviews[sid] === undefined) return myRatings[sid] ?? null;
       const rate = myReviews[sid]?.rate;
       return rate === "up" || rate === "down" ? rate : null;
     },
@@ -646,6 +679,22 @@ export function useRealInteractions({
     commentRevision: (sid) => commentRevisions[sid] ?? 0,
     loadReviews,
     loadMyReview,
+    ensureMyReview: async (sid) => {
+      if (myReviews[sid] !== undefined) return myReviews[sid];
+      if (!realAuth || !meId) return null;
+      const epoch = viewerEpoch.current;
+      try {
+        const mine = (await interactionApi.myReview(sid))?.item ?? null;
+        if (epoch !== viewerEpoch.current) return undefined;
+        setMyReviews((old) => ({ ...old, [sid]: mine }));
+        return mine;
+      } catch (error) {
+        const err = toApiError(error);
+        if (err.kind === "network") setOffline(true);
+        else toast(failureText("내 평가를 불러오지", err), { err: true });
+        return undefined;
+      }
+    },
     loadComments,
     loadMypage,
     loadProfile,
@@ -655,6 +704,12 @@ export function useRealInteractions({
         const entry = await interactionApi.setRating(sid, next);
         if (!current()) return;
         setMyReviews((old) => ({ ...old, [sid]: entry?.item ?? null }));
+        setMyRatings((old) => {
+          const updated = { ...old };
+          if (next) updated[sid] = next;
+          else delete updated[sid];
+          return updated;
+        });
         refreshReviews(sid);
         refreshCounts(sid);
       });

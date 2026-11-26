@@ -8,7 +8,7 @@ import { RouteLink } from "@/components/ui/RouteLink";
 import { CAT, OPTL } from "@/domain/options";
 import { cx } from "@/lib/cx";
 import { useWt } from "@/providers/context";
-import { ServiceStats } from "./ServiceStats";
+import { ServiceReactions } from "./ServiceReactions";
 import { ServiceThumb } from "./ServiceThumb";
 import { StatusBadge } from "./StatusBadge";
 
@@ -18,6 +18,8 @@ export interface ServiceItemProps {
   reason?: string;
   /** 마우스를 올린 것처럼 보여준다(화면 비교용) */
   hover?: boolean;
+  /** 저장을 해제하면 항목이 사라지는 목록(저장한 서비스)에서 해제 전에 묻는다 */
+  confirmUnsave?: boolean;
 }
 
 const PRICE_COLOR: Record<Price, string> = {
@@ -46,6 +48,7 @@ export function ServiceCard({
   heading: Heading = "h3",
   previewOnly,
   footerStart,
+  confirmUnsave,
 }: ServiceCardProps) {
   const wt = useWt();
   const agg = wt.agg(s);
@@ -132,7 +135,10 @@ export function ServiceCard({
           이용하기 <Icon name="external" size={13} stroke={2} />
         </button>
       </div>
-      <div className="order-3 flex min-h-11 items-center gap-1 border-t border-light px-4 py-2.5 text-[12.5px]">
+      <div
+        className="order-3 flex min-h-11 items-center gap-1 border-t border-light px-4 py-2 text-[12.5px]"
+        inert={previewOnly}
+      >
         {footerStart}
         {rank != null && (
           <span
@@ -144,11 +150,10 @@ export function ServiceCard({
             {rank}위
           </span>
         )}
-        <ServiceStats
+        <ServiceReactions
           s={s}
-          recommendations={agg.up}
-          saved={wt.saves.has(s.id)}
-          className="ml-auto"
+          confirmUnsave={confirmUnsave}
+          className="-mr-1.5 ml-auto"
         />
       </div>
     </article>

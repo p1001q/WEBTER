@@ -111,6 +111,18 @@ public class NotificationService {
 				select r.id, r.content from Review r
 				where r.id in :ids and r.visibilityStatus = com.webter.global.entity.VisibilityStatus.PUBLIC
 				""", reviewIds);
+		Set<Long> replyReviewIds = new HashSet<>();
+		for (Notification n : page) {
+			if (n.getType() == NotificationType.REVIEW_REPLY) {
+				add(replyReviewIds, n.getTargetReviewId());
+			}
+		}
+		// 제작자 답글 알림은 리뷰 본문이 아니라 제작자가 남긴 답글을 인용한다(리뷰당 답글은 하나다)
+		Map<Long, String> replyQuotes = names("""
+				select r.id, r.reply.content from Review r
+				where r.id in :ids and r.visibilityStatus = com.webter.global.entity.VisibilityStatus.PUBLIC
+				  and r.reply.visibilityStatus = com.webter.global.entity.VisibilityStatus.PUBLIC
+				""", replyReviewIds);
 		Map<Long, String> commentQuotes = names("""
 				select c.id, c.content from ServiceComment c
 				where c.id in :ids and c.deletedAt is null
@@ -122,7 +134,9 @@ public class NotificationService {
 		}
 		return page.stream().map(n -> {
 			String quote = n.getTargetCommentId() != null ? commentQuotes.get(n.getTargetCommentId())
-					: n.getTargetReviewId() != null ? reviewQuotes.get(n.getTargetReviewId()) : null;
+					: n.getTargetReviewId() == null ? null
+					: n.getType() == NotificationType.REVIEW_REPLY ? replyQuotes.get(n.getTargetReviewId())
+					: reviewQuotes.get(n.getTargetReviewId());
 			ServiceInvitation invitation = n.getTargetInvitationId() == null ? null
 					: invitationById.get(n.getTargetInvitationId());
 			return new NotificationView(String.valueOf(n.getId()), n.getType(), actor(n.getActor()),

@@ -35,6 +35,7 @@ export type ModalState =
   | { type: "review"; sid: string; review: Review }
   /** 리뷰가 있는 서비스에서 추천·비추천을 누르면, 리뷰를 수정할지 묻는다 */
   | { type: "confirm-review-edit"; sid: string; review: Review; rate: Rate }
+  | { type: "unsave"; sid: string }
   | { type: "versions"; sid: string }
   | { type: "team"; sid: string }
   | { type: "lightbox"; sid: string; index: number }
@@ -112,6 +113,8 @@ export interface WtStore {
   myReview: (sid: string) => Review | undefined;
   myReviewStatus: (sid: string) => MyReviewStatus;
   loadMyReview: (sid: string) => Promise<void>;
+  /** 내 리뷰(평가만 남긴 것 포함)를 아직 모르면 받아 와서 돌려준다. 없으면 null, 불러오지 못하면 undefined */
+  ensureMyReview: (sid: string) => Promise<Review | null | undefined>;
   reviewRevision: (sid: string) => number;
   commentRevision: (sid: string) => number;
   loadReviews: (

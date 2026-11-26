@@ -165,6 +165,55 @@ export function mapService(b: BackendService): Service {
   };
 }
 
+/**
+ * 저장했지만 비공개된 다른 회원의 서비스. 공개 목록에 없어 이름과 공개 상태만 알고, 마이페이지 저장 탭에서
+ * 이름과 저장 해제만 보여 준다(이미지·사유·집계는 비워 둔다).
+ */
+export function savedHiddenService(
+  id: string,
+  name: string,
+  visibility: "TEMP_HIDDEN" | "HIDDEN",
+): Service {
+  return {
+    id,
+    name,
+    tagline: "",
+    desc: "",
+    url: "",
+    owner: "",
+    members: [],
+    created: "",
+    cats: [],
+    type: "side",
+    devices: [],
+    price: "free",
+    team: null,
+    langs: [],
+    tags: [],
+    github: null,
+    use: "live",
+    stopReason: "",
+    pub: PUB[visibility],
+    pubReason: "",
+    hasIcon: false,
+    hasThumb: false,
+    iconImg: null,
+    thumbImg: null,
+    previews: null,
+    allowGuest: false,
+    allowAnon: false,
+    allowAnonComment: false,
+    views: 0,
+    clicks: 0,
+    likes: 0,
+    saves: 0,
+    rv: { up: 0, down: 0, none: 0 },
+    sc: [0, 0, 0],
+    versions: [],
+    thumb: THUMB_BY_CAT.etc,
+  };
+}
+
 /** 제작자 정보(공개 항목만). 소개·링크는 프로필 API를 붙일 때 채운다 */
 export const makerToUser = (m: {
   id: string;
