@@ -23,15 +23,23 @@ public class HttpUrlProbe implements UrlProbe {
 	private final WebRiskClient webRisk;
 
 	@org.springframework.beans.factory.annotation.Autowired
-	public HttpUrlProbe(WebRiskClient webRisk) { this(defaultClient(), webRisk); }
+	public HttpUrlProbe(WebRiskClient webRisk) { this(defaultClient(new PublicDnsResolver()), webRisk); }
 
 	HttpUrlProbe(CloseableHttpClient client, WebRiskClient webRisk) { this.client = client; this.webRisk = webRisk; }
 
-	private static CloseableHttpClient defaultClient() { return HttpClients.custom()
+	/**
+	 * 응답 헤더 상한. 정상 사이트도 CSP 한 줄이 8KiB를 넘는 경우가 있어(예: Notion 약 8.9KiB) 여유를 둔다.
+	 * 최악의 경우에도 검사 1건의 헤더는 수 MiB로 제한되고, 동시 검사 수와 시간 제한이 함께 적용된다.
+	 */
+	static final int MAX_HEADER_LINE = 32 * 1024;
+	static final int MAX_HEADER_COUNT = 100;
+
+	static CloseableHttpClient defaultClient(org.apache.hc.client5.http.DnsResolver resolver) { return HttpClients.custom()
 		.setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
 			.setConnectionFactory(org.apache.hc.client5.http.impl.io.ManagedHttpClientConnectionFactory.builder()
-				.http1Config(org.apache.hc.core5.http.config.Http1Config.custom().setMaxHeaderCount(64).setMaxLineLength(8192).build()).build())
-			.setDnsResolver(new PublicDnsResolver())
+				.http1Config(org.apache.hc.core5.http.config.Http1Config.custom().setMaxHeaderCount(MAX_HEADER_COUNT)
+					.setMaxLineLength(MAX_HEADER_LINE).build()).build())
+			.setDnsResolver(resolver)
 			.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(2))
 				.setSocketTimeout(Timeout.ofSeconds(2)).build())
 			.setMaxConnTotal(8).setMaxConnPerRoute(4).build())
