@@ -55,6 +55,29 @@ class HttpUrlProbeTests {
 	}
 
 	@Test
+	void defaultClientReadsLongSecurityHeadersButKeepsAnUpperBound() throws Exception {
+		// 실제 Notion 페이지는 약 8.9KiB의 CSP 한 줄을 보낸다. 상한을 넘는 줄은 계속 거절한다.
+		var server = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress(java.net.InetAddress.getLoopbackAddress(), 0), 0);
+		server.createContext("/notion-like", exchange -> {
+			exchange.getResponseHeaders().add("Content-Security-Policy", "default-src " + "a".repeat(9_000));
+			exchange.sendResponseHeaders(200, -1); exchange.close();
+		});
+		server.createContext("/oversized", exchange -> {
+			exchange.getResponseHeaders().add("X-Large", "a".repeat(HttpUrlProbe.MAX_HEADER_LINE + 1));
+			exchange.sendResponseHeaders(200, -1); exchange.close();
+		});
+		server.start();
+		String base = "http://127.0.0.1:" + server.getAddress().getPort();
+		try (var client = HttpUrlProbe.defaultClient(org.apache.hc.client5.http.SystemDefaultDnsResolver.INSTANCE)) {
+			try (var response = client.executeOpen(null, new org.apache.hc.client5.http.classic.methods.HttpGet(base + "/notion-like"), null)) {
+				assertThat(response.getCode()).isEqualTo(200);
+			}
+			assertThatThrownBy(() -> client.executeOpen(null, new org.apache.hc.client5.http.classic.methods.HttpGet(base + "/oversized"), null).close())
+				.isInstanceOf(java.io.IOException.class);
+		} finally { server.stop(0); }
+	}
+
+	@Test
 	void redirectedMaliciousDestinationIsRejectedEvenIfInitialUrlIsClear() throws Exception {
 		CloseableHttpClient client = mock(CloseableHttpClient.class);
 		var redirect = new BasicClassicHttpResponse(302);
