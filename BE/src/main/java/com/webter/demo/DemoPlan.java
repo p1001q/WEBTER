@@ -175,6 +175,8 @@ final class DemoPlan {
 		Svc saves(int count, double fromDays, double toDays) { saves.add(new Burst(count, fromDays, toDays)); return this; }
 		Svc mine(boolean like, boolean save) { likedByMe = like; savedByMe = save; return this; }
 		Svc reacted(double days) { myReactionDays = days; return this; }
+		/** 등록 직후라 조회·이용하기 기록이 없는 서비스 */
+		Svc noActivity() { launches.clear(); views.clear(); return this; }
 	}
 
 	record Version(String version, String title, String content, double days) {

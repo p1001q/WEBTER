@@ -69,7 +69,7 @@ final class DemoContent {
 		p.member("sx", "promo.bot", "홍보계정").joined(30).bio("최저가 쇼핑 정보 매일 공유합니다");
 		for (int i = 0; i < RATER_NAMES.length; i++) {
 			String key = "r%02d".formatted(i + 1);
-			p.member(key, "rater%02d".formatted(i + 1), RATER_NAMES[i]).joined(100 - i * 2);
+			p.member(key, "rater%02d".formatted(i + 1), RATER_NAMES[i]).joined(150 - i);
 			p.raters.add(key);
 		}
 	}
@@ -450,7 +450,7 @@ final class DemoContent {
 			.mine(false, true).reacted(4);
 		guide(p, "demo-report3", "b", "[시연] 신고 3건 누적 서비스", "한 번 더 신고하면 4건이 되어 자동으로 임시 비공개돼요", false, false, false);
 		guide(p, "demo-newest", "k", "[시연] 가장 최근 등록 서비스", "최신순 목록 맨 위에 보이는 서비스", false, false, false)
-			.created(0.02);
+			.created(0.02).noActivity();
 		guide(p, "demo-empty", "f", "[시연] 리뷰·댓글 없음", "리뷰·댓글이 없을 때의 빈 화면", false, false, false);
 	}
 

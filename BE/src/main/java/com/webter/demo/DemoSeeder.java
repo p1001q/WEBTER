@@ -100,6 +100,8 @@ class DemoSeeder {
 		private final Map<String, UUID> users = new HashMap<>();
 		private final Map<String, Long> services = new HashMap<>();
 		private final Map<String, Svc> specs = new HashMap<>();
+		/** 회원 키 → 가입 경과일(본계정은 확인하지 않는다) */
+		private final Map<String, Double> joined = new HashMap<>();
 		/** 서비스 키 → (팀원 키 → 합류 시각) */
 		private final Map<String, Map<String, Instant>> teams = new HashMap<>();
 		private final Map<String, ReviewRow> reviews = new HashMap<>();
@@ -189,6 +191,7 @@ class DemoSeeder {
 		private void insertMember(Member m) {
 			UUID id = UUID.randomUUID();
 			users.put(m.key, id);
+			joined.put(m.key, m.joinedDays);
 			Timestamp joined = ts(m.joinedDays);
 			jdbc.sql("""
 					INSERT INTO users(user_id, username, nickname, email, avatar_url, bio, role, account_status,
@@ -333,6 +336,12 @@ class DemoSeeder {
 			if ((r.anonymous && (!s.anonReview || creator)) || (guest && !s.guest)) {
 				throw new IllegalStateException("서비스 설정과 맞지 않는 리뷰입니다: " + r.key);
 			}
+			if (!guest) {
+				requireJoined(r.author, r.days, "리뷰");
+			}
+			if (r.replyAuthor != null) {
+				requireJoined(r.replyAuthor, r.replyDays, "제작자 답글");
+			}
 			if (!guest && !reviewed.computeIfAbsent(s.key, k -> new HashSet<>()).add(r.author)) {
 				throw new IllegalStateException("같은 회원의 리뷰가 두 개입니다: " + r.key);
 			}
@@ -389,6 +398,7 @@ class DemoSeeder {
 				if (voter.equals(r.author) || "guest".equals(r.author)) {
 					throw new IllegalStateException("투표할 수 없는 리뷰입니다: " + r.key);
 				}
+				requireJoined(voter, Math.max(r.days - 0.5, 0.05), "투표");
 				jdbc.sql("""
 						INSERT INTO review_votes(user_id, review_id, vote_type, created_at, updated_at)
 						VALUES (:user, :review, :type, :at, :at)
@@ -410,7 +420,9 @@ class DemoSeeder {
 					String rater = pool.removeFirst();
 					used.add(rater);
 					boolean up = i < rating.up();
-					Timestamp at = ts(between(rating.fromDays(), rating.toDays()));
+					double days = between(rating.fromDays(), rating.toDays());
+					requireJoined(rater, days, "평가");
+					Timestamp at = ts(days);
 					jdbc.sql("""
 							INSERT INTO reviews(service_id, author_id, author_kind, rating, content, created_at, updated_at,
 							  recommended_at)
@@ -429,10 +441,15 @@ class DemoSeeder {
 			if (c.anonymous && (!s.anonComment || isMaker(s.key, c.author))) {
 				throw new IllegalStateException("서비스 설정과 맞지 않는 익명 댓글입니다: " + c.key);
 			}
+			if (!c.deleted) {
+				requireJoined(c.author, c.days, "댓글");
+			}
 			if (c.deleted && c.replies.isEmpty()) {
 				throw new IllegalStateException("답글이 없는 삭제 댓글은 남지 않습니다: " + c.key);
 			}
 			Timestamp created = ts(c.days);
+			// 답글이 달린 뒤에 지운 댓글이므로 삭제 시각은 가장 늦은 답글보다 뒤다
+			double deletedDays = c.replies.stream().mapToDouble(r -> r.days).min().orElse(c.days) / 2;
 			Long id = jdbc.sql("""
 					INSERT INTO service_comments(service_id, parent_comment_id, author_id, content, is_anonymous,
 					  deleted_at, created_at, updated_at)
@@ -440,7 +457,7 @@ class DemoSeeder {
 					RETURNING comment_id
 					""").param("service", service).param("parent", parent == null ? null : parent.id())
 				.param("author", c.deleted ? null : user(c.author)).param("text", c.deleted ? "" : c.text)
-				.param("anon", !c.deleted && c.anonymous).param("deleted", c.deleted ? ts(c.days - 0.2) : null)
+				.param("anon", !c.deleted && c.anonymous).param("deleted", c.deleted ? ts(deletedDays) : null)
 				.param("created", created).param("updated", c.editedDays == null ? created : ts(c.editedDays))
 				.query(Long.class).single();
 			CommentRow row = new CommentRow(id, s.key, c.deleted ? null : c.author);
@@ -484,19 +501,22 @@ class DemoSeeder {
 			}
 		}
 
+		/** 시각을 먼저 고르고, 그 시각에 이미 가입해 있던 회원 중에서 반응할 회원을 고른다 */
 		private void react(Svc s, String type, List<DemoPlan.Burst> bursts, List<String> pool) {
 			java.util.Collections.shuffle(pool, random);
 			for (var b : bursts) {
-				if (b.count() > pool.size()) {
-					throw new IllegalStateException("반응을 남길 회원이 부족합니다: " + s.key);
-				}
 				for (int i = 0; i < b.count(); i++) {
-					reaction(s, pool.removeFirst(), type, between(b.fromDays(), b.toDays()));
+					double days = between(b.fromDays(), b.toDays());
+					String member = pool.stream().filter(m -> joined.get(m) > days).findFirst()
+						.orElseThrow(() -> new IllegalStateException("반응을 남길 회원이 부족합니다: " + s.key));
+					pool.remove(member);
+					reaction(s, member, type, days);
 				}
 			}
 		}
 
 		private void reaction(Svc s, String userKey, String type, double days) {
+			requireJoined(userKey, days, "반응");
 			jdbc.sql("""
 					INSERT INTO service_reactions(user_id, service_id, reaction_type, created_at)
 					VALUES (:user, :service, :type, :at)
@@ -802,6 +822,14 @@ class DemoSeeder {
 
 		private double between(double fromDays, double toDays) {
 			return Math.min(fromDays, toDays) + random.nextDouble() * Math.abs(fromDays - toDays);
+		}
+
+		/** 가입하기 전 시각의 활동을 만들지 않는다 */
+		private void requireJoined(String key, double days, String what) {
+			Double since = joined.get(key);
+			if (since != null && since <= days) {
+				throw new IllegalStateException(what + " 시각이 가입보다 앞섭니다: " + key);
+			}
 		}
 
 		private UUID user(String key) {
