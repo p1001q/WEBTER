@@ -1,67 +1,111 @@
 package com.webter.domain.webservice.service;
 
-import java.net.InetAddress;
+import jakarta.annotation.PreDestroy;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import lombok.extern.slf4j.Slf4j;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.stereotype.Component;
 
-/**
- * 서비스 주소로 GET 요청을 보내 응답이 오는지 확인한다(상태 코드가 500 미만이면 접속 가능).
- * 서버가 임의의 내부 주소를 호출하지 않도록 사설·루프백·링크 로컬 주소는 거절하고 리디렉션은 따라가지 않는다.
- * 확인한 주소와 실제 접속 주소가 달라질 수 있는 한계(DNS 재조회)가 있다.
- */
-@Slf4j
+/** DNS 결과를 실제 연결에 사용하며 각 리디렉션도 다시 검증한다. TLS 호스트 검증은 기본값을 유지한다. */
 @Component
 public class HttpUrlProbe implements UrlProbe {
 
-	private static final Duration TIMEOUT = Duration.ofSeconds(4);
+	private final CloseableHttpClient client;
+	private final WebRiskClient webRisk;
 
-	private final HttpClient client = HttpClient.newBuilder()
-		.connectTimeout(TIMEOUT)
-		.followRedirects(HttpClient.Redirect.NEVER)
-		.build();
+	@org.springframework.beans.factory.annotation.Autowired
+	public HttpUrlProbe(WebRiskClient webRisk) { this(defaultClient(), webRisk); }
+
+	HttpUrlProbe(CloseableHttpClient client, WebRiskClient webRisk) { this.client = client; this.webRisk = webRisk; }
+
+	private static CloseableHttpClient defaultClient() { return HttpClients.custom()
+		.setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
+			.setConnectionFactory(org.apache.hc.client5.http.impl.io.ManagedHttpClientConnectionFactory.builder()
+				.http1Config(org.apache.hc.core5.http.config.Http1Config.custom().setMaxHeaderCount(64).setMaxLineLength(8192).build()).build())
+			.setDnsResolver(new PublicDnsResolver())
+			.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(2))
+				.setSocketTimeout(Timeout.ofSeconds(2)).build())
+			.setMaxConnTotal(8).setMaxConnPerRoute(4).build())
+		.setDefaultRequestConfig(RequestConfig.custom().setConnectionRequestTimeout(Timeout.ofSeconds(1))
+			.setResponseTimeout(Timeout.ofSeconds(2)).build())
+		.disableRedirectHandling().disableAutomaticRetries().disableCookieManagement().build(); }
+
+	private final ThreadPoolExecutor workers = new ThreadPoolExecutor(4, 4, 0, TimeUnit.SECONDS,
+		new ArrayBlockingQueue<>(4), Thread.ofPlatform().daemon().name("url-probe-", 0).factory(),
+		new ThreadPoolExecutor.AbortPolicy());
 
 	@Override
 	public boolean isReachable(String url) {
+		java.util.concurrent.Future<Boolean> task = null;
+		var active = new java.util.concurrent.atomic.AtomicReference<HttpGet>();
 		try {
-			URI uri = URI.create(url);
-			if (!"https".equals(uri.getScheme()) || uri.getHost() == null || !isPublicHost(uri.getHost())) {
-				return false;
-			}
-			HttpResponse<Void> response = client.send(
-					HttpRequest.newBuilder(uri).timeout(TIMEOUT).header("User-Agent", "WEBTER-url-check").GET().build(),
-					HttpResponse.BodyHandlers.discarding());
-			return response.statusCode() < 500;
+			task = workers.submit(() -> probe(url, active));
+			return task.get(5, TimeUnit.SECONDS);
 		}
-		catch (InterruptedException ex) {
-			Thread.currentThread().interrupt();
+		catch (InterruptedException ex) { Thread.currentThread().interrupt(); return false; }
+		catch (java.util.concurrent.ExecutionException ex) {
+			if (ex.getCause() instanceof com.webter.global.exception.BusinessException failure) throw failure;
 			return false;
 		}
-		catch (Exception ex) {
-			log.debug("서비스 주소 접속 확인 실패: {}", ex.getClass().getSimpleName());
-			return false;
-		}
-	}
-
-	// 이름에서 얻은 모든 주소가 공개 주소일 때만 접속한다
-	static boolean isPublicHost(String host) throws java.io.IOException {
-		for (InetAddress address : InetAddress.getAllByName(host)) {
-			if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
-					|| address.isSiteLocalAddress() || address.isMulticastAddress() || isUniqueLocalIpv6(address)) {
-				return false;
+		catch (Exception ex) { return false; }
+		finally {
+			if (task != null && !task.isDone()) {
+				task.cancel(true);
+				HttpGet request = active.get();
+				if (request != null) request.cancel();
 			}
 		}
-		return true;
 	}
 
-	// IPv6 고유 로컬 주소(fc00::/7)
-	private static boolean isUniqueLocalIpv6(InetAddress address) {
-		byte[] bytes = address.getAddress();
-		return bytes.length == 16 && (bytes[0] & 0xFE) == 0xFC;
+	private boolean probe(String url, java.util.concurrent.atomic.AtomicReference<HttpGet> active) throws Exception {
+		URI target = URI.create(ServiceUrlPolicy.validateServiceUrl(url));
+		for (int hop = 0; hop <= 3; hop++) {
+			if (hop > 0 && webRisk.check(target.toString()).unsafe())
+				throw new com.webter.global.exception.BusinessException(com.webter.domain.webservice.exception.ServiceErrorCode.UNSAFE_URL);
+			HttpGet request = new HttpGet(target);
+			active.set(request);
+			if (Thread.currentThread().isInterrupted()) { request.cancel(); return false; }
+			request.setHeader(HttpHeaders.USER_AGENT, "WEBTER-url-check");
+			request.setHeader(HttpHeaders.CONNECTION, "close");
+			int status;
+			org.apache.hc.core5.http.Header location;
+			try {
+				var response = client.executeOpen(null, request, null);
+				status = response.getCode();
+				location = response.getFirstHeader(HttpHeaders.LOCATION);
+				// 헤더만 읽고 연결을 끊는다. 큰 본문을 내려받거나 연결 재사용을 위해 소진하지 않는다.
+				request.cancel();
+				closeAfterCancel(response);
+			}
+			finally { request.cancel(); }
+			// 로그인·권한이 필요한 서비스의 기존 등록 허용은 유지한다. 404·429·5xx는 거절한다.
+			if ((status >= 200 && status < 300) || status == 401 || status == 403) return true;
+			if (hop == 3 || !isRedirect(status) || location == null) return false;
+			target = URI.create(ServiceUrlPolicy.validateServiceUrl(target.resolve(location.getValue()).toString()));
+		}
+		return false;
 	}
 
+	/**
+	 * 끊긴 연결의 응답을 닫는다. 본문을 나눠 보내는(chunked) 응답은 닫을 때 남은 본문을 읽으려다 소켓 오류가 나므로
+	 * 이미 읽은 상태 코드로 판정하고 그 오류는 무시한다.
+	 */
+	private static void closeAfterCancel(java.io.Closeable response) {
+		try { response.close(); }
+		catch (java.io.IOException ignored) { }
+	}
+
+	static boolean isRedirect(int status) { return status == 301 || status == 302 || status == 303 || status == 307 || status == 308; }
+
+	@PreDestroy
+	void close() throws java.io.IOException { workers.shutdownNow(); client.close(); }
 }

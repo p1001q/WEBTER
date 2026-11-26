@@ -22,6 +22,8 @@ jobs:
         working-directory: FE
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_BASE_URL: ""
+      API_INTERNAL_BASE_URL: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -35,5 +37,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Check formatting, lint and types
         run: pnpm check
+      - name: Run frontend regression tests
+        run: pnpm test
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
       - name: Build production application
         run: pnpm build
+      - name: Verify production security responses
+        run: node scripts/check-security-response.mjs

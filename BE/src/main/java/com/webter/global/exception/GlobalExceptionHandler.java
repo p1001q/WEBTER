@@ -25,6 +25,12 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
+	@ExceptionHandler(com.webter.global.security.AbuseProtection.LimitExceeded.class)
+	ResponseEntity<ApiResponse<Void>> handleRateLimit(com.webter.global.security.AbuseProtection.LimitExceeded e) {
+		return ResponseEntity.status(429).header(HttpHeaders.RETRY_AFTER, Long.toString(e.retryAfter()))
+			.body(ApiResponse.fail(CommonErrorCode.TOO_MANY_REQUESTS));
+	}
+
 	@ExceptionHandler(BusinessException.class)
 	ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException e) {
 		ErrorCode errorCode = e.getErrorCode();

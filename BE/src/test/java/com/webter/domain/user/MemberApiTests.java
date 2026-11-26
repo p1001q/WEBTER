@@ -88,6 +88,18 @@ class MemberApiTests extends DomainFixtureTest {
 	}
 
 	@Test
+	void extraRoleAndUserIdFieldsCannotChangePrivilegesOrAnotherAccount() throws Exception {
+		User member = createUser("field_guard");
+		User other = createUser("field_other");
+		flushAndClear();
+		String json = profile("field_guard", "검증", "\"\"", "[]", "[]");
+		json = json.substring(0, json.length() - 1) + ",\"role\":\"ADMIN\",\"userId\":\"" + other.getId() + "\"}";
+		mockMvc.perform(put("/api/users/me").with(as(member)).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json)).andExpect(status().isOk());
+		assertThat(jdbc.queryForObject("SELECT role FROM users WHERE user_id = ?", String.class, member.getId())).isEqualTo("USER");
+		assertThat(jdbc.queryForObject("SELECT username FROM users WHERE user_id = ?", String.class, other.getId())).isEqualTo("field_other");
+	}
+
+	@Test
 	void updatesProfileAndReplacesInterests() throws Exception {
 		User user = createUser("before");
 		interestRepository.save(UserInterest.builder()

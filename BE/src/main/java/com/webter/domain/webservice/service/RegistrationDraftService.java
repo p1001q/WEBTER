@@ -29,6 +29,7 @@ public class RegistrationDraftService {
 	private final JsonMapper json;
 
 	private final ImageVerifier images;
+	private final com.webter.domain.upload.service.ImageUploadUsage uploadUsage;
 
 	public record Draft(UUID revision, Instant savedAt, RegistrationDraftPayload payload) {
 	}
@@ -57,6 +58,7 @@ public class RegistrationDraftService {
 		if (urls.stream().anyMatch(url -> !images.isOwnUrl(url))) {
 			throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
 		}
+		urls.forEach(uploadUsage::retain);
 		UUID revision = UUID.randomUUID();
 		jdbc.sql("""
 				INSERT INTO service_registration_drafts(user_id, revision, payload, updated_at)

@@ -24,6 +24,7 @@ class ImageCredentialDeploymentTests(unittest.TestCase):
             'PG_APP_PASSWORD': 'b' * 64,
             'REDIS_PASSWORD': 'c' * 64,
             'SERVICE_EVENT_IP_HMAC_KEY': 'd' * 64,
+            'WEB_RISK_API_KEY': 'test-web-risk-key',
             'IMAGE_BUCKET': 'test-images',
             'IMAGE_S3_ACCESS_KEY': 'test-access-key',
             'IMAGE_S3_SECRET_KEY': 'test-secret-key',
@@ -47,6 +48,12 @@ class ImageCredentialDeploymentTests(unittest.TestCase):
         self.assertNotIn('AWS_PROFILE', env)
         self.assertIn('IMAGE_BUCKET=test-images', self.output.read_text())
         self.assertNotIn('PG_ADMIN_PASSWORD', self.output.read_text())
+
+    def test_missing_security_key_preserves_current_release(self):
+        self.values.pop('WEB_RISK_API_KEY')
+        with self.assertRaisesRegex(SystemExit, 'WEB_RISK_API_KEY is required'):
+            self.validate()
+        self.assertFalse(self.output.exists())
 
     def test_invalid_credentials_stop_before_writing_application_environment(self):
         with self.assertRaisesRegex(SystemExit, 'failed AWS authentication') as error:

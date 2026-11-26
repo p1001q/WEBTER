@@ -13,7 +13,7 @@ import {
   type SetStateAction,
   type RefObject,
 } from "react";
-import { realAuth } from "@/api/auth/config";
+import { API_BASE, realAuth } from "@/api/auth/config";
 import { ApiError, failureText, toApiError } from "@/api/errors";
 import {
   interactionApi,
@@ -661,7 +661,11 @@ export function useRealInteractions({
     },
     launch: async (s) => {
       if (s.use !== "live") return;
-      window.open(s.url, "_blank", "noopener,noreferrer");
+      window.open(
+        `${API_BASE}/api/services/${encodeURIComponent(s.id)}/launch`,
+        "_blank",
+        "noopener,noreferrer",
+      );
       record(s.id, "LAUNCH");
     },
     countView: (s) => record(s.id, "VIEW"),

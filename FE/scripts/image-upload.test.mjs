@@ -57,6 +57,10 @@ test("고른 이미지는 발급받은 주소로 직접 올리고 서버 주소�
   assert.deepEqual(puts[0][1].headers, { "Content-Type": "image/png" });
   // 저장소에는 로그인 쿠키를 보내지 않는다
   assert.equal(puts[0][1].credentials, "omit");
+  assert.deepEqual(posts[1], [
+    "/api/uploads/images/complete",
+    { imageUrl: url },
+  ]);
 });
 
 test("저장소가 거절하면 오류로 알린다", async () => {

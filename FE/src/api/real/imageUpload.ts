@@ -39,6 +39,7 @@ export async function uploadDataUrl(dataUrl: string): Promise<string> {
     throw new ApiError("network");
   }
   if (!res.ok) throw new ApiError("rule", FAILED);
+  await postJson("/api/uploads/images/complete", { imageUrl: ticket.imageUrl });
   return ticket.imageUrl;
 }
 
