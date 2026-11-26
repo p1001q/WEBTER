@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useId } from "react";
 import type { UseState } from "@/api/types";
 import { Footer } from "@/components/layout/Footer";
@@ -54,7 +55,17 @@ export function ManageScreen() {
             </RouteLink>
           }
         />
-        {mine.length === 0 ? (
+        {!wt.myServicesReady ? (
+          <div
+            className="mt-6 flex flex-col gap-3"
+            role="status"
+            aria-label="내 서비스를 불러오는 중"
+          >
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-[92px] rounded-lg" />
+            ))}
+          </div>
+        ) : mine.length === 0 ? (
           <div className={`${boxClass} mt-6`}>
             <EmptyState
               title="아직 등록한 서비스가 없어요"

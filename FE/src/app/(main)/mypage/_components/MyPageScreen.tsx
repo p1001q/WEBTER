@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { realAuth } from "@/api/auth/config";
 import { Footer } from "@/components/layout/Footer";
+import { CommentListSkeleton } from "@/components/comment/CommentListSkeleton";
+import { ReviewListSkeleton } from "@/components/review/ReviewListSkeleton";
 import { ServiceIcon } from "@/components/service/ServiceIcon";
+import { ServiceListSkeleton } from "@/components/service/ServiceListSkeleton";
 import { Avatar } from "@/components/ui/Avatar";
 import { CopyHandle } from "@/components/ui/CopyHandle";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -48,8 +52,12 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
   const me = wt.me!;
   const { loadMypage } = wt;
   // 실제 서버 연결에서는 서비스를 가리지 않고 내가 쓴 리뷰·댓글과 저장한 순서를 서버에서 가져온다(실패해도 이미 있는 내용으로 보여 준다)
+  // 서버에서 내 리뷰·댓글·저장 순서를 받기 전에는 빈 안내 대신 자리 표시를 보인다
+  const [loaded, setLoaded] = useState(!realAuth);
   useEffect(() => {
-    loadMypage().catch(() => {});
+    loadMypage()
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, [loadMypage]);
   const mine = wt.services.filter((s) => isMaker(s, me.id));
   // 담은 순서(먼저 담은 것이 앞)를 그대로 둔다. 저장한 서비스의 정렬이 이 순서를 쓴다
@@ -142,7 +150,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
           )}
         >
           {tab === "services" &&
-            (mine.length ? (
+            (!wt.myServicesReady ? (
+              <ServiceListSkeleton view="card" />
+            ) : mine.length ? (
               <MyServiceList kind="mine" items={mine} />
             ) : (
               <EmptyState
@@ -154,7 +164,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
               />
             ))}
           {tab === "saved" &&
-            (saved.length ? (
+            (!loaded ? (
+              <ServiceListSkeleton view="card" />
+            ) : saved.length ? (
               <MyServiceList kind="saved" items={saved} />
             ) : (
               <EmptyState
@@ -166,7 +178,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
               />
             ))}
           {tab === "reviews" &&
-            (myReviews.length ? (
+            (!loaded ? (
+              <ReviewListSkeleton />
+            ) : myReviews.length ? (
               <div>
                 {myReviews.map((r) => {
                   const s = wt.svc(r.sid);
@@ -235,7 +249,9 @@ export function MyPageScreen({ tab: tabParam }: { tab: Tab }) {
               />
             ))}
           {tab === "comments" &&
-            (myComments.length ? (
+            (!loaded ? (
+              <CommentListSkeleton />
+            ) : myComments.length ? (
               <div>
                 {myComments.map((c) => {
                   const s = wt.svc(c.sid);

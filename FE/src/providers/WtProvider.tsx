@@ -379,6 +379,7 @@ export function WtProvider({
   // 실제 로그인을 쓸 때는 첫 화면을 그린 뒤 서버 세션을 확인해 로그인 상태를 되살린다.
   // 확인이 끝나기 전에는 로그인이 필요한 화면이 로그인 안내를 띄우지 않도록 sessionReady 로 기다리게 한다.
   const [sessionReady, setSessionReady] = useState(!realAuth);
+  const [myServicesReady, setMyServicesReady] = useState(!realAuth);
   useEffect(() => {
     if (!realAuth) return;
     let live = true;
@@ -412,12 +413,15 @@ export function WtProvider({
               }));
             } catch {
               // 내 서비스를 못 받아도 로그인 복원은 그대로 둔다(공개 서비스는 이미 보인다)
+            } finally {
+              if (live) setMyServicesReady(true);
             }
           })();
-        }
+        } else setMyServicesReady(true);
       } catch {
         // 저장된 목업 회원 상태가 서버 확인 실패 뒤에 남지 않도록 비운다
         if (live) {
+          setMyServicesReady(true);
           const r = await api.adoptMember(null);
           if (live) applySession(r.session);
         }
@@ -514,6 +518,8 @@ export function WtProvider({
     todayCount,
     takenHandles: realAuth ? [] : snap.takenHandles,
     sessionReady,
+    notificationsReady: realAuth ? realNotifications.ready : true,
+    myServicesReady,
     publicServices: services.filter((s) => s.pub === "public"),
     view,
     setView,
