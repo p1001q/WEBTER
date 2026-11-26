@@ -40,6 +40,16 @@ class WebRiskClientTests {
 	}
 
 	@Test
+	void lateClearResultDoesNotReplaceUnexpiredUnsafeResult() {
+		// 동시 조회 중 위험 판정이 먼저 저장되고 정상 판정이 늦게 끝나도 위험 판정을 유지·반환한다.
+		WebRiskClient client = new WebRiskClient("secret-key", JsonMapper.builder().build(), mock(AbuseProtection.class), mock(HttpClient.class));
+		var later = java.time.Instant.now().plusSeconds(600);
+		client.remember("https://example.test/", new WebRiskClient.Result(true, later));
+		assertThat(client.remember("https://example.test/", new WebRiskClient.Result(false, later)).unsafe()).isTrue();
+		assertThat(client.check("https://example.test/").unsafe()).isTrue();
+	}
+
+	@Test
 	void missingKeyErrorsMalformedAndOversizedResponsesNeverPass() throws Exception {
 		assertThatThrownBy(() -> new WebRiskClient("", JsonMapper.builder().build(), mock(AbuseProtection.class), mock(HttpClient.class)).check("https://example.test"))
 			.isInstanceOf(BusinessException.class);

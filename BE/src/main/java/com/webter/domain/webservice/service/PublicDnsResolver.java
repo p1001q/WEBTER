@@ -34,6 +34,10 @@ final class PublicDnsResolver implements DnsResolver {
 				&& !(first == 198 && (second == 18 || second == 19 || (second == 51 && third == 100)))
 				&& !(first == 203 && second == 0 && third == 113);
 		}
+		int third = Byte.toUnsignedInt(b[2]);
+		// 2001:2::/48(벤치마크)과 3fff::/20(문서용)은 전역 단일 주소 범위 안에 있지만 공개 목적지가 아니다.
+		if (first == 0x20 && second == 0x01 && third == 0 && Byte.toUnsignedInt(b[3]) == 0x02 && b[4] == 0 && b[5] == 0) return false;
+		if (first == 0x3F && second == 0xFF && (third & 0xF0) == 0) return false;
 		return (first & 0xE0) == 0x20 && !(first == 0x20 && second == 0x02)
 			&& !(first == 0x20 && second == 0x01 && b[2] == 0 && b[3] == 0)
 			&& !(first == 0x20 && second == 0x01 && Byte.toUnsignedInt(b[2]) == 0x0D

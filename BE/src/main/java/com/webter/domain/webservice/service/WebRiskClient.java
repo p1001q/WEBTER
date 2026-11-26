@@ -82,12 +82,13 @@ public class WebRiskClient {
 		throw new BusinessException(ServiceErrorCode.URL_CHECK_UNAVAILABLE);
 	}
 
-	private Result remember(String url, Result result) {
+	Result remember(String url, Result result) {
 		Instant max = Instant.now().plusSeconds(3600);
 		Result bounded = new Result(result.unsafe(), result.expiresAt().isBefore(max) ? result.expiresAt() : max);
 		if (!bounded.expiresAt().isAfter(Instant.now())) throw new BusinessException(ServiceErrorCode.URL_CHECK_UNAVAILABLE);
-		redirectCache.put(url, bounded);
-		return bounded;
+		// 같은 URL을 동시에 조회하면 늦게 끝난 CLEAR가 먼저 저장된 UNSAFE를 덮을 수 있다. 만료 전 위험 판정을 우선한다.
+		return redirectCache.compute(url, (ignored, previous) -> previous != null && previous.unsafe() && !bounded.unsafe()
+			&& previous.expiresAt().isAfter(Instant.now()) ? previous : bounded);
 	}
 
 	/** 본문 수신까지 끝나야 응답을 완료해 요청 timeout과 메모리 상한을 함께 적용한다. */

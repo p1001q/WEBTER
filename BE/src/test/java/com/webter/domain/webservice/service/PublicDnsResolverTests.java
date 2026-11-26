@@ -16,6 +16,14 @@ class PublicDnsResolverTests {
 	}
 
 	@Test
+	void rejectsBenchmarkingAndDocumentationIpv6ButKeepsNeighbouringPublicRanges() throws Exception {
+		for (String address : java.util.List.of("2001:2::1", "2001:2:0:ffff::1", "3fff::1", "3fff:fff::1"))
+			assertThat(PublicDnsResolver.isPublic(InetAddress.getByName(address))).as(address).isFalse();
+		for (String address : java.util.List.of("2001:2:1::1", "2001:3::1", "3fff:1000::1", "3ffe::1"))
+			assertThat(PublicDnsResolver.isPublic(InetAddress.getByName(address))).as(address).isTrue();
+	}
+
+	@Test
 	void rejectsNonHttpsUserInfoAndAlternativePortsBeforeConnecting() {
 		for (String url : java.util.List.of("http://example.com", "https://user@example.com", "https://example.com:8443", "https://example.com:/"))
 			assertThatThrownBy(() -> ServiceUrlPolicy.validateServiceUrl(url)).isInstanceOf(com.webter.global.exception.BusinessException.class);
