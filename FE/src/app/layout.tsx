@@ -7,24 +7,21 @@ import "@fontsource/jetbrains-mono/500.css";
 import "@fontsource/jetbrains-mono/700.css";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
+import {
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+  shareMetadata,
+} from "@/lib/shareMetadata";
 
 export const metadata: Metadata = {
   ...(SITE_URL ? { metadataBase: SITE_URL } : {}),
   ...(process.env.SITE_NOINDEX === "true" ? { robots: { index: false } } : {}),
   title: {
-    default: "WEBTER | 웹이 모이는 터, 웹터",
+    default: SITE_TITLE,
     template: "%s | WEBTER",
   },
-  description:
-    "개발자가 만든 웹 서비스를 발견하고, 설치 없이 이용하며 리뷰와 반응을 나누는 웹 서비스 스토어.",
-  openGraph: {
-    type: "website",
-    siteName: "WEBTER",
-    locale: "ko_KR",
-    title: "WEBTER | 웹이 모이는 터, 웹터",
-    description:
-      "개발자가 만든 웹 서비스를 발견하고, 설치 없이 이용하며 리뷰와 반응을 나누는 웹 서비스 스토어.",
-  },
+  description: SITE_DESCRIPTION,
+  ...shareMetadata({ title: SITE_TITLE, description: SITE_DESCRIPTION }),
 };
 
 export default async function RootLayout({
