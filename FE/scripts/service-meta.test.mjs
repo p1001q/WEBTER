@@ -78,7 +78,10 @@ test("OG와 트위터 카드에 이름·소개·이미지를 담는다", () => {
   assert.equal(m.openGraph.title, "타이머");
   assert.deepEqual(m.openGraph.images, [{ url: "https://cdn.test/t.png" }]);
   assert.equal(m.twitter.card, "summary_large_image");
+});
+
+test("이미지가 없으면 기본 공유 이미지를 넣는다", () => {
   const bare = serviceMetadata("12", { name: "a", tagline: "b", image: null });
-  assert.equal(bare.openGraph.images, undefined);
-  assert.equal(bare.twitter.card, "summary");
+  assert.equal(bare.openGraph.images[0].url, "/og-default.png");
+  assert.deepEqual(bare.twitter.images, ["/og-default.png"]);
 });
